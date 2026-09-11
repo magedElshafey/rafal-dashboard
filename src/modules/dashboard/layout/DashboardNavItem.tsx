@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { NavLink, useMatch } from 'react-router-dom'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useDirection } from '@/hooks/useDirection'
 import { cn } from '@/lib/utils'
 import type { DashboardNavigationItem } from '@/modules/dashboard/layout/dashboard-navigation'
 
@@ -12,7 +13,8 @@ type DashboardNavItemProps = {
 }
 
 export function DashboardNavItem({ item, collapsed, onNavigate }: DashboardNavItemProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const direction = useDirection()
   const label = t(item.labelKey)
   const Icon = item.icon
   const isActive = Boolean(useMatch({ path: item.to, end: item.match === 'exact' }))
@@ -37,7 +39,7 @@ export function DashboardNavItem({ item, collapsed, onNavigate }: DashboardNavIt
           <span className={cn('truncate', collapsed && 'md:hidden')}>{label}</span>
         </NavLink>
       </TooltipTrigger>
-      {collapsed ? <TooltipContent side={i18n.dir() === 'rtl' ? 'left' : 'right'}>{label}</TooltipContent> : null}
+      {collapsed ? <TooltipContent side={direction === 'rtl' ? 'left' : 'right'}>{label}</TooltipContent> : null}
     </Tooltip>
   )
 }

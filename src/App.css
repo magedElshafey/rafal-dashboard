@@ -10,7 +10,7 @@
   /* =========================
      FONTS
   ========================= */
-  --font-sans: 'Poppins', 'IBM Plex Sans Arabic', sans-serif;
+  --font-sans: 'Tajawal', ui-sans-serif, system-ui, sans-serif;
 
   /* =========================
      RADIUS
@@ -352,4 +352,50 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type='number'] {
   -moz-appearance: textfield;
+}
+
+.dashboard-shell {
+  grid-template-areas: 'application';
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-application {
+  grid-area: application;
+  min-width: 0;
+}
+
+@media (max-width: 47.999rem) {
+  .dashboard-sidebar[data-mobile-open='false'] {
+    transform: translateX(-100%);
+  }
+
+  html[dir='rtl'] .dashboard-sidebar[data-mobile-open='false'] {
+    transform: translateX(100%);
+  }
+
+  .dashboard-sidebar[data-mobile-open='true'] {
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 48rem) {
+  .dashboard-shell {
+    grid-template-areas: 'sidebar application';
+    grid-template-columns: var(--dashboard-sidebar-width) minmax(0, 1fr);
+  }
+
+  .dashboard-shell > .dashboard-sidebar {
+    grid-area: sidebar;
+    position: relative;
+    inset: auto;
+    transform: none;
+  }
+
+  .dashboard-sidebar-resize-handle {
+    transform: translateX(50%);
+  }
+
+  html[dir='rtl'] .dashboard-sidebar-resize-handle {
+    transform: translateX(-50%);
+  }
 }

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { useDirection } from '@/hooks/useDirection'
 import { cn } from '@/lib/utils'
 import { DashboardNavItem } from '@/modules/dashboard/layout/DashboardNavItem'
 import { dashboardNavigation } from '@/modules/dashboard/layout/dashboard-navigation'
@@ -41,10 +42,11 @@ export function DashboardSidebar({
   onToggleCollapsed,
   onResizeCommit,
 }: DashboardSidebarProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const direction = useDirection()
   const resizeSessionRef = useRef<ResizeSession | null>(null)
   const previousBodyStylesRef = useRef<{ cursor: string; userSelect: string } | null>(null)
-  const directionMultiplier = i18n.dir() === 'rtl' ? -1 : 1
+  const directionMultiplier = direction === 'rtl' ? -1 : 1
 
   const updateShellWidth = (nextWidth: number) => {
     shellRef.current?.style.setProperty('--dashboard-sidebar-width', `${nextWidth}px`)
@@ -114,11 +116,11 @@ export function DashboardSidebar({
     <aside
       aria-hidden={!isDesktop && !mobileOpen}
       inert={!isDesktop && !mobileOpen}
+      data-direction={direction}
+      data-mobile-open={mobileOpen}
       className={cn(
-        'fixed inset-y-0 start-0 z-50 flex w-72 min-w-0 flex-col overflow-hidden border-e border-border bg-sidebar shadow-xl transition-transform duration-200',
-        '-translate-x-full rtl:translate-x-full',
-        mobileOpen && 'translate-x-0 rtl:translate-x-0',
-        'md:static md:z-auto md:w-auto md:translate-x-0 md:shadow-none'
+        'dashboard-sidebar fixed inset-y-0 start-0 z-50 flex w-72 min-w-0 flex-col overflow-hidden border-e border-border bg-sidebar shadow-xl transition-transform duration-200',
+        'md:z-auto md:w-auto md:shadow-none bg-page'
       )}
     >
       <div className="inline-flex h-16 shrink-0 items-center gap-3 border-b border-border px-3 whitespace-nowrap">
@@ -175,7 +177,7 @@ export function DashboardSidebar({
           aria-valuemin={DASHBOARD_SIDEBAR_MIN_WIDTH}
           aria-valuemax={DASHBOARD_SIDEBAR_MAX_WIDTH}
           aria-valuenow={width}
-          className="absolute inset-y-0 end-0 z-10 hidden w-2 translate-x-1/2 cursor-col-resize touch-none outline-none after:absolute after:inset-y-0 after:start-1/2 after:w-px after:-translate-x-1/2 after:bg-transparent hover:after:bg-primary focus-visible:after:bg-primary md:block"
+          className="dashboard-sidebar-resize-handle absolute inset-y-0 end-0 z-10 hidden w-2 cursor-col-resize touch-none outline-none after:absolute after:inset-y-0 after:start-1/2 after:w-px after:bg-transparent hover:after:bg-primary focus-visible:after:bg-primary md:block"
           onKeyDown={handleResizeKeyDown}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

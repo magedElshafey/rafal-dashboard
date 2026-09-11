@@ -7,12 +7,14 @@ export const DashboardPageHeader = ({
   renderSuffix,
   rootClassName,
   titleId,
+  intro,
 }: {
   title: string
   description?: string
   renderSuffix?: () => ReactNode
   rootClassName?: string
   titleId?: string
+  intro?: string
 }) => {
   return (
     <header
@@ -22,7 +24,8 @@ export const DashboardPageHeader = ({
       )}
     >
       <div className="flex flex-col gap-1">
-        <h1 id={titleId} className="text-xl md:text-2xl font-semibold text-neutral-900 text-center md:text-start">
+        <p className="text-sm text-muted-foreground">{intro}</p>
+        <h1 id={titleId} className="text-3xl font-semibold text-foreground">
           {title}
         </h1>
         {description && <p className="text-neutral-600 text-sm text-center md:text-start">{description}</p>}

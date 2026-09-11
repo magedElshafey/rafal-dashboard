@@ -42,7 +42,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       ref={shellRef}
       data-testid="dashboard-shell"
       style={shellStyle}
-      className="grid min-h-dvh grid-cols-[minmax(0,1fr)] bg-page md:grid-cols-[var(--dashboard-sidebar-width)_minmax(0,1fr)]"
+      className="dashboard-shell grid min-h-dvh w-full "
     >
       {!isDesktop && mobileNavigationOpen ? (
         <button
@@ -62,9 +62,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
         onToggleCollapsed={toggleCollapsed}
         onResizeCommit={commitWidth}
       />
-      <div className="min-w-0">
+      <div data-testid="dashboard-application" className="dashboard-application min-w-0">
         <DashboardTopbar onOpenNavigation={() => setMobileNavigationOpen(true)} />
-        <div className="min-w-0 overflow-x-hidden">{children}</div>
+        <div className="dashboard-content mx-auto min-w-0 bg-background p-6">{children}</div>
       </div>
     </div>
   )

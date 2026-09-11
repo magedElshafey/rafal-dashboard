@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { DashboardLanguageToggle } from '@/modules/dashboard/layout/DashboardLanguageToggle'
 import { DashboardNotificationsButton } from '@/modules/dashboard/layout/DashboardNotificationsButton'
+import { DashboardFullscreenToggle } from '@/modules/dashboard/layout/DashboardFullscreenToggle'
 import { DashboardThemeToggle } from '@/modules/dashboard/layout/DashboardThemeToggle'
 import { DashboardUserMenu } from '@/modules/dashboard/layout/DashboardUserMenu'
 
@@ -15,7 +16,7 @@ export function DashboardTopbar({ onOpenNavigation }: DashboardTopbarProps) {
   const { t } = useTranslation()
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-surface/95 px-3 backdrop-blur sm:px-5">
+    <header className="sticky  top-0 z-30 flex h-16 w-full min-w-0 items-center border-b border-border bg-surface/95 px-3 backdrop-blur sm:px-5">
       <Button
         type="button"
         variant="ghost"
@@ -30,6 +31,7 @@ export function DashboardTopbar({ onOpenNavigation }: DashboardTopbarProps) {
         <DashboardNotificationsButton />
         <DashboardLanguageToggle />
         <DashboardThemeToggle />
+        <DashboardFullscreenToggle />
         <DashboardUserMenu />
       </div>
     </header>

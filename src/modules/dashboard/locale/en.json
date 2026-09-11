@@ -23,6 +23,8 @@
       "useDarkTheme": "Use dark theme",
       "useEnglish": "Switch to English",
       "useArabic": "Switch to Arabic",
+      "enterFullscreen": "Enter fullscreen",
+      "exitFullscreen": "Exit fullscreen",
       "userMenu": "Open user menu",
       "guest": "Guest user"
     }

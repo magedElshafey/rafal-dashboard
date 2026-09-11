@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import i18n from '@/config/i18'
@@ -19,11 +19,21 @@ function renderShell() {
   )
 }
 
+function stubDesktopViewport(matches: boolean) {
+  vi.stubGlobal('matchMedia', () => ({
+    matches,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+}
+
 describe('DashboardShell', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear()
-    void i18n.changeLanguage('en')
+    await i18n.changeLanguage('en')
   })
+
+  afterEach(() => vi.unstubAllGlobals())
 
   it('uses a valid persisted preference during the initial render', () => {
     localStorage.setItem(DASHBOARD_SIDEBAR_STORAGE_KEY, JSON.stringify({ collapsed: true, width: 320 }))
@@ -83,6 +93,45 @@ describe('DashboardShell', () => {
     expect(resizeHandle).toHaveAttribute('aria-valuenow', '360')
   })
 
+  it('resizes toward inline-end in RTL and keeps the desktop sidebar visible', async () => {
+    stubDesktopViewport(true)
+    await i18n.changeLanguage('ar')
+    renderShell()
+
+    const sidebar = screen.getByRole('navigation').closest('aside')
+    const resizeHandle = screen.getByRole('separator', { name: 'تغيير حجم الشريط الجانبي' })
+    fireEvent.pointerDown(resizeHandle, { clientX: 256, pointerId: 2 })
+    fireEvent.pointerMove(resizeHandle, { clientX: 206, pointerId: 2 })
+    fireEvent.pointerUp(resizeHandle, { clientX: 206, pointerId: 2 })
+
+    expect(sidebar).toHaveAttribute('data-direction', 'rtl')
+    expect(sidebar).not.toHaveAttribute('inert')
+    expect(sidebar).not.toHaveClass('md:static')
+    expect(screen.getByTestId('dashboard-shell')).toHaveStyle('--dashboard-sidebar-width: 306px')
+  })
+
+  it('uses explicit shell areas and preserves sidebar preferences when direction changes', async () => {
+    stubDesktopViewport(true)
+    localStorage.setItem(DASHBOARD_SIDEBAR_STORAGE_KEY, JSON.stringify({ collapsed: false, width: 320 }))
+    renderShell()
+
+    const shell = screen.getByTestId('dashboard-shell')
+    const application = screen.getByTestId('dashboard-application')
+
+    expect(shell).toHaveClass('dashboard-shell', 'w-full')
+    expect(application).toHaveClass('dashboard-application', 'min-w-0')
+    expect(shell).toHaveStyle('--dashboard-sidebar-width: 320px')
+
+    await i18n.changeLanguage('ar')
+
+    expect(document.documentElement).toHaveAttribute('dir', 'rtl')
+    expect(shell).toHaveStyle('--dashboard-sidebar-width: 320px')
+    expect(JSON.parse(localStorage.getItem(DASHBOARD_SIDEBAR_STORAGE_KEY) ?? '{}')).toEqual({
+      collapsed: false,
+      width: 320,
+    })
+  })
+
   it('recovers from malformed stored preferences', () => {
     localStorage.setItem(DASHBOARD_SIDEBAR_STORAGE_KEY, '{bad json')
 
@@ -92,11 +141,7 @@ describe('DashboardShell', () => {
   })
 
   it('opens and closes the same navigation tree as a mobile overlay', () => {
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
+    stubDesktopViewport(false)
 
     renderShell()
 
@@ -108,6 +153,24 @@ describe('DashboardShell', () => {
 
     fireEvent.click(navigation.closest('aside')!.querySelector('button[aria-label="Close navigation"]')!)
     expect(navigation.closest('aside')).toHaveAttribute('inert')
-    vi.unstubAllGlobals()
+  })
+
+  it.each([
+    ['tablet', 'en', 'ltr'],
+    ['tablet', 'ar', 'rtl'],
+    ['mobile', 'en', 'ltr'],
+    ['mobile', 'ar', 'rtl'],
+  ] as const)('keeps the %s drawer direction-aware for %s', async (_viewport, language, direction) => {
+    stubDesktopViewport(false)
+    await i18n.changeLanguage(language)
+    renderShell()
+
+    const sidebar = screen.getByRole('navigation', { hidden: true }).closest('aside')
+    expect(document.documentElement).toHaveAttribute('dir', direction)
+    expect(sidebar).toHaveAttribute('data-direction', direction)
+    expect(sidebar).toHaveAttribute('data-mobile-open', 'false')
+
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('dashboard.topbar.openNavigation') }))
+    expect(sidebar).toHaveAttribute('data-mobile-open', 'true')
   })
 })
