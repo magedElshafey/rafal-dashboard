@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { Eye, Pencil } from 'lucide-react'
 import { describe, expect, it, vi } from 'vitest'
 
+import i18n from '@/config/i18'
 import { DashboardCardActions, type CardActionItem } from './DashboardCardAction'
 
 function createAction(overrides: Partial<CardActionItem> = {}): CardActionItem {
@@ -24,7 +25,7 @@ describe('DashboardCardActions', () => {
 
     const directTrigger = screen.getByRole('button', { name: 'Preview Mathematics Formula Sheet' })
 
-    expect(screen.queryByRole('button', { name: 'Open actions menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: i18n.t('button.table_actions') })).not.toBeInTheDocument()
     expect(directTrigger).toHaveAttribute('title', 'Preview Mathematics Formula Sheet')
 
     await user.click(directTrigger)
@@ -58,7 +59,7 @@ describe('DashboardCardActions', () => {
 
     render(<DashboardCardActions actions={[createAction()]} triggerMode="menu" disabled />)
 
-    const menuTrigger = screen.getByRole('button', { name: 'Open actions menu' })
+    const menuTrigger = screen.getByRole('button', { name: i18n.t('button.table_actions') })
     expect(menuTrigger).toBeDisabled()
 
     await user.click(menuTrigger)
@@ -75,7 +76,7 @@ describe('DashboardCardActions', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: 'Open actions menu' }))
+    await user.click(screen.getByRole('button', { name: i18n.t('button.table_actions') }))
 
     expect(await screen.findByRole('menuitem', { name: 'View Mathematics Formula Sheet' })).toHaveTextContent('View')
   })
@@ -158,7 +159,7 @@ describe('DashboardCardActions', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: 'Open actions menu' }))
+    await user.click(screen.getByRole('button', { name: i18n.t('button.table_actions') }))
 
     expect(await screen.findByRole('menuitem', { name: 'View' })).toHaveClass(
       'hover:bg-accent',

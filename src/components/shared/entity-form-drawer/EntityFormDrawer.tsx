@@ -1,4 +1,5 @@
 import { LoaderCircle, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -8,13 +9,19 @@ import type { EntityFormDrawerMode, EntityFormDrawerProps } from './entityFormDr
 import { Skeleton } from '@/components/ui/skeleton'
 
 const EntityFormDrawerSkeleton = () => {
+  const { t } = useTranslation()
+
   return (
-    <div aria-hidden="true" className="space-y-5">
-      <Skeleton />
-      <Skeleton />
-      <Skeleton />
-      <Skeleton />
-      <Skeleton />
+    <div role="status" aria-busy="true">
+      <span className="sr-only">{t('queryState.loading')}</span>
+      <div aria-hidden="true" className="space-y-5">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="space-y-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -26,12 +33,14 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
   titles,
   descriptions,
   submitLabels,
+  createAnotherLabel,
   cancelLabel,
   closeLabel,
   children,
   footerStatus,
   formId,
   onSubmit,
+  onSubmitAndCreateAnother,
   onCancel,
   isLoading = false,
   isSubmitting = false,
@@ -48,6 +57,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
 }: EntityFormDrawerProps<TMode>) {
   const isClosePrevented = preventClose ?? isSubmitting
   const shouldDisableSubmit = isLoading || isSubmitting || isSubmitDisabled
+  const shouldShowCreateAnother = mode === 'create' && createAnotherLabel !== undefined
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isClosePrevented) {
@@ -80,6 +90,14 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
     }
 
     onSubmit?.()
+  }
+
+  const handleCreateAnotherAction = () => {
+    if (formId || shouldDisableSubmit) {
+      return
+    }
+
+    onSubmitAndCreateAnother?.()
   }
 
   const drawerContent = errorContent ?? (isLoading ? (loadingContent ?? <EntityFormDrawerSkeleton />) : children)
@@ -145,7 +163,11 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
         {footerStatus}
         {footer !== null && (
           <SheetFooter
-            className={cn('grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-surface p-6', footerClassName)}
+            className={cn(
+              'grid shrink-0 grid-cols-1 gap-3 border-t border-border bg-surface p-6 sm:grid-cols-2',
+              shouldShowCreateAnother && 'sm:grid-cols-3',
+              footerClassName
+            )}
           >
             {footer === undefined ? (
               <>
@@ -159,9 +181,26 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
                   {cancelLabel}
                 </Button>
 
+                {shouldShowCreateAnother ? (
+                  <Button
+                    type={formId ? 'submit' : 'button'}
+                    form={formId}
+                    data-submit-intent="create-another"
+                    variant="outline"
+                    disabled={shouldDisableSubmit}
+                    aria-disabled={shouldDisableSubmit}
+                    onClick={handleCreateAnotherAction}
+                    className="h-11 rounded-lg border-border text-foreground"
+                  >
+                    {isSubmitting && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
+                    {createAnotherLabel}
+                  </Button>
+                ) : null}
+
                 <Button
                   type={formId ? 'submit' : 'button'}
                   form={formId}
+                  data-submit-intent={mode}
                   disabled={shouldDisableSubmit}
                   aria-disabled={shouldDisableSubmit}
                   onClick={handlePrimaryAction}

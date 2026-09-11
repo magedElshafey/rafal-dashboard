@@ -1,5 +1,7 @@
 # Frontend architecture
 
+All CRUD and paginated list modules MUST also follow [`frontend/CRUD_MODULE_CONVENTIONS.md`](frontend/CRUD_MODULE_CONVENTIONS.md). That document is the authoritative default for list states, mocks/services, infinite pagination, drawers, mutations, responsive data, actions, accessibility, and feature-level exceptions.
+
 ## Source layout
 
 - `src/modules/<domain>` owns feature-specific pages, components, containers/hooks, services, types, schemas, constants, utilities, locales, and tests.

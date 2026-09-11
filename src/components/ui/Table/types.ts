@@ -12,12 +12,12 @@ export interface ITableHeader {
   sortKey?: string
 }
 
-export interface TableProps<T = any> {
+export interface TableProps<T = unknown> {
   name?: string
   data?: T[]
   serverData?: TableData<T>
-  reqName?: string
   isLoading?: boolean
+  refetch?: () => void | Promise<unknown>
 }
 
 export interface PaginationMeta {
@@ -43,7 +43,7 @@ export interface TableActionProps extends Omit<ComponentProps<typeof Button>, 'v
 export interface TableProviderValue<T> extends TableProps<T> {
   serverData: TableData<T> | undefined // full data from the server
   isLoading: boolean
-  refetch: () => void
+  refetch: () => void | Promise<unknown>
   data: T[] // data items  from the server or the data passed to the table
   name: string | undefined
 }

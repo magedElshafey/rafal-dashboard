@@ -12,6 +12,7 @@ export type EntityFormDrawerProps<TMode extends EntityFormDrawerMode = EntityFor
   titles: EntityFormDrawerModeContent<TMode>
   descriptions?: Partial<EntityFormDrawerModeContent<TMode>>
   submitLabels: EntityFormDrawerModeContent<TMode>
+  createAnotherLabel?: ReactNode
 
   cancelLabel: ReactNode
   closeLabel: string
@@ -20,6 +21,7 @@ export type EntityFormDrawerProps<TMode extends EntityFormDrawerMode = EntityFor
 
   formId?: string
   onSubmit?: () => void
+  onSubmitAndCreateAnother?: () => void
   onCancel?: () => void
 
   isLoading?: boolean

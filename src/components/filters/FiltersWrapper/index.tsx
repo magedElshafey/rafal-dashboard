@@ -111,7 +111,7 @@ const FiltersWrapper = ({
   searchName = 'search',
   searchPlaceholder,
   searchLabel,
-  filterLabel = 'Filter',
+  filterLabel,
   filterNames = EMPTY_FILTER_NAMES,
   children,
   dialogTitle,
@@ -131,10 +131,12 @@ const FiltersWrapper = ({
   dialogClassName,
   dialogBodyClassName,
 }: FiltersWrapperProps) => {
+  const { t } = useTranslation()
   const [internalOpen, setInternalOpen] = useState(false)
   const [draftQuery, setDraftQuery] = useState<Record<string, string> | null>(null)
 
   const { forwardQuery, forwardReplaceQueries } = useQuery()
+  const resolvedFilterLabel = filterLabel ?? t('button.filter')
 
   const isDialogControlled = typeof open === 'boolean'
   const isOpen = open ?? internalOpen
@@ -232,7 +234,7 @@ const FiltersWrapper = ({
                 buttonClassName
               )}
             >
-              {filterLabel}
+              {resolvedFilterLabel}
             </button>
           )}
         </div>

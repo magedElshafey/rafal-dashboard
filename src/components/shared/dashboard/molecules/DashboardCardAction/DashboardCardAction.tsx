@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Ellipsis, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -21,11 +22,13 @@ export function DashboardCardActions({
   align = 'end',
   side = 'bottom',
   sideOffset = 4,
-  triggerLabel = 'Open actions menu',
+  triggerLabel,
   triggerMode = 'auto',
 }: DashboardCardActionsProps) {
+  const { t } = useTranslation()
   const visibleActions = React.useMemo(() => actions.filter((action) => !action.hidden), [actions])
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+  const resolvedTriggerLabel = triggerLabel ?? t('button.table_actions')
 
   React.useEffect(() => {
     if (disabled) {
@@ -57,7 +60,7 @@ export function DashboardCardActions({
           size="icon"
           disabled={disabled}
           className={cn('size-9 shrink-0', className)}
-          aria-label={triggerLabel}
+          aria-label={resolvedTriggerLabel}
         >
           <Ellipsis aria-hidden="true" className="size-5 text-muted-foreground" />
         </Button>
