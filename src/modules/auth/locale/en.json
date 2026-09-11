@@ -1,0 +1,109 @@
+{
+  "auth": {
+    "common": {
+      "back": "Back",
+      "go_back": "Go back",
+      "page_label": "Authentication page",
+      "illustration_label": "Smart Hub learning illustration",
+      "loading": "Loading...",
+      "no_data": "No Data"
+    },
+    "nav": {
+      "label": "Authentication navigation",
+      "search": "Search",
+      "search_placeholder": "Search",
+      "profile": "Profile",
+      "cart": "Cart",
+      "notifications": "Notifications",
+      "support": "Support"
+    },
+    "fields": {
+      "phone": "Phone number",
+      "phone_placeholder": "Enter your phone number",
+      "password": "Password",
+      "password_placeholder": "Enter your password",
+      "password_confirmation": "Confirm password"
+    },
+    "login": {
+      "default": {
+        "title": "Welcome back!",
+        "description": "Sign in to continue"
+      },
+      "user": {
+        "title": "Welcome back!",
+        "description": "Sign in to access your courses and continue learning"
+      },
+      "teacher": {
+        "title": "Welcome back!",
+        "description": "Sign in to manage your classes and students"
+      },
+      "remember_me": "Remember me",
+      "forgot_password": "Forgot password?",
+      "submit": "Sign in",
+      "invalid_portal": "Invalid login portal",
+      "server_error": "Something went wrong. Please try again."
+    },
+    "forgot_password": {
+      "title": "Reset your password",
+      "description": "Enter your phone number and we will send you a verification code to reset your password.",
+      "submit": "Send verification code",
+      "invalid_portal": "Invalid password reset portal",
+      "success": "Verification code sent successfully.",
+      "server_error": "Something went wrong. Please try again."
+    },
+    "validation": {
+      "email_required": "Please enter your email.",
+      "email_invalid": "Please enter a valid email address.",
+      "phone_required": "Phone number is required.",
+      "phone_invalid": "Enter a valid phone number using digits only.",
+      "phone_min": "Phone number must be at least 10 digits.",
+      "phone_max": "Phone number must be at most 15 digits.",
+      "password_required": "Password is required.",
+      "password_confirmation_required": "Please confirm your password.",
+      "password_match": "Passwords must match."
+    },
+    "otp": {
+      "title": "Verify code",
+      "description": "Enter the 5-digit code sent to your email.",
+      "sent_to": "Code sent to",
+      "code_input_label": "Verification code",
+      "change_phone": "Change",
+      "did_not_receive_code": "Did not receive the code?",
+      "resend": "Resend",
+      "confirm": "Confirm",
+      "code_required": "Verification code is required.",
+      "code_length": "Verification code must be {{length}} digits.",
+      "code_digits_only": "Verification code must contain digits only.",
+      "missing_flow_data": "Verification flow data is missing. Please start again.",
+      "verified_successfully": "Code verified successfully.",
+      "invalid_code": "Invalid verification code. Please try again.",
+      "resend_success": "Verification code resent successfully.",
+      "resend_error": "Failed to resend verification code. Please try again.",
+      "resend_limit": "Please wait before requesting another verification code.",
+      "resend_countdown": "Resend in {{seconds}}s"
+    },
+    "reset_password": {
+      "title": "Create new password",
+      "description": "Enter your new password below to complete your password reset.",
+      "password_required": "Password is required.",
+      "password_confirmation_required": "Password confirmation is required.",
+      "passwords_not_match": "Passwords do not match.",
+      "missing_flow_data": "Password reset data is missing. Please start again.",
+      "server_error": "Something went wrong. Please try again.",
+      "save": "Save",
+      "success_dialog": {
+        "title": "Password updated successfully",
+        "description": "Your password has been reset successfully.",
+        "back_to_sign_in": "Back to sign in"
+      }
+    },
+    "logout": {
+      "title": "Are you sure you want to log out?",
+      "description": "You will need to sign in again to access your account.",
+      "cancel": "Cancel",
+      "confirm": "Log Out",
+      "pending": "Logging Out...",
+      "close": "Close logout dialog"
+    }
+  }
+}

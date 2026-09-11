@@ -1,0 +1,20 @@
+{
+  "queryState": {
+    "loading": "Loading content...",
+    "offline": {
+      "title": "No internet connection",
+      "description": "Check your connection and try again."
+    },
+    "loadingError": {
+      "title": "Unable to load content",
+      "description": "Something went wrong while loading this content."
+    },
+    "refetchError": {
+      "title": "Unable to refresh data",
+      "description": "The displayed content may not include the latest updates."
+    },
+    "actions": {
+      "retry": "Try again"
+    }
+  }
+}

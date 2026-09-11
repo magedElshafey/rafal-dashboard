@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Preserve every emitted Vite file, including the isolated Zoom HTML entry.
+  RewriteCond %{REQUEST_URI} ^/dist/
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # Send application routes to the SPA only after the emitted-file check.
+  RewriteRule ^ /dist/index.html [L]
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/javascript js mjs
+  AddType text/css css
+  AddType application/json json
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Entry documents and the SPA fallback must always validate before reuse.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, max-age=0, must-revalidate"
+  </FilesMatch>
+
+  # Vite content-hashed assets are safe to cache for one year.
+  <FilesMatch "-[A-Za-z0-9_-]{8,}\.(css|js|mjs|map|avif|gif|ico|jpe?g|png|svg|webp|woff2?|ttf|otf|eot)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>

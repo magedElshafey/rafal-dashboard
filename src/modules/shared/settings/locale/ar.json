@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "title": "الإعدادات",
+    "breadcrumb_label": "مسار التنقل في الإعدادات",
+    "home": "الرئيسية",
+    "language": "اللغة",
+    "language_description": "اختر اللغة المستخدمة في البوابة.",
+    "language_select": "اختر اللغة",
+    "languages": {
+      "en": "الإنجليزية",
+      "ar": "العربية"
+    }
+  }
+}

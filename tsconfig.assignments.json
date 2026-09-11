@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.assignments.tsbuildinfo"
+  },
+  "include": [
+    "src/vite-env.d.ts",
+    "src/types/global.d.ts",
+    "src/test/setup.ts",
+    "src/modules/users/assignments/**/*.ts",
+    "src/modules/users/assignments/**/*.tsx"
+  ]
+}

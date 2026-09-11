@@ -1,0 +1,1620 @@
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/AdminExamDetails.tsx b/src/modules/teachers/Assistant-Admin/exams/components/AdminExamDetails.tsx
+index fa7c0027..253868c8 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/AdminExamDetails.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/AdminExamDetails.tsx
+@@ -1,7 +1,9 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import AssessmentDetailsSkeleton from '@/modules/teachers/shared/components/AssessmentDetailsSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
+ import { useState } from 'react'
+ import { useTranslation } from 'react-i18next'
+ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+-import { Clock3 } from 'lucide-react'
+ 
+ import QueryTabsFilter from '@/components/filters/QueryTabsFilter'
+ import { DashboardStatCard } from '@/components/shared/dashboard/atoms/DashboardStatCard'
+@@ -27,7 +29,6 @@ import {
+   isEnabledQueryFlag,
+   isExamReminderStatus,
+ } from '@/modules/teachers/Assistant-Admin/exams/utils/exam-students.helpers'
+-import { formatDate } from '@/modules/teachers/Assistant-Admin/exams/utils/exams.helpers'
+ // import { getExamSubmittedStats } from '@/modules/teachers/Assistant-Admin/exams/utils/exam-details.helpers'
+ import { useQuery } from '@/store/queryContext/useQueryContext'
+ import { useAuth } from '@/store/auth'
+@@ -125,6 +126,16 @@ const AdminExamDetails = () => {
+     forwardDeleteQuery('ungraded_only', { resetQueryNames: ['page'] })
+   }
+ 
++  if (examQuery.isLoading) return <AssessmentDetailsSkeleton variant="exam" submitted={submitted} />
++  if (examQuery.isError)
++    return (
++      <QueryStateNotice
++        kind="loading-error"
++        isRetrying={examQuery.isFetching}
++        onRetry={() => void examQuery.refetch()}
++      />
++    )
++
+   return (
+     <div className="space-y-6">
+       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+@@ -140,11 +151,11 @@ const AdminExamDetails = () => {
+             {examQuery.data?.name ?? t('teachers_exams.admin.details.title')}
+           </h1>
+           {examQuery.data?.due_date !== undefined && (
+-            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-brand-500">
+-              <Clock3 className="size-4 shrink-0" aria-hidden="true" />
+-              <span className="text-black-text">{t('teachers_exams.filters.due_date')}:</span>
+-              <span>{formatDate(examQuery.data.due_date)}</span>
+-            </p>
++            <AssessmentDeadlines
++              kind="exam"
++              dueDate={examQuery.data.due_date}
++              gradingDeadline={examQuery.data.grading_deadline}
++            />
+           )}
+         </div>
+       </header>
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.test.tsx b/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.test.tsx
+index 4b6cb8d2..b0fcc4a9 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.test.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.test.tsx
+@@ -11,6 +11,7 @@ const authMock = vi.hoisted(() => ({ role: 'admin' as 'admin' | 'teacher' | 'ass
+ 
+ vi.mock('react-i18next', () => ({
+   useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
+     t: (key: string, values?: Record<string, unknown>) => {
+       if (key === 'teachers_exams.overview.deadline') return `Grading Deadline: ${values?.date}`
+       if (key === 'teachers_exams.filters.due_date') return 'Due Date'
+@@ -98,8 +99,8 @@ describe('AdminExamsOverview', () => {
+     expect(screen.getByText('91%')).toBeVisible()
+     expect(screen.getByRole('heading', { name: 'Exams 1: Data Structures' })).toBeVisible()
+     expect(screen.getByText('Due Date:')).toBeVisible()
+-    expect(screen.getByText(/5:30 PM/)).toBeVisible()
+-    expect(screen.queryByText(/Grading Deadline:/)).not.toBeInTheDocument()
++    expect(screen.getAllByText(/:30.*pm/i)[0]).toBeVisible()
++    expect(screen.getAllByText('teachers_exams.admin.add.deadline:').length).toBeGreaterThan(0)
+     expect(screen.queryByText('Admin Main Group')).not.toBeInTheDocument()
+ 
+     await user.click(screen.getByRole('button', { name: 'teachers_exams.filters.groups' }))
+@@ -219,3 +220,81 @@ describe('AdminExamsOverview', () => {
+     expect(screen.getAllByText('teachers_exams.stats.grading_progress')).not.toHaveLength(0)
+   })
+ })
++
++describe.each(['admin', 'teacher'])('%s Exam list query states', (role) => {
++  it('shows four card skeletons instead of data while loading', () => {
++    authMock.role = role as typeof authMock.role
++    adminExamsQueryMock.mockReturnValue({ isLoading: true, data: undefined })
++    render(<AdminExamsOverview />)
++    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
++    expect(screen.getAllByTestId('assessment-card-skeleton')).toHaveLength(4)
++    expect(screen.queryByText('table.no_results')).not.toBeInTheDocument()
++  })
++  it.each([false, true])(
++    'shows error and manual retry instead of empty or cached cards (cached=%s)',
++    async (cached) => {
++      const refetch = vi.fn()
++      adminExamsQueryMock.mockReturnValue({
++        isLoading: false,
++        isError: true,
++        isFetching: false,
++        refetch,
++        data: {
++          items: cached
++            ? [{ id: 'stale', name: 'Stale exam', groups: [], submission_rate: 0, grading_progress: 0 }]
++            : [],
++          extra: {},
++          paginate: { total: 0 },
++        },
++      })
++      render(<AdminExamsOverview />)
++      expect(screen.getByRole('alert')).toBeInTheDocument()
++      expect(screen.queryByText('table.no_results')).not.toBeInTheDocument()
++      expect(screen.queryByText('Stale exam')).not.toBeInTheDocument()
++      expect(refetch).not.toHaveBeenCalled()
++      await userEvent.click(screen.getByRole('button', { name: 'queryState.actions.retry' }))
++      expect(refetch).toHaveBeenCalledOnce()
++    }
++  )
++  it('keeps successful empty results distinct', () => {
++    adminExamsQueryMock.mockReturnValue({
++      isLoading: false,
++      isError: false,
++      data: { items: [], extra: {}, paginate: { total: 0 } },
++    })
++    render(<AdminExamsOverview />)
++    expect(screen.getByText('table.no_results')).toBeInTheDocument()
++    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
++  })
++  it('renders both timestamp fields in the one/two-column card grid', () => {
++    authMock.role = role as typeof authMock.role
++    const due = '2026-09-08T11:46:00.000000+03:00'
++    const deadline = '2026-09-23T17:31:00.000000+03:00'
++    adminExamsQueryMock.mockReturnValue({
++      isLoading: false,
++      isError: false,
++      data: {
++        items: [
++          {
++            id: 'dates',
++            name: 'Timestamp exam',
++            due_date: due,
++            grading_deadline: deadline,
++            type: 'online',
++            groups: [],
++            main_groups: [],
++            sub_groups: [],
++            submission_rate: 0,
++            grading_progress: 0,
++          },
++        ],
++        extra: {},
++        paginate: { total: 1 },
++      },
++    })
++    const { container } = render(<AdminExamsOverview />)
++    for (const stamp of [due, deadline])
++      expect(container.querySelector('time[datetime="' + stamp + '"]')).toHaveTextContent(/2026.*\d:\d{2}/)
++    expect(container.querySelector('article')?.parentElement).toHaveClass('grid-cols-1', 'sm:grid-cols-2')
++  })
++})
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.tsx b/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.tsx
+index 54a2a356..fa23d96f 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/AdminExamsOverview.tsx
+@@ -1,4 +1,7 @@
+-import { BarChart3, Clock3, Eye } from 'lucide-react'
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { AssessmentListSkeleton } from '@/modules/teachers/shared/components/AssessmentCardSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
++import { BarChart3, Eye } from 'lucide-react'
+ import { useMemo, useState } from 'react'
+ import { useTranslation } from 'react-i18next'
+ import { useNavigate } from 'react-router-dom'
+@@ -18,7 +21,6 @@ import {
+   TeacherFilterLabel,
+ } from '@/modules/teachers/shared/components/TeacherFilterButton'
+ import { ExamSRoleVariant, type AdminExam, type TeacherExam } from '@/modules/teachers/Assistant-Admin/exams/types'
+-import { formatDate } from '@/modules/teachers/Assistant-Admin/exams/utils/exams.helpers'
+ import { useQuery } from '@/store/queryContext/useQueryContext'
+ import { useAuth } from '@/store/auth'
+ 
+@@ -103,11 +105,7 @@ const AdminExamCard = ({
+               subgroupsLabel={t('teachers_exams.filters.subgroups')}
+             />
+           </div>
+-          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold text-brand-500">
+-            <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
+-            <span className="text-[#777]">{t('teachers_exams.filters.due_date')}:</span>
+-            <span>{formatDate(exam.due_date)}</span>
+-          </p>
++          <AssessmentDeadlines kind="exam" dueDate={exam.due_date} gradingDeadline={exam.grading_deadline} compact />
+         </div>
+         <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+           <DashboardCardActions
+@@ -262,18 +260,28 @@ const AdminExamsOverview = () => {
+         onOpenChange={setIsFilterOpen}
+       />
+ 
+-      <section className="grid gap-6 lg:grid-cols-2">
++      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+         {examsQuery.isLoading && (
+-          <div className="rounded-lg border border-[#E8E8E8] bg-white px-6 py-8 text-sm text-black-text lg:col-span-2">
+-            {t('common.loading')}
++          <div className="col-span-full">
++            <AssessmentListSkeleton variant={role === ExamSRoleVariant.Teacher ? 'teacher-exam' : 'exam'} />
+           </div>
+         )}
+-        {!examsQuery.isLoading && exams.length === 0 && (
+-          <div className="rounded-lg border border-[#E8E8E8] bg-white px-6 py-8 text-sm text-black-text lg:col-span-2">
++        {!examsQuery.isLoading && examsQuery.isError && (
++          <div className="col-span-full">
++            <QueryStateNotice
++              kind="loading-error"
++              isRetrying={examsQuery.isFetching}
++              onRetry={() => void examsQuery.refetch()}
++            />
++          </div>
++        )}
++        {!examsQuery.isLoading && !examsQuery.isError && exams.length === 0 && (
++          <div className="rounded-lg border border-[#E8E8E8] bg-white px-6 py-8 text-sm text-black-text col-span-full">
+             {t('table.no_results')}
+           </div>
+         )}
+         {!examsQuery.isLoading &&
++          !examsQuery.isError &&
+           exams.map((exam) => (
+             <AdminExamCard
+               key={exam.id}
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/ExamDetails.tsx b/src/modules/teachers/Assistant-Admin/exams/components/ExamDetails.tsx
+index befb9ff3..f720e5ed 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/ExamDetails.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/ExamDetails.tsx
+@@ -1,7 +1,9 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import AssessmentDetailsSkeleton from '@/modules/teachers/shared/components/AssessmentDetailsSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
+ import { useState } from 'react'
+ import { useTranslation } from 'react-i18next'
+ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+-import { Clock3 } from 'lucide-react'
+ 
+ import QueryTabsFilter from '@/components/filters/QueryTabsFilter'
+ import { DashboardStatCard } from '@/components/shared/dashboard/atoms/DashboardStatCard'
+@@ -28,7 +30,6 @@ import {
+   isEnabledQueryFlag,
+   isExamReminderStatus,
+ } from '@/modules/teachers/Assistant-Admin/exams/utils/exam-students.helpers'
+-import { formatDate } from '@/modules/teachers/Assistant-Admin/exams/utils/exams.helpers'
+ import { useQuery } from '@/store/queryContext/useQueryContext'
+ 
+ const tabs: ExamSubmissionTab[] = [ExamSubmissionTab.Submitted, ExamSubmissionTab.NotSubmitted]
+@@ -122,6 +123,16 @@ const ExamDetails = () => {
+     setReminderOpen(true)
+   }
+ 
++  if (examQuery.isLoading) return <AssessmentDetailsSkeleton variant="assistant-exam" submitted={submitted} />
++  if (examQuery.isError)
++    return (
++      <QueryStateNotice
++        kind="loading-error"
++        isRetrying={examQuery.isFetching}
++        onRetry={() => void examQuery.refetch()}
++      />
++    )
++
+   return (
+     <div className="space-y-5">
+       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+@@ -137,11 +148,11 @@ const ExamDetails = () => {
+             {examQuery.data?.name ?? t('teachers_exams.details.title')}
+           </h1>
+           {examQuery.data?.due_date !== undefined && (
+-            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-brand-500">
+-              <Clock3 className="size-4 shrink-0" aria-hidden="true" />
+-              <span className="text-black-text">{t('teachers_exams.filters.due_date')}:</span>
+-              <span>{formatDate(examQuery.data.due_date)}</span>
+-            </p>
++            <AssessmentDeadlines
++              kind="exam"
++              dueDate={examQuery.data.due_date}
++              gradingDeadline={examQuery.data.grading_deadline}
++            />
+           )}
+         </div>
+         {examId && examQuery.data?.type === ExamType.Online && examQuery.data.is_meeting_ended === false && (
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/ExamDetailsTabs.test.tsx b/src/modules/teachers/Assistant-Admin/exams/components/ExamDetailsTabs.test.tsx
+index 98bdbb02..7fec901a 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/ExamDetailsTabs.test.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/ExamDetailsTabs.test.tsx
+@@ -1,3 +1,4 @@
++import userEvent from '@testing-library/user-event'
+ import { render, screen } from '@testing-library/react'
+ import { MemoryRouter, Route, Routes } from 'react-router-dom'
+ import { beforeEach, describe, expect, it, vi } from 'vitest'
+@@ -8,6 +9,9 @@ import { useAuth } from '@/store/auth'
+ 
+ const queryTabsPropsMock = vi.fn()
+ const examMocks = vi.hoisted(() => ({
++  isLoading: false,
++  isError: false,
++  refetch: vi.fn(),
+   adminStudents: vi.fn(),
+   assistantStudents: vi.fn(),
+   adminExam: {
+@@ -31,7 +35,10 @@ const examMocks = vi.hoisted(() => ({
+ }))
+ 
+ vi.mock('react-i18next', () => ({
+-  useTranslation: () => ({ t: (key: string) => key }),
++  useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
++    t: (key: string) => key,
++  }),
+ }))
+ 
+ vi.mock('@/components/filters/QueryTabsFilter', () => ({
+@@ -50,7 +57,13 @@ vi.mock('@/store/queryContext/useQueryContext', () => ({
+ }))
+ 
+ vi.mock('@/modules/teachers/Assistant-Admin/exams/hooks/useAdminExams', () => ({
+-  useAdminExamQuery: () => ({ data: examMocks.adminExam }),
++  useAdminExamQuery: () => ({
++    data: examMocks.adminExam,
++    isLoading: examMocks.isLoading,
++    isError: examMocks.isError,
++    isFetching: false,
++    refetch: examMocks.refetch,
++  }),
+   useAdminExamStudentsQuery: (params: unknown) => {
+     examMocks.adminStudents(params)
+     return {
+@@ -67,7 +80,13 @@ vi.mock('@/modules/teachers/Assistant-Admin/exams/hooks/useAdminExams', () => ({
+ }))
+ 
+ vi.mock('@/modules/teachers/Assistant-Admin/exams/hooks/useAssistantExams', () => ({
+-  useAssistantExamQuery: () => ({ data: examMocks.assistantExam }),
++  useAssistantExamQuery: () => ({
++    data: examMocks.assistantExam,
++    isLoading: examMocks.isLoading,
++    isError: examMocks.isError,
++    isFetching: false,
++    refetch: examMocks.refetch,
++  }),
+   useAssistantExamStudentsQuery: (params: unknown) => {
+     examMocks.assistantStudents(params)
+     return {
+@@ -150,7 +169,7 @@ describe('Admin and Assistant Exam Details tabs', () => {
+     expect(props.tabs.every((tab: { icon?: unknown }) => tab.icon === undefined)).toBe(true)
+     expect(props.queryUpdateOptions.resetQueryNames).toContain('page')
+     expect(screen.getByText('teachers_exams.filters.due_date:')).toBeInTheDocument()
+-    expect(screen.getByText(_role === 'admin' ? /5:30 PM/ : /6:45 PM/)).toBeInTheDocument()
++    expect(screen.getByText(_role === 'admin' ? /:30.*pm/i : /:45.*pm/i)).toBeInTheDocument()
+   })
+ 
+   it.each([
+@@ -315,3 +334,53 @@ describe('Admin and Assistant Exam Details tabs', () => {
+     expect(Boolean(screen.queryByTestId('assistant-exam-join'))).toBe(canJoin)
+   })
+ })
++
++describe.each([
++  ['admin', AdminExamDetails],
++  ['teacher', AdminExamDetails],
++  ['assistant', ExamDetails],
++] as const)('%s Exam details primary state', (role, Component) => {
++  beforeEach(() => {
++    examMocks.isLoading = false
++    examMocks.isError = false
++    examMocks.refetch.mockClear()
++    useAuth.setState({ role })
++  })
++  it('renders the mirrored details skeleton before the primary result', () => {
++    examMocks.isLoading = true
++    render(
++      <MemoryRouter>
++        <Component />
++      </MemoryRouter>
++    )
++    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
++    expect(screen.queryByTestId('exam-tabs')).not.toBeInTheDocument()
++    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
++  })
++  it('replaces cached details with an explicit error and retry', async () => {
++    examMocks.isError = true
++    render(
++      <MemoryRouter>
++        <Component />
++      </MemoryRouter>
++    )
++    expect(screen.getByRole('alert')).toBeInTheDocument()
++    expect(screen.queryByTestId('exam-tabs')).not.toBeInTheDocument()
++    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
++    expect(examMocks.refetch).not.toHaveBeenCalled()
++    await userEvent.click(screen.getByRole('button', { name: 'queryState.actions.retry' }))
++    expect(examMocks.refetch).toHaveBeenCalledOnce()
++  })
++  it('renders both dates and times from the primary response', () => {
++    const dates = { due_date: '2026-09-08T11:46:00.000000+03:00', grading_deadline: '2026-09-23T17:31:00.000000+03:00' }
++    Object.assign(examMocks.adminExam, dates)
++    examMocks.assistantExam = { name: 'Assistant exam', ...dates }
++    const { container } = render(
++      <MemoryRouter>
++        <Component />
++      </MemoryRouter>
++    )
++    for (const stamp of Object.values(dates))
++      expect(container.querySelector('time[datetime="' + stamp + '"]')).toHaveTextContent(/2026.*\d:\d{2}/)
++  })
++})
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.test.tsx b/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.test.tsx
+index 464980ff..2b2feada 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.test.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.test.tsx
+@@ -9,6 +9,7 @@ const assistantExamsQueryMock = vi.fn()
+ 
+ vi.mock('react-i18next', () => ({
+   useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
+     t: (key: string) => {
+       const labels: Record<string, string> = {
+         'teachers_exams.exam_types.in_person': 'In Person',
+@@ -116,8 +117,8 @@ describe('ExamsOverview', () => {
+       screen.getAllByRole('dialog', { name: 'Groups' }).some((dialog) => within(dialog).queryByText('-') !== null)
+     ).toBe(true)
+     expect(screen.getAllByText('Due Date:').length).toBeGreaterThan(0)
+-    expect(screen.getByText(/5:30 PM/)).toBeInTheDocument()
+-    expect(screen.queryByText(/Grading Deadline:/)).not.toBeInTheDocument()
++    expect(screen.getAllByText(/:30.*pm/i)[0]).toBeInTheDocument()
++    expect(screen.getAllByText('teachers_exams.admin.add.deadline:').length).toBeGreaterThan(0)
+   })
+ 
+   it('shows Due Soon on assistant exam cards only while an upcoming exam is within the due date window', () => {
+@@ -187,3 +188,81 @@ describe('ExamsOverview', () => {
+     expect(screen.getAllByText('teachers_exams.stats.submission_rate').length).toBeGreaterThan(0)
+   })
+ })
++
++describe.each(['assistant'])('%s Exam list query states', (role) => {
++  it('shows four card skeletons instead of data while loading', () => {
++    void role
++    assistantExamsQueryMock.mockReturnValue({ isLoading: true, data: undefined })
++    render(<ExamsOverview />)
++    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
++    expect(screen.getAllByTestId('assessment-card-skeleton')).toHaveLength(4)
++    expect(screen.queryByText('table.no_results')).not.toBeInTheDocument()
++  })
++  it.each([false, true])(
++    'shows error and manual retry instead of empty or cached cards (cached=%s)',
++    async (cached) => {
++      const refetch = vi.fn()
++      assistantExamsQueryMock.mockReturnValue({
++        isLoading: false,
++        isError: true,
++        isFetching: false,
++        refetch,
++        data: {
++          items: cached
++            ? [{ id: 'stale', name: 'Stale exam', groups: [], submission_rate: 0, grading_progress: 0 }]
++            : [],
++          extra: {},
++          paginate: { total: 0 },
++        },
++      })
++      render(<ExamsOverview />)
++      expect(screen.getByRole('alert')).toBeInTheDocument()
++      expect(screen.queryByText('table.no_results')).not.toBeInTheDocument()
++      expect(screen.queryByText('Stale exam')).not.toBeInTheDocument()
++      expect(refetch).not.toHaveBeenCalled()
++      await userEvent.click(screen.getByRole('button', { name: 'queryState.actions.retry' }))
++      expect(refetch).toHaveBeenCalledOnce()
++    }
++  )
++  it('keeps successful empty results distinct', () => {
++    assistantExamsQueryMock.mockReturnValue({
++      isLoading: false,
++      isError: false,
++      data: { items: [], extra: {}, paginate: { total: 0 } },
++    })
++    render(<ExamsOverview />)
++    expect(screen.getByText('table.no_results')).toBeInTheDocument()
++    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
++  })
++  it('renders both timestamp fields in the one/two-column card grid', () => {
++    void role
++    const due = '2026-09-08T11:46:00.000000+03:00'
++    const deadline = '2026-09-23T17:31:00.000000+03:00'
++    assistantExamsQueryMock.mockReturnValue({
++      isLoading: false,
++      isError: false,
++      data: {
++        items: [
++          {
++            id: 'dates',
++            name: 'Timestamp exam',
++            due_date: due,
++            grading_deadline: deadline,
++            type: 'online',
++            groups: [],
++            main_groups: [],
++            sub_groups: [],
++            submission_rate: 0,
++            grading_progress: 0,
++          },
++        ],
++        extra: {},
++        paginate: { total: 1 },
++      },
++    })
++    const { container } = render(<ExamsOverview />)
++    for (const stamp of [due, deadline])
++      expect(container.querySelector('time[datetime="' + stamp + '"]')).toHaveTextContent(/2026.*\d:\d{2}/)
++    expect(container.querySelector('article')?.parentElement).toHaveClass('grid-cols-1', 'sm:grid-cols-2')
++  })
++})
+diff --git a/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.tsx b/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.tsx
+index 4c88ce1e..9935a16b 100644
+--- a/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.tsx
++++ b/src/modules/teachers/Assistant-Admin/exams/components/ExamsOverview.tsx
+@@ -1,4 +1,7 @@
+-import { Clock3, MoreHorizontal } from 'lucide-react'
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { AssessmentListSkeleton } from '@/modules/teachers/shared/components/AssessmentCardSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
++import { MoreHorizontal } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ import { useNavigate } from 'react-router-dom'
+ import { DashboardStatCard } from '@/components/shared/dashboard/atoms/DashboardStatCard'
+@@ -10,7 +13,7 @@ import ProgressLine from '@/modules/teachers/Assistant-Admin/exams/components/at
+ import ExamFilters from '@/modules/teachers/Assistant-Admin/exams/components/ExamFilters'
+ import { useAssistantExamsQuery } from '@/modules/teachers/Assistant-Admin/exams/hooks/useAssistantExams'
+ import { useQuery } from '@/store/queryContext/useQueryContext'
+-import { formatDate, getSubmissionRate, isDueSoonExam } from '../utils/exams.helpers'
++import { getSubmissionRate, isDueSoonExam } from '../utils/exams.helpers'
+ import { Separator } from '@/components/ui/separator'
+ 
+ const ExamsOverview = () => {
+@@ -68,101 +71,115 @@ const ExamsOverview = () => {
+ 
+       <section className="space-y-5">
+         {examsQuery.isLoading && (
+-          <div className="rounded-lg border border-[#E7E9EE] bg-white px-6 py-8 text-sm text-black-text">
+-            {t('common.loading')}
++          <div className="col-span-full">
++            <AssessmentListSkeleton variant={'exam'} />
++          </div>
++        )}
++        {!examsQuery.isLoading && examsQuery.isError && (
++          <div className="col-span-full">
++            <QueryStateNotice
++              kind="loading-error"
++              isRetrying={examsQuery.isFetching}
++              onRetry={() => void examsQuery.refetch()}
++            />
+           </div>
+         )}
+-        {!examsQuery.isLoading && exams.length === 0 && (
++        {!examsQuery.isLoading && !examsQuery.isError && exams.length === 0 && (
+           <div className="rounded-lg border border-[#E7E9EE] bg-white px-6 py-8 text-sm text-black-text">
+             {t('table.no_results')}
+           </div>
+         )}
+-        {exams.map((exam) => {
+-          const groups = exam.groups?.map((group, index) => ({ id: index, name: group.name })) ?? []
+-          const subgroups =
+-            exam.groups?.flatMap((group, groupIndex) =>
+-              (group.sub_groups ?? []).map((name, subgroupIndex) => ({
+-                id: `${groupIndex}-${subgroupIndex}`,
+-                name,
+-              }))
+-            ) ?? []
++        {!examsQuery.isLoading && !examsQuery.isError && (
++          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
++            {exams.map((exam) => {
++              const groups = exam.groups?.map((group, index) => ({ id: index, name: group.name })) ?? []
++              const subgroups =
++                exam.groups?.flatMap((group, groupIndex) =>
++                  (group.sub_groups ?? []).map((name, subgroupIndex) => ({
++                    id: `${groupIndex}-${subgroupIndex}`,
++                    name,
++                  }))
++                ) ?? []
+ 
+-          return (
+-            <article
+-              key={exam.id}
+-              role="button"
+-              tabIndex={0}
+-              onClick={() => navigate(exam.id)}
+-              onKeyDown={(event) => {
+-                if (event.key === 'Enter' || event.key === ' ') {
+-                  event.preventDefault()
+-                  navigate(exam.id)
+-                }
+-              }}
+-              className="block w-full rounded-lg border border-[#E7E9EE] bg-white px-5 py-5 text-start hover:bg-black-50/40"
+-            >
+-              <div className="flex items-center gap-4 mb-3">
+-                <div className="min-w-0 flex-1">
+-                  <div className="flex items-start justify-between gap-4">
+-                    <div>
+-                      <h3 className="text-sm font-semibold text-black-800">{exam.name}</h3>
+-                      <ExamTypePill type={exam.type} />
+-                      <div
+-                        className="mt-2"
+-                        onClick={(event) => event.stopPropagation()}
+-                        onKeyDown={(event) => event.stopPropagation()}
+-                      >
+-                        <GroupHierarchyPreview
+-                          groups={groups}
+-                          subgroups={subgroups}
+-                          groupsLabel={t('teachers_exams.filters.groups')}
+-                          subgroupsLabel={t('teachers_exams.filters.subgroups')}
+-                        />
++              return (
++                <article
++                  key={exam.id}
++                  role="button"
++                  tabIndex={0}
++                  onClick={() => navigate(exam.id)}
++                  onKeyDown={(event) => {
++                    if (event.key === 'Enter' || event.key === ' ') {
++                      event.preventDefault()
++                      navigate(exam.id)
++                    }
++                  }}
++                  className="block w-full rounded-lg border border-[#E7E9EE] bg-white px-5 py-5 text-start hover:bg-black-50/40"
++                >
++                  <div className="flex items-center gap-4 mb-3">
++                    <div className="min-w-0 flex-1">
++                      <div className="flex items-start justify-between gap-4">
++                        <div>
++                          <h3 className="text-sm font-semibold text-black-800">{exam.name}</h3>
++                          <ExamTypePill type={exam.type} />
++                          <div
++                            className="mt-2"
++                            onClick={(event) => event.stopPropagation()}
++                            onKeyDown={(event) => event.stopPropagation()}
++                          >
++                            <GroupHierarchyPreview
++                              groups={groups}
++                              subgroups={subgroups}
++                              groupsLabel={t('teachers_exams.filters.groups')}
++                              subgroupsLabel={t('teachers_exams.filters.subgroups')}
++                            />
++                          </div>
++                        </div>
++                        <div className="flex shrink-0 items-center gap-2">
++                          {isDueSoonExam(exam) && (
++                            <StatusBadge variant="warning" className="px-2.5 py-1">
++                              {t('teachers_exams.status.due_soon')}
++                            </StatusBadge>
++                          )}
++                          <MoreHorizontal className="size-5 text-black-text" />
++                        </div>
+                       </div>
+-                    </div>
+-                    <div className="flex shrink-0 items-center gap-2">
+-                      {isDueSoonExam(exam) && (
+-                        <StatusBadge variant="warning" className="px-2.5 py-1">
+-                          {t('teachers_exams.status.due_soon')}
+-                        </StatusBadge>
+-                      )}
+-                      <MoreHorizontal className="size-5 text-black-text" />
++
++                      <AssessmentDeadlines
++                        kind="exam"
++                        dueDate={exam.due_date}
++                        gradingDeadline={exam.grading_deadline}
++                        compact
++                      />
+                     </div>
+                   </div>
++                  <Separator />
+ 
+-                  <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold text-brand-500">
+-                    <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
+-                    <span className="text-black-text">{t('teachers_exams.filters.due_date')}:</span>
+-                    <span>{formatDate(exam.due_date)}</span>
+-                  </p>
+-                </div>
+-              </div>
+-              <Separator />
+-
+-              <div className="mt-5 grid gap-5 md:grid-cols-2">
+-                <ProgressLine label={t('teachers_exams.stats.submission_rate')} value={getSubmissionRate(exam)} />
+-                <ProgressLine
+-                  label={t('teachers_exams.stats.grading_progress')}
+-                  value={exam.grading_progress}
+-                  tone="success"
+-                />
+-                {(exam.student_reminders ?? exam.reminders?.students ?? 0) > 0 && (
+-                  <ProgressLine
+-                    label={t('teachers_exams.stats.student_reminders')}
+-                    value={exam.student_reminders ?? exam.reminders?.students ?? 0}
+-                  />
+-                )}
+-                {(exam.parent_reminders ?? exam.reminders?.parents ?? 0) > 0 && (
+-                  <ProgressLine
+-                    label={t('teachers_exams.stats.parent_notifications')}
+-                    value={exam.parent_reminders ?? exam.reminders?.parents ?? 0}
+-                    tone="success"
+-                  />
+-                )}
+-              </div>
+-            </article>
+-          )
+-        })}
++                  <div className="mt-5 grid gap-5 md:grid-cols-2">
++                    <ProgressLine label={t('teachers_exams.stats.submission_rate')} value={getSubmissionRate(exam)} />
++                    <ProgressLine
++                      label={t('teachers_exams.stats.grading_progress')}
++                      value={exam.grading_progress}
++                      tone="success"
++                    />
++                    {(exam.student_reminders ?? exam.reminders?.students ?? 0) > 0 && (
++                      <ProgressLine
++                        label={t('teachers_exams.stats.student_reminders')}
++                        value={exam.student_reminders ?? exam.reminders?.students ?? 0}
++                      />
++                    )}
++                    {(exam.parent_reminders ?? exam.reminders?.parents ?? 0) > 0 && (
++                      <ProgressLine
++                        label={t('teachers_exams.stats.parent_notifications')}
++                        value={exam.parent_reminders ?? exam.reminders?.parents ?? 0}
++                        tone="success"
++                      />
++                    )}
++                  </div>
++                </article>
++              )
++            })}
++          </div>
++        )}
+ 
+         <PaginatedListFooter
+           pagination={pagination}
+diff --git a/src/modules/teachers/shared/assignments/components/templates/AssignmentDetailsTabs.test.tsx b/src/modules/teachers/shared/assignments/components/templates/AssignmentDetailsTabs.test.tsx
+index 768f9ff7..93ad23c2 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/AssignmentDetailsTabs.test.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/AssignmentDetailsTabs.test.tsx
+@@ -1,3 +1,4 @@
++import userEvent from '@testing-library/user-event'
+ import type { ReactNode } from 'react'
+ 
+ import { act, render, screen } from '@testing-library/react'
+@@ -15,6 +16,9 @@ const forwardDeleteQueryMock = vi.fn()
+ const missingTablePropsMock = vi.fn()
+ const adminDetailsMetricsMock = vi.fn()
+ const assignmentHooksMock = vi.hoisted(() => ({
++  isLoading: false,
++  isError: false,
++  refetch: vi.fn(),
+   adminStudents: vi.fn(),
+   assistantStudents: vi.fn(),
+   adminAssignment: {
+@@ -43,7 +47,10 @@ const assignmentHooksMock = vi.hoisted(() => ({
+ }))
+ 
+ vi.mock('react-i18next', () => ({
+-  useTranslation: () => ({ t: (key: string) => key }),
++  useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
++    t: (key: string) => key,
++  }),
+ }))
+ 
+ vi.mock('@/components/filters/QueryTabsFilter', () => ({
+@@ -70,7 +77,13 @@ vi.mock('@/store/queryContext/useQueryContext', () => ({
+ }))
+ 
+ vi.mock('@/modules/teachers/shared/assignments/hooks/useAdminAssignments', () => ({
+-  useAdminAssignmentQuery: () => ({ data: assignmentHooksMock.adminAssignment, isLoading: false, isError: false }),
++  useAdminAssignmentQuery: () => ({
++    data: assignmentHooksMock.adminAssignment,
++    isLoading: assignmentHooksMock.isLoading,
++    isError: assignmentHooksMock.isError,
++    isFetching: false,
++    refetch: assignmentHooksMock.refetch,
++  }),
+   useAdminAssignmentStudentsQuery: (params: unknown) => {
+     assignmentHooksMock.adminStudents(params)
+     return {
+@@ -86,7 +99,13 @@ vi.mock('@/modules/teachers/shared/assignments/hooks/useAdminAssignments', () =>
+ }))
+ 
+ vi.mock('@/modules/teachers/shared/assignments/hooks/useAssistantAssignments', () => ({
+-  useAssistantAssignmentQuery: () => ({ data: assignmentHooksMock.assistantAssignment }),
++  useAssistantAssignmentQuery: () => ({
++    data: assignmentHooksMock.assistantAssignment,
++    isLoading: assignmentHooksMock.isLoading,
++    isError: assignmentHooksMock.isError,
++    isFetching: false,
++    refetch: assignmentHooksMock.refetch,
++  }),
+   useAssistantAssignmentStudentsQuery: (params: unknown) => {
+     assignmentHooksMock.assistantStudents(params)
+     return {
+@@ -405,3 +424,84 @@ describe('Admin and Assistant Assignment Details tabs', () => {
+     expect(screen.queryByText('teachers_assignments.metrics.grading_progress')).not.toBeInTheDocument()
+   })
+ })
++
++describe.each(['admin', 'assistant', 'teacher'])('%s Assignment details primary query', (role) => {
++  beforeEach(() => {
++    assignmentHooksMock.isLoading = false
++    assignmentHooksMock.isError = false
++    assignmentHooksMock.refetch.mockClear()
++  })
++  const renderDetails = () =>
++    render(
++      role === 'admin' ? (
++        <AdminAssistantDetails
++          assignmentId="assignment-1"
++          onBack={vi.fn()}
++          onEdit={vi.fn()}
++          onDelete={vi.fn()}
++          onGrade={vi.fn()}
++          onReminder={vi.fn()}
++        />
++      ) : role === 'assistant' ? (
++        <AssistantAssignmentDetailsTemplate
++          assignmentId="assignment-1"
++          assignmentName="Loaded assignment"
++          isLoading={assignmentHooksMock.isLoading}
++          isError={assignmentHooksMock.isError}
++          onRetry={assignmentHooksMock.refetch}
++          view={AssignmentView.Submitted}
++          onChangeView={vi.fn()}
++          onFilter={vi.fn()}
++          onGrade={vi.fn()}
++          onReminder={vi.fn()}
++        />
++      ) : (
++        <AssignmentDetails
++          role={AssignmentsRoleVariant.Teacher}
++          assignmentId="assignment-1"
++          view={AssignmentView.Submitted}
++          onChangeView={vi.fn()}
++          onFilter={vi.fn()}
++          onGrade={vi.fn()}
++          onReminder={vi.fn()}
++        />
++      )
++    )
++  it('shows a details skeleton instead of partial normal content', () => {
++    assignmentHooksMock.isLoading = true
++    const { container } = renderDetails()
++    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
++    expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(20)
++    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
++    expect(screen.queryByTestId('assignment-tabs')).not.toBeInTheDocument()
++  })
++  it('replaces cached details with error and only retries on user action', async () => {
++    assignmentHooksMock.isError = true
++    renderDetails()
++    expect(screen.getByRole('alert')).toBeInTheDocument()
++    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
++    expect(screen.queryByTestId('assignment-tabs')).not.toBeInTheDocument()
++    expect(assignmentHooksMock.refetch).not.toHaveBeenCalled()
++    await userEvent.click(screen.getByRole('button', { name: 'queryState.actions.retry' }))
++    expect(assignmentHooksMock.refetch).toHaveBeenCalledOnce()
++  })
++})
++it('renders both Teacher Assignment details timestamps', () => {
++  assignmentHooksMock.isLoading = false
++  assignmentHooksMock.isError = false
++  const dates = { due_date: '2026-09-08T11:46:00.000000+03:00', grading_deadline: '2026-09-23T17:31:00.000000+03:00' }
++  Object.assign(assignmentHooksMock.assistantAssignment, dates)
++  const { container } = render(
++    <AssignmentDetails
++      role={AssignmentsRoleVariant.Teacher}
++      assignmentId="assignment-1"
++      view={AssignmentView.Submitted}
++      onChangeView={vi.fn()}
++      onFilter={vi.fn()}
++      onGrade={vi.fn()}
++      onReminder={vi.fn()}
++    />
++  )
++  for (const stamp of Object.values(dates))
++    expect(container.querySelector('time[datetime="' + stamp + '"]')).toHaveTextContent(/2026.*\d:\d{2}/)
++})
+diff --git a/src/modules/teachers/shared/assignments/components/templates/AssignmentHierarchyPreview.test.tsx b/src/modules/teachers/shared/assignments/components/templates/AssignmentHierarchyPreview.test.tsx
+index 4c0592f2..11f83912 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/AssignmentHierarchyPreview.test.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/AssignmentHierarchyPreview.test.tsx
+@@ -12,6 +12,7 @@ import {
+ 
+ vi.mock('react-i18next', () => ({
+   useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
+     t: (key: string) =>
+       ({
+         'teachers_assignments.fields.groups': 'Groups',
+@@ -69,8 +70,8 @@ describe('Assignment hierarchy previews', () => {
+     await user.click(screen.getByRole('menuitem', { name: 'Assignment Analysis' }))
+     expect(onOpenAnalysis).toHaveBeenCalledWith(adminAssignment.id)
+     expect(screen.getByText(/Due Date:/)).toBeInTheDocument()
+-    expect(screen.queryByText('teachers_assignments.labels.grading_deadline')).not.toBeInTheDocument()
+-    expect(screen.getByText(/5:30 PM/)).toBeInTheDocument()
++    expect(screen.getByText('teachers_assignments.fields.grading_deadline:')).toBeInTheDocument()
++    expect(screen.getAllByText(/:30.*pm/i)[0]).toBeInTheDocument()
+   })
+ 
+   it('keeps Assistant hierarchy accessible and uses shared fallbacks for missing data', async () => {
+@@ -85,8 +86,8 @@ describe('Assignment hierarchy previews', () => {
+     await user.click(screen.getByRole('button', { name: /Assistant Assignment/ }))
+     expect(onOpen).toHaveBeenCalledWith(assistantAssignment.id)
+     expect(screen.getByText(/Due Date:/)).toBeInTheDocument()
+-    expect(screen.queryByText('teachers_assignments.labels.grading_deadline')).not.toBeInTheDocument()
+-    expect(screen.getByText(/6:45 PM/)).toBeInTheDocument()
++    expect(screen.getByText('teachers_assignments.fields.grading_deadline:')).toBeInTheDocument()
++    expect(screen.getAllByText(/:45.*pm/i)[0]).toBeInTheDocument()
+ 
+     rerender(<AssistantAssignmentCard assignment={{ ...assistantAssignment, groups: null }} onOpen={onOpen} />)
+     await user.click(screen.getByRole('button', { name: 'Groups' }))
+diff --git a/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantDetails.tsx b/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantDetails.tsx
+index 103770d6..d5b21432 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantDetails.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantDetails.tsx
+@@ -1,3 +1,5 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import AssessmentDetailsSkeleton from '@/modules/teachers/shared/components/AssessmentDetailsSkeleton'
+ import { useState } from 'react'
+ 
+ import type { TFunction } from 'i18next'
+@@ -18,7 +20,6 @@ import AssignmentDetailsFilterBar from '@/modules/teachers/shared/assignments/co
+ import AdminDetailsHeader from '@/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader'
+ import AdminDetailsMetrics from '@/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsMetrics'
+ import AdminNotSubmittedPanel from '@/modules/teachers/shared/assignments/components/templates/admin/details/AdminNotSubmittedPanel'
+-import AdminStateMessage from '@/modules/teachers/shared/assignments/components/templates/admin/details/AdminStateMessage'
+ import AdminSubmittedPanel from '@/modules/teachers/shared/assignments/components/templates/admin/details/AdminSubmittedPanel'
+ import {
+   hasStudent,
+@@ -231,11 +232,17 @@ export default function AdminAssistantDetails({ assignmentId, onBack, onReminder
+   }
+ 
+   if (assignmentQuery.isLoading) {
+-    return <AdminStateMessage>{t('teachers_assignments.labels.loading_assignments')}</AdminStateMessage>
++    return <AssessmentDetailsSkeleton variant="assignment" submitted={tab === AssignmentView.Submitted} />
+   }
+ 
+   if (assignmentQuery.isError || !assignmentQuery.data) {
+-    return <AdminStateMessage>{t('teachers_assignments.errors.load_admin_assignment')}</AdminStateMessage>
++    return (
++      <QueryStateNotice
++        kind="loading-error"
++        isRetrying={assignmentQuery.isFetching}
++        onRetry={() => void assignmentQuery.refetch()}
++      />
++    )
+   }
+   console.log('submittedStudentsQuery', submittedStudentsQuery?.data)
+   return (
+diff --git a/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantsList.tsx b/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantsList.tsx
+index 65f8a7db..f82cbd93 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantsList.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/admin/AdminAssistantsList.tsx
+@@ -1,6 +1,9 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { AssessmentListSkeleton } from '@/modules/teachers/shared/components/AssessmentCardSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
+ import { useState } from 'react'
+ 
+-import { BarChart3, Clock3, Eye } from 'lucide-react'
++import { BarChart3, Eye } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ 
+ import { ProgressBar } from '@/components/shared/dashboard/atoms/ProgressBar'
+@@ -82,14 +85,18 @@ export default function AdminAssistantsList({
+       />
+ 
+       {assignmentsQuery.isLoading ? (
+-        <AdminStateMessage>{t('teachers_assignments.labels.loading_assignments')}</AdminStateMessage>
++        <AssessmentListSkeleton variant="assignment" />
+       ) : assignmentsQuery.isError ? (
+-        <AdminStateMessage danger>{t('teachers_assignments.errors.load_admin_assignments')}</AdminStateMessage>
++        <QueryStateNotice
++          kind="loading-error"
++          isRetrying={assignmentsQuery.isFetching}
++          onRetry={() => void assignmentsQuery.refetch()}
++        />
+       ) : assignments.length === 0 ? (
+         <AdminStateMessage>{t('teachers_assignments.labels.no_assignments')}</AdminStateMessage>
+       ) : (
+         <>
+-          <div className="grid gap-6 lg:grid-cols-2">
++          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+             {assignments.map((assignment) => (
+               <AdminAssignmentCard
+                 key={assignment.id}
+@@ -156,11 +163,12 @@ export function AdminAssignmentCard({
+               subgroupsLabel={t('teachers_assignments.fields.subgroups')}
+             />
+           </div>
+-          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold text-brand-500">
+-            <Clock3 className="size-3.5 shrink-0" />
+-            <span className="text-[#777]">{t('teachers_assignments.fields.due_date')}:</span>
+-            <span>{formatShortDate(assignment.due_date)}</span>
+-          </p>
++          <AssessmentDeadlines
++            kind="assignment"
++            dueDate={assignment.due_date}
++            gradingDeadline={assignment.grading_deadline}
++            compact
++          />
+         </div>
+         <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+           <DashboardCardActions
+@@ -256,22 +264,6 @@ function getAssignmentHierarchy(assignment: AdminAssignment) {
+   return { groups, subgroups }
+ }
+ 
+-function formatShortDate(value: string) {
+-  const date = new Date(value)
+-
+-  if (Number.isNaN(date.getTime())) {
+-    return value
+-  }
+-
+-  return new Intl.DateTimeFormat(undefined, {
+-    month: 'short',
+-    day: 'numeric',
+-    year: 'numeric',
+-    hour: 'numeric',
+-    minute: '2-digit',
+-  }).format(date)
+-}
+-
+ function formatPercent(value?: number) {
+   return typeof value === 'number' ? `${value}%` : '-'
+ }
+diff --git a/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.test.tsx b/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.test.tsx
+index 0511c256..927184b7 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.test.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.test.tsx
+@@ -7,6 +7,7 @@ import AdminDetailsHeader from './AdminDetailsHeader'
+ 
+ vi.mock('react-i18next', () => ({
+   useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
+     t: (key: string) =>
+       ({
+         'teachers_assignments.admin.assignments': 'Assignments',
+@@ -22,6 +23,7 @@ const assignment: AdminAssignment = {
+   main_groups: [],
+   sub_groups: [],
+   due_date: '2026-08-20T09:15:00+03:00',
++  grading_deadline: '2026-09-23T11:46:00.000000+03:00',
+   created_at: '2026-08-01T09:00:00+03:00',
+   updated_at: '2026-08-02T09:00:00+03:00',
+ }
+@@ -31,7 +33,9 @@ describe('AdminDetailsHeader', () => {
+     render(<AdminDetailsHeader assignment={assignment} tab={AssignmentView.Submitted} onBack={vi.fn()} />)
+ 
+     expect(screen.getByText('Due Date:')).toBeInTheDocument()
+-    expect(screen.getByText(/Aug 20, 2026/)).toBeInTheDocument()
+-    expect(screen.getByText(/9:15 AM/)).toBeInTheDocument()
++    expect(screen.getByText('teachers_assignments.fields.grading_deadline:')).toBeInTheDocument()
++    expect(screen.getByText(/2026.*:46/)).toBeInTheDocument()
++    expect(screen.getByText(/Aug.*2026/)).toBeInTheDocument()
++    expect(screen.getByText(/:15.*am/i)).toBeInTheDocument()
+   })
+ })
+diff --git a/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.tsx b/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.tsx
+index 51eda988..7002e240 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/admin/details/AdminDetailsHeader.tsx
+@@ -1,7 +1,5 @@
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
+ import { useTranslation } from 'react-i18next'
+-import { Clock3 } from 'lucide-react'
+-
+-import { formatAssignmentDate } from '@/modules/teachers/shared/assignments/components/templates/shared/overview/overview.helpers'
+ 
+ import type { AdminDetailsHeaderProps } from './admin-details.types'
+ 
+@@ -20,11 +18,11 @@ export default function AdminDetailsHeader({ assignment, onBack }: AdminDetailsH
+             <span className="text-black-800">{assignment.name}</span>
+           </nav>
+           <h1 className="text-2xl font-semibold leading-tight text-black-800">{assignment.name}</h1>
+-          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-brand-500">
+-            <Clock3 className="size-4 shrink-0" aria-hidden="true" />
+-            <span className="text-black-text">{t('teachers_assignments.fields.due_date')}:</span>
+-            <span>{formatAssignmentDate(assignment.due_date)}</span>
+-          </p>
++          <AssessmentDeadlines
++            kind="assignment"
++            dueDate={assignment.due_date}
++            gradingDeadline={assignment.grading_deadline}
++          />
+         </div>
+       </div>
+     </header>
+diff --git a/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentDetailsTemplate.tsx b/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentDetailsTemplate.tsx
+index d8ca7ce5..ae16e2f6 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentDetailsTemplate.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentDetailsTemplate.tsx
+@@ -1,3 +1,5 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import AssessmentDetailsSkeleton from '@/modules/teachers/shared/components/AssessmentDetailsSkeleton'
+ import { useEffect, useMemo, useState } from 'react'
+ 
+ import { useQuery } from '@/store/queryContext/useQueryContext'
+@@ -25,6 +27,11 @@ type AssistantAssignmentDetailsTemplateProps = {
+   assignmentId?: string
+   assignmentName?: string
+   dueDate?: string | null
++  gradingDeadline?: string | null
++  isLoading?: boolean
++  isError?: boolean
++  isRetrying?: boolean
++  onRetry?: () => void
+   submittedStats?: AssignmentSubmittedStats
+   view: Exclude<AssignmentView, AssignmentView.Overview>
+   onChangeView: (view: AssignmentView) => void
+@@ -37,6 +44,11 @@ export default function AssistantAssignmentDetailsTemplate({
+   assignmentId,
+   assignmentName,
+   dueDate,
++  gradingDeadline,
++  isLoading,
++  isError,
++  isRetrying = false,
++  onRetry,
+   view,
+   onChangeView,
+   onFilter,
+@@ -116,11 +128,15 @@ export default function AssistantAssignmentDetailsTemplate({
+     forwardDeleteQuery('ungraded_only', { resetQueryNames: ['page'] })
+   }
+ 
++  if (isLoading) return <AssessmentDetailsSkeleton variant="assistant-assignment" submitted={isSubmitted} />
++  if (isError && onRetry) return <QueryStateNotice kind="loading-error" isRetrying={isRetrying} onRetry={onRetry} />
++
+   return (
+     <section className="space-y-6">
+       <AssistantDetailsHeader
+         assignmentName={assignmentName}
+         dueDate={dueDate}
++        gradingDeadline={gradingDeadline}
+         isSubmitted={isSubmitted}
+         submitted={metrics}
+         missing={missingMetrics}
+diff --git a/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentsTemplate.tsx b/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentsTemplate.tsx
+index 64db1361..e4b97879 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentsTemplate.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/assistant/AssistantAssignmentsTemplate.tsx
+@@ -1,4 +1,7 @@
+-import { Clock3, FileText, MoreHorizontal } from 'lucide-react'
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { AssessmentListSkeleton } from '@/modules/teachers/shared/components/AssessmentCardSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
++import { FileText, MoreHorizontal } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ 
+ import { DashboardStatCard } from '@/components/shared/dashboard/atoms/DashboardStatCard'
+@@ -88,24 +91,26 @@ export default function AssistantAssignmentsTemplate({
+         <h2 className="mb-4 text-lg font-semibold text-black-800">{t('teachers_assignments.overview.recent_tasks')}</h2>
+ 
+         <div className="space-y-5">
+-          {assignmentsQuery.isLoading && (
+-            <div className="rounded-lg border border-[#E7E9EE] bg-white p-8 text-center text-sm text-black-text">
+-              {t('teachers_assignments.labels.loading_assignments')}
+-            </div>
+-          )}
+-          {assignmentsQuery.isError && (
+-            <div className="rounded-lg border border-[#E7E9EE] bg-white p-8 text-center text-sm text-error-600">
+-              {t('teachers_assignments.errors.load_assignments')}
+-            </div>
++          {assignmentsQuery.isLoading && <AssessmentListSkeleton variant="assistant-assignment" />}
++          {!assignmentsQuery.isLoading && assignmentsQuery.isError && (
++            <QueryStateNotice
++              kind="loading-error"
++              isRetrying={assignmentsQuery.isFetching}
++              onRetry={() => void assignmentsQuery.refetch()}
++            />
+           )}
+           {!assignmentsQuery.isLoading && !assignmentsQuery.isError && assignments.length === 0 && (
+             <div className="rounded-lg border border-[#E7E9EE] bg-white p-8 text-center text-sm text-black-text">
+               {t('teachers_assignments.labels.no_assignments')}
+             </div>
+           )}
+-          {assignments.map((assignment) => (
+-            <AssistantAssignmentCard key={assignment.id} assignment={assignment} onOpen={onOpenAssignment} />
+-          ))}
++          {!assignmentsQuery.isLoading && !assignmentsQuery.isError && (
++            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
++              {assignments.map((assignment) => (
++                <AssistantAssignmentCard key={assignment.id} assignment={assignment} onOpen={onOpenAssignment} />
++              ))}
++            </div>
++          )}
+           <PaginatedListFooter
+             pagination={pagination}
+             itemCount={assignments.length}
+@@ -145,11 +150,12 @@ export function AssistantAssignmentCard({
+           </div>
+           <div className="min-w-0 flex-1">
+             <h3 className="truncate text-sm font-semibold text-black-800">{assignment.name}</h3>
+-            <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold text-brand-500">
+-              <Clock3 className="size-3.5 shrink-0" />
+-              <span className="text-black-text">{t('teachers_assignments.fields.due_date')}:</span>
+-              <span>{formatAssignmentDate(assignment.due_date)}</span>
+-            </p>
++            <AssessmentDeadlines
++              kind="assignment"
++              dueDate={assignment.due_date}
++              gradingDeadline={assignment.grading_deadline}
++              compact
++            />
+           </div>
+           <div className="flex shrink-0 items-center gap-2">
+             {statusBadge && (
+@@ -234,19 +240,3 @@ function AssistantProgressMetric({ label, value }: { label: string; value: numbe
+     </div>
+   )
+ }
+-
+-function formatAssignmentDate(value?: string | null) {
+-  if (!value) return '-'
+-
+-  const date = new Date(value)
+-
+-  if (Number.isNaN(date.getTime())) return value
+-
+-  return new Intl.DateTimeFormat(undefined, {
+-    month: 'short',
+-    day: 'numeric',
+-    year: 'numeric',
+-    hour: 'numeric',
+-    minute: '2-digit',
+-  }).format(date)
+-}
+diff --git a/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.test.tsx b/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.test.tsx
+index cd9a9982..7eedb693 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.test.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.test.tsx
+@@ -5,6 +5,7 @@ import AssistantDetailsHeader from './AssistantDetailsHeader'
+ 
+ vi.mock('react-i18next', () => ({
+   useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
+     t: (key: string) =>
+       ({
+         'teachers_assignments.overview.title': 'Assignments',
+@@ -32,6 +33,7 @@ describe('AssistantDetailsHeader', () => {
+       <AssistantDetailsHeader
+         assignmentName="Assistant Homework"
+         dueDate="2026-08-21T18:45:00+03:00"
++        gradingDeadline="2026-09-23T11:46:00.000000+03:00"
+         isSubmitted
+         submitted={{ total: 0, reviewed: 0, pending: 0, progress: 0 }}
+         missing={{ total: 0, studentReminders: 0, parentReminders: 0 }}
+@@ -40,8 +42,10 @@ describe('AssistantDetailsHeader', () => {
+     )
+ 
+     expect(screen.getByText('Due Date:')).toBeInTheDocument()
+-    expect(screen.getByText(/Aug 21, 2026/)).toBeInTheDocument()
+-    expect(screen.getByText(/6:45 PM/)).toBeInTheDocument()
++    expect(screen.getByText('teachers_assignments.fields.grading_deadline:')).toBeInTheDocument()
++    expect(screen.getByText(/2026.*:46/)).toBeInTheDocument()
++    expect(screen.getByText(/Aug.*2026/)).toBeInTheDocument()
++    expect(screen.getAllByText(/:45.*pm/i)[0]).toBeInTheDocument()
+   })
+ 
+   it('does not show an empty Due Date before assignment details are available', () => {
+diff --git a/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.tsx b/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.tsx
+index 4194f189..3bf47400 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/assistant/details/AssistantDetailsHeader.tsx
+@@ -1,8 +1,7 @@
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
+ import { useTranslation } from 'react-i18next'
+-import { Clock3 } from 'lucide-react'
+ 
+ import QueryTabsFilter from '@/components/filters/QueryTabsFilter'
+-import { formatAssignmentDate } from '@/modules/teachers/shared/assignments/components/templates/shared/overview/overview.helpers'
+ 
+ import {
+   AssignmentView,
+@@ -12,6 +11,7 @@ import {
+ type AssistantDetailsHeaderProps = {
+   assignmentName?: string
+   dueDate?: string | null
++  gradingDeadline?: string | null
+   isSubmitted: boolean
+   submitted: AdminDetailsMetricsProps['submitted']
+   missing: AdminDetailsMetricsProps['missing']
+@@ -21,6 +21,7 @@ type AssistantDetailsHeaderProps = {
+ export default function AssistantDetailsHeader({
+   assignmentName,
+   dueDate,
++  gradingDeadline,
+   isSubmitted,
+ 
+   onChangeView,
+@@ -41,12 +42,8 @@ export default function AssistantDetailsHeader({
+       <div className="flex min-h-10 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+         <div>
+           <h1 className="text-2xl font-semibold text-black-800">{title}</h1>
+-          {dueDate !== undefined && (
+-            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-brand-500">
+-              <Clock3 className="size-4 shrink-0" aria-hidden="true" />
+-              <span className="text-black-text">{t('teachers_assignments.fields.due_date')}:</span>
+-              <span>{formatAssignmentDate(dueDate)}</span>
+-            </p>
++          {(dueDate !== undefined || gradingDeadline !== undefined) && (
++            <AssessmentDeadlines kind="assignment" dueDate={dueDate} gradingDeadline={gradingDeadline} />
+           )}
+         </div>
+       </div>
+diff --git a/src/modules/teachers/shared/assignments/components/templates/details-responsive-tables.test.tsx b/src/modules/teachers/shared/assignments/components/templates/details-responsive-tables.test.tsx
+index 904a7ef1..270d83b9 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/details-responsive-tables.test.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/details-responsive-tables.test.tsx
+@@ -27,7 +27,10 @@ import {
+ } from '@/modules/teachers/shared/assignments/types/assignments.types'
+ 
+ vi.mock('react-i18next', () => ({
+-  useTranslation: () => ({ t: (key: string) => key }),
++  useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
++    t: (key: string) => key,
++  }),
+ }))
+ 
+ vi.mock('@/modules/teachers/shared/assignments/components/atoms/table/TableFooter', () => ({
+diff --git a/src/modules/teachers/shared/assignments/components/templates/shared/details/AssignmentDetails.tsx b/src/modules/teachers/shared/assignments/components/templates/shared/details/AssignmentDetails.tsx
+index d2f8c75b..d963e536 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/shared/details/AssignmentDetails.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/shared/details/AssignmentDetails.tsx
+@@ -1,3 +1,6 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import AssessmentDetailsSkeleton from '@/modules/teachers/shared/components/AssessmentDetailsSkeleton'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
+ import { useState } from 'react'
+ import { useTranslation } from 'react-i18next'
+ 
+@@ -122,6 +125,17 @@ export default function AssignmentDetails({
+     />
+   )
+   console.log('studentsExtra', studentsExtra)
++  if (assignmentQuery.isLoading)
++    return <AssessmentDetailsSkeleton variant="teacher-assignment" submitted={isSubmitted} />
++  if (assignmentQuery.isError)
++    return (
++      <QueryStateNotice
++        kind="loading-error"
++        isRetrying={assignmentQuery.isFetching}
++        onRetry={() => void assignmentQuery.refetch()}
++      />
++    )
++
+   if (isTeacher) {
+     return (
+       <section className="space-y-5">
+@@ -135,6 +149,11 @@ export default function AssignmentDetails({
+               <span className="text-black-800">{assignmentTitle}</span>
+             </div>
+             <h1 className="text-2xl font-semibold text-black-800">{assignmentTitle}</h1>
++            <AssessmentDeadlines
++              kind="assignment"
++              dueDate={assignment?.due_date}
++              gradingDeadline={assignment?.grading_deadline}
++            />
+           </div>
+         </header>
+ 
+@@ -213,6 +232,11 @@ export default function AssignmentDetails({
+             </span>
+           </div>
+           <h1 className="text-2xl font-semibold text-black-800">{assignmentTitle}</h1>
++          <AssessmentDeadlines
++            kind="assignment"
++            dueDate={assignment?.due_date}
++            gradingDeadline={assignment?.grading_deadline}
++          />
+           <p className="mt-2 text-sm text-black-text">{t('teachers_assignments.details.description')}</p>
+         </div>
+       </header>
+diff --git a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentOverviewCard.tsx b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentOverviewCard.tsx
+index ace66a8a..42ddb772 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentOverviewCard.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentOverviewCard.tsx
+@@ -1,4 +1,5 @@
+-import { Clock3, Eye } from 'lucide-react'
++import AssessmentDeadlines from '@/modules/teachers/shared/components/AssessmentDeadlines'
++import { Eye } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ 
+ import { ProgressBar } from '@/components/shared/dashboard/atoms/ProgressBar'
+@@ -48,11 +49,12 @@ export default function AssignmentOverviewCard({ assignment, isTeacher, onOpen }
+                 subgroupsLabel={t('teachers_assignments.fields.subgroups')}
+               />
+             </div>
+-            <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold text-brand-500">
+-              <Clock3 className="size-3.5 shrink-0" />
+-              <span className="text-[#777]">{t('teachers_assignments.fields.due_date')}:</span>
+-              <span>{assignment.dueDate}</span>
+-            </p>
++            <AssessmentDeadlines
++              kind="assignment"
++              dueDate={assignment.dueDate}
++              gradingDeadline={assignment.gradingDeadline}
++              compact
++            />
+           </div>
+           <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+             <DashboardCardActions
+@@ -127,17 +129,19 @@ export default function AssignmentOverviewCard({ assignment, isTeacher, onOpen }
+       </div>
+       <Separator />
+       {isTeacher ? (
+-        <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-brand-500">
+-          <Clock3 className="size-4" />
+-          <span className="text-black-text">{t('teachers_assignments.fields.due_date')}:</span>
+-          <span>{assignment.dueDate}</span>
+-        </p>
++        <AssessmentDeadlines
++          kind="assignment"
++          dueDate={assignment.dueDate}
++          gradingDeadline={assignment.gradingDeadline}
++          compact
++        />
+       ) : (
+-        <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-brand-500">
+-          <Clock3 className="size-4 shrink-0" />
+-          <span className="text-black-text">{t('teachers_assignments.fields.due_date')}:</span>
+-          <span>{assignment.dueDate}</span>
+-        </p>
++        <AssessmentDeadlines
++          kind="assignment"
++          dueDate={assignment.dueDate}
++          gradingDeadline={assignment.gradingDeadline}
++          compact
++        />
+       )}
+       <div className="grid gap-x-8 gap-y-4 md:grid-cols-2">
+         <ProgressLabel
+diff --git a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.test.tsx b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.test.tsx
+index cf8f9b52..46741451 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.test.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.test.tsx
+@@ -46,6 +46,7 @@ const assignmentsResponse: AssistantAssignmentsResponse = {
+ 
+ vi.mock('react-i18next', () => ({
+   useTranslation: () => ({
++    i18n: { language: 'en', resolvedLanguage: 'en' },
+     t: (key: string, values?: Record<string, string | number>) => {
+       if (key === 'teachers_assignments.table.showing_dynamic_range') {
+         return `Showing ${values?.start} to ${values?.end} of ${values?.total}`
+@@ -127,8 +128,8 @@ describe('AssignmentsOverview', () => {
+     await user.click(screen.getByRole('button', { name: 'Subgroups' }))
+     expect(within(screen.getByRole('dialog', { name: 'Subgroups' })).getByText('Sub Group')).toBeInTheDocument()
+     expect(screen.getByText(/Due Date:/)).toBeInTheDocument()
+-    expect(screen.getByText(/5:30 PM/)).toBeInTheDocument()
+-    expect(screen.queryByText(/Grading Deadline:/)).not.toBeInTheDocument()
++    expect(screen.getAllByText(/:30.*pm/i)[0]).toBeInTheDocument()
++    expect(screen.getAllByText('teachers_assignments.fields.grading_deadline:').length).toBeGreaterThan(0)
+ 
+     await user.click(screen.getByRole('button', { name: /Chapter 5 Assignment/ }))
+     expect(onOpenAssignment).toHaveBeenCalledWith('assignment-1')
+diff --git a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.tsx b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.tsx
+index 0fd5b201..2474632f 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverview.tsx
+@@ -4,7 +4,6 @@ import AssignmentsOverviewFilters from '@/modules/teachers/shared/assignments/co
+ import AssignmentsOverviewHeader from '@/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewHeader'
+ import AssignmentsOverviewList from '@/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewList'
+ import AssignmentsOverviewStats from '@/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewStats'
+-import { formatAssignmentDate } from '@/modules/teachers/shared/assignments/components/templates/shared/overview/overview.helpers'
+ import {
+   isAssignmentSort,
+   isAssignmentStatus,
+@@ -49,7 +48,8 @@ export default function AssignmentsOverview({ role, onFilter, onOpenAssignment }
+       assignment.groups?.flatMap((group, groupIndex) =>
+         group.sub_groups.map((name, subgroupIndex) => ({ id: `${groupIndex}-${subgroupIndex}`, name }))
+       ) ?? [],
+-    dueDate: formatAssignmentDate(assignment.due_date),
++    dueDate: assignment.due_date,
++    gradingDeadline: assignment.grading_deadline,
+     icon: FileText,
+     submissionRate: assignment.submission_rate ?? assignment.students_count ?? 0,
+     gradingProgress: assignment.grading_progress ?? 0,
+@@ -70,6 +70,8 @@ export default function AssignmentsOverview({ role, onFilter, onOpenAssignment }
+       />
+       <AssignmentsOverviewList
+         assignments={assignmentCards}
++        onRetry={() => void assistantAssignmentsQuery.refetch()}
++        isRetrying={assistantAssignmentsQuery.isFetching}
+         isError={assistantAssignmentsQuery.isError}
+         isLoading={assistantAssignmentsQuery.isLoading}
+         isTeacher={isTeacher}
+diff --git a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewList.tsx b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewList.tsx
+index 733a71f7..df8b4b42 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewList.tsx
++++ b/src/modules/teachers/shared/assignments/components/templates/shared/overview/AssignmentsOverviewList.tsx
+@@ -1,3 +1,5 @@
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { AssessmentListSkeleton } from '@/modules/teachers/shared/components/AssessmentCardSkeleton'
+ import { useTranslation } from 'react-i18next'
+ 
+ import PaginatedListFooter from '@/components/shared/pagination/PaginatedListFooter'
+@@ -14,6 +16,8 @@ type AssignmentsOverviewListProps = {
+   isLoading: boolean
+   isTeacher: boolean
+   onOpenAssignment: (assignmentId: string) => void
++  onRetry: () => void
++  isRetrying: boolean
+   pagination?: AssistantPagination
+ }
+ 
+@@ -24,17 +28,19 @@ export default function AssignmentsOverviewList({
+   isTeacher,
+   onOpenAssignment,
+   pagination,
++  onRetry,
++  isRetrying,
+ }: AssignmentsOverviewListProps) {
+   const { t } = useTranslation()
+   const showPagination = pagination && pagination.total_pages > 1
+ 
+   if (isTeacher) {
+     if (isLoading) {
+-      return <TeacherStateMessage>{t('teachers_assignments.labels.loading_assignments')}</TeacherStateMessage>
++      return <AssessmentListSkeleton variant="assignment" />
+     }
+ 
+     if (isError) {
+-      return <TeacherStateMessage danger>{t('teachers_assignments.errors.load_assignments')}</TeacherStateMessage>
++      return <QueryStateNotice kind="loading-error" isRetrying={isRetrying} onRetry={onRetry} />
+     }
+ 
+     if (assignments.length === 0) {
+@@ -43,7 +49,7 @@ export default function AssignmentsOverviewList({
+ 
+     return (
+       <>
+-        <div className="grid gap-6 lg:grid-cols-2">
++        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+           {assignments.map((assignment) => (
+             <AssignmentOverviewCard
+               key={assignment.id}
+@@ -85,29 +91,25 @@ export default function AssignmentsOverviewList({
+             {t('teachers_assignments.overview.recent_tasks')}
+           </div>
+         )}
+-        {isLoading && (
+-          <div className="px-6 py-8 text-center text-sm text-black-text">
+-            {t('teachers_assignments.labels.loading_assignments')}
+-          </div>
+-        )}
+-        {isError && (
+-          <div className="px-6 py-8 text-center text-sm text-error-600">
+-            {t('teachers_assignments.errors.load_assignments')}
+-          </div>
+-        )}
++        {isLoading && <AssessmentListSkeleton variant="assignment" />}
++        {!isLoading && isError && <QueryStateNotice kind="loading-error" isRetrying={isRetrying} onRetry={onRetry} />}
+         {!isLoading && !isError && assignments.length === 0 && (
+           <div className="px-6 py-8 text-center text-sm text-black-text">
+             {t('teachers_assignments.labels.no_assignments')}
+           </div>
+         )}
+-        {assignments.map((assignment) => (
+-          <AssignmentOverviewCard
+-            key={assignment.id}
+-            assignment={assignment}
+-            isTeacher={isTeacher}
+-            onOpen={onOpenAssignment}
+-          />
+-        ))}
++        {!isLoading && !isError && (
++          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
++            {assignments.map((assignment) => (
++              <AssignmentOverviewCard
++                key={assignment.id}
++                assignment={assignment}
++                isTeacher={isTeacher}
++                onOpen={onOpenAssignment}
++              />
++            ))}
++          </div>
++        )}
+         {showPagination && (
+           <div className="border-t border-brand-50 px-4 py-2">
+             <TablePagination className="p-0" />
+diff --git a/src/modules/teachers/shared/assignments/components/templates/shared/overview/overview.types.ts b/src/modules/teachers/shared/assignments/components/templates/shared/overview/overview.types.ts
+index f5213453..3cdc4974 100644
+--- a/src/modules/teachers/shared/assignments/components/templates/shared/overview/overview.types.ts
++++ b/src/modules/teachers/shared/assignments/components/templates/shared/overview/overview.types.ts
+@@ -6,7 +6,8 @@ export type OverviewAssignmentCard = {
+   title: string
+   groups: GroupHierarchyPreviewItem[]
+   subgroups: GroupHierarchyPreviewItem[]
+-  dueDate: string
++  dueDate: string | null | undefined
++  gradingDeadline: string | null | undefined
+   icon: LucideIcon
+   submissionRate: number
+   gradingProgress: number
+diff --git a/src/modules/teachers/shared/assignments/page/TeachingAssignmentDetailsRoute.tsx b/src/modules/teachers/shared/assignments/page/TeachingAssignmentDetailsRoute.tsx
+index 4e95e02f..e38a1798 100644
+--- a/src/modules/teachers/shared/assignments/page/TeachingAssignmentDetailsRoute.tsx
++++ b/src/modules/teachers/shared/assignments/page/TeachingAssignmentDetailsRoute.tsx
+@@ -166,6 +166,11 @@ export default function TeachingAssignmentDetailsRoute({
+             assignmentId={assignmentId}
+             assignmentName={assignmentQuery.data?.name}
+             dueDate={assignmentQuery.data?.due_date}
++            gradingDeadline={assignmentQuery.data?.grading_deadline}
++            isLoading={assignmentQuery.isLoading}
++            isError={assignmentQuery.isError}
++            isRetrying={assignmentQuery.isFetching}
++            onRetry={() => void assignmentQuery.refetch()}
+             submittedStats={getAssignmentSubmittedStats(assignmentQuery.data)}
+             view={view}
+             onChangeView={setView}
