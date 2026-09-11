@@ -1,53 +1,20 @@
-# Smart Hub project context
+# Rafal Dashboard project context
 
-## Product purpose
+## Current purpose
 
-Smart Hub is a multilingual learning-management frontend. It presents course content, assignments, exams, tasks, reports, notifications, profile data, and live-session experiences to authenticated users. Separate teacher-facing modules cover administrative and instructional workflows.
+This repository is the clean React foundation for the Rafal Admin Dashboard. It currently provides authentication, a protected dashboard landing page, shared UI primitives, React Query infrastructure, localization, RTL support, and testing infrastructure.
 
-## Portals and roles
+Rafal business modules and role/permission rules are intentionally not defined yet. They must be implemented from approved backend and product contracts.
 
-The application has two authenticated route roots:
+## Core application flow
 
-- `/user` supports the `student` and `parent` roles.
-- `/teacher` supports the `teacher`, `admin`, and `assistant` roles.
-
-`RoleGuard` protects each portal. Feature routes that support a narrower role set use `RoleOnly`, which delegates to the same `RoleAccess` behavior and redirects unauthorized users to the existing error routes.
-
-Student and Parent experiences are not interchangeable. In particular, the Tasks dashboard is Student-only, while Parent users retain approved access to Assignment and Exam list/detail actions described in `BUSINESS_RULES.md`.
-
-## Major frontend areas
-
-The `src/modules` directory currently contains:
-
-- Authentication.
-- User experiences such as Home, Course, Library, Tasks, Assignments, Exams, To-Do List, Notifications, Profile, reports, and shared meeting/PDF behavior.
-- Teacher, Admin, and Assistant experiences.
-- Shared dashboard and error modules.
-
-Reusable UI lives primarily under `src/components`, grouped into core layout/navigation primitives, form controls, shared dashboard/query-state behavior, and shadcn/Radix-based UI components.
+- `/` redirects through the protected dashboard entry.
+- `/login` is the single unauthenticated entry.
+- `/dashboard` is the neutral authenticated landing page.
+- All API requests go through `$http`, backed by the single Axios instance in `src/config/axios.ts` and `VITE_API_BASE_URL`.
 
 ## Technology
 
-The checked-in package configuration uses:
+The project uses React, TypeScript, Vite, React Router, TanStack React Query, Zustand, React Hook Form, Yup, Tailwind CSS, Axios, react-i18next, Vitest, React Testing Library, and jsdom.
 
-- React 19 and TypeScript.
-- Vite 6.
-- React Router 6.
-- TanStack React Query 5.
-- Zustand for client/auth state.
-- React Hook Form and Yup for forms.
-- Tailwind CSS 4 with project design tokens.
-- Radix/shadcn UI components.
-- Axios through project HTTP wrappers.
-- react-i18next.
-- Vitest, React Testing Library, and jsdom.
-
-## Localization
-
-English and Arabic resources are assembled in `src/lang/resources.ts`. `src/config/i18.ts` configures the supported languages, updates the document language/direction, and supplies translated Yup defaults. Feature copy belongs in feature locale files and must be registered in the shared resource map. Layouts and directional icons must work in both LTR and RTL.
-
-## Server state
-
-TanStack React Query is the authoritative store for backend data. The shared query client defines default stale/GC behavior and disables window-focus refetching. Feature hooks may override retry and freshness settings when the endpoint requires a different policy. Services use `$http` or the appropriate authenticated project wrapper; components do not call Axios directly.
-
-List modules use query-key factories and, where applicable, `useInfinitePaginatedQuery` plus `useInfiniteScroll`. Mutations reconcile narrowly scoped caches and must not use page reloads as a synchronization mechanism.
+English and Arabic resources are assembled in `src/lang/resources.ts`; `src/config/i18.ts` preserves document language and direction.

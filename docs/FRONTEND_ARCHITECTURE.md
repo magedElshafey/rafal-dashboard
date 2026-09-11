@@ -3,22 +3,17 @@
 ## Source layout
 
 - `src/modules/<domain>` owns feature-specific pages, components, containers/hooks, services, types, schemas, constants, utilities, locales, and tests.
-- `src/components/core` contains application-level primitives such as `Container`, `Section`, portal-aware links, and `FormWrapper`.
+- `src/components/core` contains application-level primitives such as `Container`, `Section`, and `FormWrapper`.
 - `src/components/shared` contains reusable dashboard, query-state, animation, notification, and related cross-feature components.
 - `src/components/form` contains React Hook Form-aware controls and file-upload building blocks.
 - `src/components/ui` contains lower-level shadcn/Radix-style primitives.
 - `src/utils`, `src/hooks`, and `src/lib` contain infrastructure that is genuinely cross-domain.
 
-Keep domain models inside their domain. A shared component is appropriate only when multiple real consumers have the same cohesive behavior; do not create a large optional-prop component that merges unrelated Assignment and Exam models.
+Keep domain models inside their domain. A shared component is appropriate only when multiple real consumers have the same cohesive behavior.
 
 ## Routing
 
-Top-level private routes live in `src/routes/privateRoutes`. User child routes live in `src/modules/users/routes/routes.tsx` and are lazy loaded inside `UsersLayout`.
-
-- `RoleGuard` protects a portal and renders an `Outlet`.
-- `RoleOnly` protects a narrower element.
-- `RoleAccess` reads the authenticated Zustand store and redirects unauthenticated or unauthorized access through existing application conventions.
-- `PortalLink` and `PortalNavLink` add the active portal prefix, so feature code uses paths such as `/assignments` rather than hard-coding `/user/assignments`.
+Top-level private routes live in `src/routes/privateRoutes`. `RequireAuth` protects authenticated routes and redirects unauthenticated requests to `/login`. Navigation uses React Router `Link`, `NavLink`, and `navigate` directly.
 
 Required data must come from route parameters and canonical queries. Do not require `location.state` for refreshable detail/action pages. Shareable filters belong in URL search parameters and invalid values should be normalized with `replace`.
 

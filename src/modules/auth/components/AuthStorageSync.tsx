@@ -14,11 +14,7 @@ function crossesAuthQueryBoundary(previous: AuthState, next: AuthState): boolean
     return false
   }
 
-  return (
-    previous.role !== next.role ||
-    previous.portal !== next.portal ||
-    String(previous.user?.id ?? '') !== String(next.user?.id ?? '')
-  )
+  return previous.role !== next.role || String(previous.user?.id ?? '') !== String(next.user?.id ?? '')
 }
 
 export function AuthStorageSync() {

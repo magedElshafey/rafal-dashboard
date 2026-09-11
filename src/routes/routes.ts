@@ -3,10 +3,6 @@ export const Routes = {
 
   login: '/login',
   dashboard: '/dashboard',
-  forgotPassword: '/forget-password',
-  resetPassword: '/reset-password',
-  resetPasswordVerification: '/reset-password-verifications',
-
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

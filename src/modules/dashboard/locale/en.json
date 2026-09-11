@@ -1,0 +1,7 @@
+{
+  "dashboard": {
+    "brand": "Rafal Dashboard",
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}"
+  }
+}

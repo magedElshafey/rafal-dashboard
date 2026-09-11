@@ -1,8 +1,6 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import authIllustration from '@/assets/Illustration.png'
-
 export const AuthIllustration = memo(function AuthIllustration() {
   const { t } = useTranslation()
 
@@ -29,26 +27,9 @@ export const AuthIllustration = memo(function AuthIllustration() {
         lg:p-0
       "
     >
-      <img
-        src={authIllustration}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="
-          block
-          h-auto
-          max-h-85
-          w-full
-          max-w-105
-          object-contain
-          sm:max-h-105
-          sm:max-w-125
-          md:max-h-125
-          md:max-w-140
-          lg:max-h-[calc(100dvh-32px)]
-          lg:max-w-154.5
-        "
-      />
+      <div className="flex min-h-72 w-full max-w-154.5 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-100 via-white to-primary-200 p-10 text-center shadow-sm lg:min-h-[calc(100dvh-32px)]">
+        <p className="text-4xl font-semibold text-primary-800">{t('dashboard.brand')}</p>
+      </div>
     </aside>
   )
 })

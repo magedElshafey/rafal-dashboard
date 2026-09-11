@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
-import { PortalLink } from '@/components/core/portal-link/components/PortalLink'
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 type DashboardSectionHeaderLinkAction = {
@@ -51,9 +51,9 @@ export function DashboardSectionHeader({
 
       {action &&
         (isLinkAction(action) ? (
-          <PortalLink to={action.to} className={cn(DASHBOARD_SECTION_HEADER_ACTION_CLASS_NAME, actionClassName)}>
+          <Link to={action.to} className={cn(DASHBOARD_SECTION_HEADER_ACTION_CLASS_NAME, actionClassName)}>
             {action.label}
-          </PortalLink>
+          </Link>
         ) : (
           <span className={cn('text-sm font-medium text-content-secondary', actionClassName)}>{action.label}</span>
         ))}

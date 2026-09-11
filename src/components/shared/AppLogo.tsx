@@ -1,7 +1,7 @@
-import Image from '@/components/core/Image'
-import { PortalLink } from '@/components/core/portal-link/components/PortalLink'
-import appLogo from '@/assets/logo.svg'
+import { Link } from 'react-router-dom'
+
 import { cn } from '@/lib/utils'
+import { Routes } from '@/routes/routes'
 
 type AppLogoSize = 'sm' | 'md' | 'lg'
 
@@ -12,31 +12,23 @@ type AppLogoProps = {
 }
 
 const sizeClassNames: Record<AppLogoSize, string> = {
-  sm: 'w-[90px]',
-  md: 'w-[135px]',
-  lg: 'w-[180px]',
+  sm: 'text-lg',
+  md: 'text-xl',
+  lg: 'text-2xl',
 }
 
-const AppLogo = ({ size = 'md', className, priority = false }: AppLogoProps) => {
-  return (
-    <PortalLink
-      to="/home"
-      className={cn(
-        'inline-flex max-w-full shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2',
-        className
-      )}
-    >
-      <Image
-        src={appLogo}
-        alt="Smart Hub"
-        width={135}
-        height={33}
-        loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : undefined}
-        className={cn('block h-auto max-w-full object-contain', sizeClassNames[size])}
-      />
-    </PortalLink>
-  )
-}
+const AppLogo = ({ size = 'md', className }: AppLogoProps) => (
+  <Link
+    to={Routes.root}
+    aria-label="Rafal Dashboard"
+    className={cn(
+      'inline-flex max-w-full shrink-0 rounded-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2',
+      sizeClassNames[size],
+      className
+    )}
+  >
+    Rafal Dashboard
+  </Link>
+)
 
 export default AppLogo

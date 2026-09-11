@@ -4,7 +4,7 @@
       "back": "Back",
       "go_back": "Go back",
       "page_label": "Authentication page",
-      "illustration_label": "Smart Hub learning illustration",
+      "illustration_label": "Rafal Dashboard illustration",
       "loading": "Loading...",
       "no_data": "No Data"
     },
@@ -29,25 +29,15 @@
         "title": "Welcome back!",
         "description": "Sign in to continue"
       },
-      "user": {
-        "title": "Welcome back!",
-        "description": "Sign in to access your courses and continue learning"
-      },
-      "teacher": {
-        "title": "Welcome back!",
-        "description": "Sign in to manage your classes and students"
-      },
       "remember_me": "Remember me",
       "forgot_password": "Forgot password?",
       "submit": "Sign in",
-      "invalid_portal": "Invalid login portal",
       "server_error": "Something went wrong. Please try again."
     },
     "forgot_password": {
       "title": "Reset your password",
       "description": "Enter your phone number and we will send you a verification code to reset your password.",
       "submit": "Send verification code",
-      "invalid_portal": "Invalid password reset portal",
       "success": "Verification code sent successfully.",
       "server_error": "Something went wrong. Please try again."
     },

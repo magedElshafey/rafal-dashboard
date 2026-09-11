@@ -5,7 +5,7 @@
 - Treat React Query as the server-state source; do not copy query data into component state.
 - Keep URL filters in the URL, not duplicated state.
 - Include every response-changing input in query keys and use `pageParam` for infinite pagination.
-- Do not fetch all pages, card details, every filter combination, protected endpoints, meeting signatures, or analysis data speculatively.
+- Do not fetch all pages, card details, every filter combination, or protected endpoints speculatively.
 - Prevent concurrent next-page requests and duplicate mutations.
 - Memoize only when stable props or meaningful derivation make it useful. Isolate per-item pending state so one mutation does not rerender an entire list unnecessarily.
 - Do not add polling or realtime infrastructure without an approved requirement.
@@ -59,8 +59,6 @@ Handle invalid values, timezone offsets, DST, and local calendar days. Do not em
 
 Use the existing upload components when they fit. Validate both extension and MIME type, enforce the exact approved size/count, expose restrictions before selection, allow replacement/removal, prevent duplicate submit, and keep the selected file after an API error.
 
-For the current Assignment, Exam, and extension flows, the approved rule is one PDF up to 50 MB. Stale design labels mentioning DOCX, ZIP, JPG, 10 MB, or 20 MB must not appear.
-
 ## Error and state handling
 
 Do not render blank pages. Initial failures need Retry; next-page failures preserve loaded content and retry only the failed page. Treat loading, empty, malformed data, missing files, not-found, forbidden, unavailable timing, and background refresh failure as distinct states. Forbidden states must not leak protected data before redirecting.
@@ -68,13 +66,12 @@ Do not render blank pages. Initial failures need Retry; next-page failures prese
 ## Feature integration rules
 
 - Treat the backend contract as authoritative when a design conflicts with it; do not guess roles, endpoints, routes, response fields, or filter keys.
-- Protect role-specific features at both the route/deep-link boundary and the navigation/action boundary.
+- Protect authenticated features at both the route/deep-link boundary and the navigation/action boundary.
 - Use the shared `$http` client with relative paths only.
 - Use the project pagination and infinite-scroll hooks for paginated collections.
 - Keep filter state in the route-aware Query Context and render filters through `FiltersWrapper`.
 - `FiltersWrapper` supports search-only, drawer-only, and combined search-and-drawer compositions.
-- Use `PortalLink` for portal navigation, `EntityFormDrawer` for entity forms, and the shared confirmation dialog for deletion.
-- Reuse the DDL hooks/services and dependent group/subgroup controls instead of introducing feature-local option requests.
+- Use React Router links for internal navigation, `EntityFormDrawer` for entity forms, and the shared confirmation dialog for deletion.
 - Change shared code only through a backward-compatible API with focused regression tests.
 - Invalidate the narrowest affected query and avoid reconciliation requests that do not change visible state.
 - Every network-backed feature needs stable loading, empty, error, retry, success, and accessible states.
