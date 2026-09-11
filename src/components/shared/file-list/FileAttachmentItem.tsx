@@ -36,7 +36,7 @@ export const FileAttachmentItem = memo(function FileAttachmentItem({
       }
       aria-label={ariaLabel}
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-black-50 bg-white px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+        'flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         classNames?.root
       )}
     >

@@ -27,8 +27,8 @@ export const AuthIllustration = memo(function AuthIllustration() {
         lg:p-0
       "
     >
-      <div className="flex min-h-72 w-full max-w-154.5 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-100 via-white to-primary-200 p-10 text-center shadow-sm lg:min-h-[calc(100dvh-32px)]">
-        <p className="text-4xl font-semibold text-primary-800">{t('dashboard.brand')}</p>
+      <div className="flex min-h-72 w-full max-w-154.5 items-center justify-center rounded-3xl bg-gradient-to-br from-accent via-background to-muted p-10 text-center shadow-sm lg:min-h-[calc(100dvh-32px)]">
+        <p className="text-4xl font-semibold text-primary">{t('dashboard.brand')}</p>
       </div>
     </aside>
   )

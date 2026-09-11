@@ -1,17 +1,20 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import '@/config/i18'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import i18n from '@/config/i18'
 import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
 import { DASHBOARD_SIDEBAR_STORAGE_KEY } from '@/modules/dashboard/layout/sidebar.constants'
 
 function renderShell() {
   return render(
     <MemoryRouter initialEntries={['/dashboard']}>
-      <DashboardShell>
-        <p>Dashboard content</p>
-      </DashboardShell>
+      <ThemeProvider>
+        <DashboardShell>
+          <p>Dashboard content</p>
+        </DashboardShell>
+      </ThemeProvider>
     </MemoryRouter>
   )
 }
@@ -19,6 +22,7 @@ function renderShell() {
 describe('DashboardShell', () => {
   beforeEach(() => {
     localStorage.clear()
+    void i18n.changeLanguage('en')
   })
 
   it('uses a valid persisted preference during the initial render', () => {
@@ -29,6 +33,10 @@ describe('DashboardShell', () => {
     expect(screen.getByTestId('dashboard-shell')).toHaveStyle('--dashboard-sidebar-width: 64px')
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Switch to Arabic' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Use light theme' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open user menu' })).toBeInTheDocument()
   })
 
   it('updates only the shell width during pointer movement and persists at pointer release', () => {
@@ -81,5 +89,25 @@ describe('DashboardShell', () => {
     renderShell()
 
     expect(screen.getByTestId('dashboard-shell')).toHaveStyle('--dashboard-sidebar-width: 256px')
+  })
+
+  it('opens and closes the same navigation tree as a mobile overlay', () => {
+    vi.stubGlobal('matchMedia', () => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+
+    renderShell()
+
+    const navigation = screen.getByRole('navigation', { hidden: true })
+    expect(navigation.closest('aside')).toHaveAttribute('inert')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }))
+    expect(navigation.closest('aside')).not.toHaveAttribute('inert')
+
+    fireEvent.click(navigation.closest('aside')!.querySelector('button[aria-label="Close navigation"]')!)
+    expect(navigation.closest('aside')).toHaveAttribute('inert')
+    vi.unstubAllGlobals()
   })
 })

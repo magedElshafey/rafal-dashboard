@@ -31,7 +31,7 @@ export function ReportDetailsTable({
   children: ReactNode
 }) {
   return (
-    <section className="overflow-hidden rounded-lg bg-white">
+    <section className="overflow-hidden rounded-lg bg-surface">
       {title ? (
         <h3 className="border-b border-border-subtle px-4 py-3 text-sm font-semibold text-content-primary">{title}</h3>
       ) : null}

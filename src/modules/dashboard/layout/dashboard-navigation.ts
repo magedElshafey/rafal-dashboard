@@ -2,10 +2,18 @@ import { LayoutDashboard } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
 
-export const dashboardNavigation = [
+export type DashboardNavigationItem = {
+  to: string
+  labelKey: string
+  icon: typeof LayoutDashboard
+  match: 'exact' | 'prefix'
+}
+
+export const dashboardNavigation: readonly DashboardNavigationItem[] = [
   {
     to: Routes.dashboard,
     labelKey: 'dashboard.sidebar.dashboard',
     icon: LayoutDashboard,
+    match: 'exact',
   },
-] as const
+]

@@ -5,12 +5,26 @@
     "welcome": "Welcome, {{name}}",
     "sidebar": {
       "brandMark": "R",
+      "brand": "Rafal",
       "navigation": "Dashboard navigation",
       "dashboard": "Dashboard",
       "collapse": "Collapse sidebar",
       "expand": "Expand sidebar",
+      "close": "Close navigation",
       "resize": "Resize sidebar",
       "logout": "Log out"
+    },
+    "topbar": {
+      "openNavigation": "Open navigation",
+      "notifications": "Notifications",
+      "notificationsUnread_one": "Notifications, {{count}} unread",
+      "notificationsUnread_other": "Notifications, {{count}} unread",
+      "useLightTheme": "Use light theme",
+      "useDarkTheme": "Use dark theme",
+      "useEnglish": "Switch to English",
+      "useArabic": "Switch to Arabic",
+      "userMenu": "Open user menu",
+      "guest": "Guest user"
     }
   }
 }

@@ -51,6 +51,10 @@
   --popover-foreground: var(--foreground);
   --primary: #b8834a;
   --primary-foreground: #ffffff;
+  --primary-hover: var(--gold-600);
+  --primary-active: var(--gold-700);
+  --surface: var(--background);
+  --surface-elevated: var(--background);
   --secondary: var(--neutral-100);
   --secondary-foreground: var(--neutral-900);
   --muted: #f2f2f2;
@@ -197,4 +201,67 @@
   --library-btn: var(--resource-action-text);
   --text-primary: var(--content-tertiary);
   --text-secondary: var(--content-secondary);
+}
+
+.dark {
+  --background: #0f0f10;
+  --page: #141416;
+  --surface: #1a1a1d;
+  --surface-elevated: #202024;
+  --foreground: #f5f5f4;
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--foreground);
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #2e2e33;
+  --input: var(--border);
+  --primary: #c89455;
+  --primary-foreground: #ffffff;
+  --primary-hover: #d5a66b;
+  --primary-active: #b8834a;
+  --accent: #2b2118;
+  --accent-foreground: #f3e0c2;
+  --ring: #c89455;
+  --destructive: #e05252;
+  --success: #2fbf71;
+  --warning: #e6a23c;
+  --info: #4c8dff;
+
+  --brand-50: var(--accent);
+  --brand-100: var(--accent);
+  --brand-500: var(--primary);
+  --brand-600: var(--primary-hover);
+  --brand-700: var(--primary-active);
+  --surface-page: var(--page);
+  --surface-card: var(--surface);
+  --surface-muted: var(--muted);
+  --surface-light: var(--surface-elevated);
+  --surface-inverted: var(--foreground);
+  --content-primary: var(--foreground);
+  --content-secondary: var(--muted-foreground);
+  --content-tertiary: var(--muted-foreground);
+  --content-muted: var(--muted-foreground);
+  --content-inverted: var(--background);
+  --content-strong: var(--foreground);
+  --content-heavy: var(--foreground);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--muted-foreground);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --black-50: var(--muted);
+  --black-100: var(--border);
+  --black-200: var(--border);
+  --black-300: var(--muted-foreground);
+  --black-400: var(--muted-foreground);
+  --black-500: var(--foreground);
+  --black-600: var(--foreground);
+  --black-700: var(--foreground);
+  --black-800: var(--foreground);
+  --black-900: var(--foreground);
+  --black-text: var(--muted-foreground);
+  --light-text: var(--muted-foreground);
+  --dark-text: var(--foreground);
 }

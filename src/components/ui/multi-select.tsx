@@ -305,7 +305,7 @@ function MultiSelectComponent<T>(
                         [
                           'flex max-w-full items-center gap-1.5',
                           'rounded-full',
-                          'bg-white text-neutral-700 p-2',
+                          'bg-surface-elevated p-2 text-foreground',
                           'text-xs font-medium ',
                         ].join(' '),
                         badgeClassName

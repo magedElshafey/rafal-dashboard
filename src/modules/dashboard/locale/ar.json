@@ -5,12 +5,30 @@
     "welcome": "مرحباً، {{name}}",
     "sidebar": {
       "brandMark": "ر",
+      "brand": "رفال",
       "navigation": "التنقل في لوحة التحكم",
       "dashboard": "لوحة التحكم",
       "collapse": "طي الشريط الجانبي",
       "expand": "توسيع الشريط الجانبي",
+      "close": "إغلاق التنقل",
       "resize": "تغيير حجم الشريط الجانبي",
       "logout": "تسجيل الخروج"
+    },
+    "topbar": {
+      "openNavigation": "فتح التنقل",
+      "notifications": "الإشعارات",
+      "notificationsUnread_zero": "الإشعارات، لا توجد إشعارات غير مقروءة",
+      "notificationsUnread_one": "الإشعارات، إشعار واحد غير مقروء",
+      "notificationsUnread_two": "الإشعارات، إشعاران غير مقروءين",
+      "notificationsUnread_few": "الإشعارات، {{count}} إشعارات غير مقروءة",
+      "notificationsUnread_many": "الإشعارات، {{count}} إشعارًا غير مقروء",
+      "notificationsUnread_other": "الإشعارات، {{count}} إشعار غير مقروء",
+      "useLightTheme": "استخدام المظهر الفاتح",
+      "useDarkTheme": "استخدام المظهر الداكن",
+      "useEnglish": "التبديل إلى الإنجليزية",
+      "useArabic": "التبديل إلى العربية",
+      "userMenu": "فتح قائمة المستخدم",
+      "guest": "مستخدم زائر"
     }
   }
 }

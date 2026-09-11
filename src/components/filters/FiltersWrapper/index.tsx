@@ -51,7 +51,7 @@ const FiltersWrapperDialog = ({
         side="right"
         showCloseButton={false}
         className={cn(
-          'flex h-dvh max-h-dvh w-full max-w-none flex-col items-stretch gap-0 overflow-hidden rounded-none! border-0 bg-white p-0 shadow-xl sm:max-w-107',
+          'flex h-dvh max-h-dvh w-full max-w-none flex-col items-stretch gap-0 overflow-hidden rounded-none! border-0 bg-surface p-0 shadow-xl sm:max-w-107',
           className
         )}
       >
@@ -84,7 +84,7 @@ const FiltersWrapperDialog = ({
 
           <div className={cn('min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5', bodyClassName)}>{children}</div>
 
-          <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-white px-5 py-4">
+          <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-surface px-5 py-4">
             <Button
               type="button"
               variant="outline"

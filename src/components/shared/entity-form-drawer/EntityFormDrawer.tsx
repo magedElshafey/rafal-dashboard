@@ -102,7 +102,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
           }
         }}
         className={cn(
-          'w-full gap-0 overflow-hidden border-l border-l-border-subtle bg-white p-0',
+          'w-full gap-0 overflow-hidden border-s border-border bg-surface p-0',
           'sm:max-w-120 lg:max-w-140 sm:rounded-s-3xl',
           className
         )}
@@ -145,7 +145,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
         {footerStatus}
         {footer !== null && (
           <SheetFooter
-            className={cn('grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-white p-6', footerClassName)}
+            className={cn('grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-surface p-6', footerClassName)}
           >
             {footer === undefined ? (
               <>

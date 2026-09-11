@@ -23,7 +23,7 @@ export function ResponsiveDataLayout({
   ...props
 }: ResponsiveDataLayoutProps) {
   return (
-    <section className={cn('overflow-hidden rounded-xl border border-border-subtle bg-white', className)} {...props}>
+    <section className={cn('overflow-hidden rounded-xl border border-border bg-surface', className)} {...props}>
       <header className="flex flex-col gap-4 border-b border-border-subtle p-5 sm:flex-row sm:items-center sm:justify-between">
         {header}
       </header>
@@ -73,9 +73,7 @@ export function ResponsiveDataTable({ columns, headerRowClassName, children, ...
 }
 
 export function ResponsiveDataTableRow({ className, ...props }: ComponentProps<typeof TableRow>) {
-  return (
-    <TableRow className={cn('border-border-subtle bg-white text-nowrap hover:bg-black-50/60', className)} {...props} />
-  )
+  return <TableRow className={cn('border-border bg-surface text-nowrap hover:bg-muted/60', className)} {...props} />
 }
 
 export function ResponsiveDataTableCell({ className, ...props }: ComponentProps<typeof TableCell>) {
@@ -106,7 +104,7 @@ export function ResponsiveDataMobileCard({
   ...props
 }: ResponsiveDataMobileCardProps) {
   return (
-    <article className={cn('rounded-xl border border-border-subtle bg-white p-4', className)} {...props}>
+    <article className={cn('rounded-xl border border-border bg-surface p-4', className)} {...props}>
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="break-words font-semibold text-content-primary">{title}</h3>

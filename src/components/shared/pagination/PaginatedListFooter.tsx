@@ -51,7 +51,7 @@ export default function PaginatedListFooter({
   return (
     <footer
       className={cn(
-        'flex flex-col gap-4 rounded-lg border border-border bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-4 rounded-lg border border-border bg-surface px-6 py-4 sm:flex-row sm:items-center sm:justify-between',
         className
       )}
     >

@@ -4,20 +4,26 @@ import { initReactI18next } from 'react-i18next'
 import * as Yup from 'yup'
 import { resources } from '@/lang/resources'
 
-export default i18n
-  .use(initReactI18next) // passes i18n down to react-i18next
-  .init({
-    resources,
-    lng: localStorage.getItem(env.LOCALE_KEY) || env.DEFAULT_LOCALE,
-    fallbackLng: env.DEFAULT_LOCALE,
-    supportedLngs: ['ar', 'en'],
-    interpolation: {
-      escapeValue: false, // react already safes from xss => https://www.i18next.com/translation-function/interpolation#unescape
-    },
-  })
+i18n.use(initReactI18next).init({
+  resources,
+  lng: localStorage.getItem(env.LOCALE_KEY) || env.DEFAULT_LOCALE,
+  fallbackLng: env.DEFAULT_LOCALE,
+  supportedLngs: ['ar', 'en'],
+  interpolation: {
+    escapeValue: false, // react already safes from xss => https://www.i18next.com/translation-function/interpolation#unescape
+  },
+})
 
-document.documentElement.lang = i18n.language
-document.documentElement.dir = i18n.dir(i18n.language)
+function syncDocumentLanguage(language: string) {
+  document.documentElement.lang = language
+  document.documentElement.dir = i18n.dir(language)
+  localStorage.setItem(env.LOCALE_KEY, language)
+}
+
+i18n.on('languageChanged', syncDocumentLanguage)
+syncDocumentLanguage(i18n.language || env.DEFAULT_LOCALE)
+
+export default i18n
 
 Yup.setLocale({
   mixed: {
