@@ -59,7 +59,7 @@ export function DashboardCardActions({
           className={cn('size-9 shrink-0', className)}
           aria-label={triggerLabel}
         >
-          <Ellipsis aria-hidden="true" className="size-5 text-black-text" />
+          <Ellipsis aria-hidden="true" className="size-5 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
 
@@ -98,12 +98,12 @@ function SingleCardAction({ action, className, disabled = false }: SingleCardAct
       aria-label={action.accessibleLabel ?? action.label}
       title={action.label}
       className={cn(
-        'size-9 shrink-0 hover:bg-black-50 hover:text-black-700 active:bg-black-50 active:text-black-700',
+        'size-9 shrink-0 hover:bg-accent hover:text-accent-foreground active:bg-accent active:text-accent-foreground',
+        className,
         action.variant === 'destructive' &&
-          'text-error-700 hover:bg-error-50 hover:text-error-700 active:bg-error-50 active:text-error-700',
+          'text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/10 active:text-destructive',
         action.variant === 'success' &&
-          'text-success-700 hover:bg-success-50 hover:text-success-700 active:bg-success-50 active:text-success-700',
-        className
+          'text-success hover:bg-success/10 hover:text-success active:bg-success/10 active:text-success'
       )}
       onClick={handleClick}
     >
@@ -143,8 +143,11 @@ function CardActionMenuItem({ action }: CardActionMenuItemProps) {
       aria-label={action.accessibleLabel}
       onSelect={handleSelect}
       className={cn(
-        'cursor-pointer gap-2 hover:bg-black-50 hover:text-black-700 focus:bg-black-50 focus:text-black-700',
-        'data-highlighted:bg-black-50 data-highlighted:text-black-700'
+        'cursor-pointer gap-2 hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground',
+        action.variant === 'destructive' &&
+          'text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive',
+        action.variant === 'success' &&
+          'text-success hover:bg-success/10 hover:text-success focus:bg-success/10 focus:text-success data-highlighted:bg-success/10 data-highlighted:text-success'
       )}
     >
       {action.isLoading ? (

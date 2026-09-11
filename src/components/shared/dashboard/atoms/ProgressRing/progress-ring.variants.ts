@@ -6,5 +6,5 @@ export const progressRingVariants: Record<ProgressRingVariant, string> = {
   warning: 'text-warning-600',
   info: 'text-info-600',
   error: 'text-error-500',
-  purple: 'text-[#9810FA]',
+  purple: 'text-primary',
 }

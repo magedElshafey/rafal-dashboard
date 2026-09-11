@@ -27,9 +27,9 @@ export const dashboardNoticeCardVariants = {
     description: 'text-success-600',
   },
   brand: {
-    card: 'border-[#BFDBFE] bg-[#EFF6FF]',
-    icon: 'bg-[#DBEAFE] text-[#155DFC]',
-    title: 'text-[#1C398E]',
-    description: 'text-[#1447E6]',
+    card: 'border-primary/20 bg-accent',
+    icon: 'bg-primary/15 text-primary',
+    title: 'text-accent-foreground',
+    description: 'text-accent-foreground',
   },
 } as const satisfies Record<DashboardNoticeCardVariant, DashboardNoticeCardVariantClassNames>

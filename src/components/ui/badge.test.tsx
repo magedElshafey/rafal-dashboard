@@ -7,12 +7,12 @@ describe('Badge', () => {
   it('preserves existing semantic variants and supports the additive warning variant', () => {
     const { rerender } = render(<Badge variant="success">High</Badge>)
 
-    expect(screen.getByText('High')).toHaveClass('bg-green-500')
+    expect(screen.getByText('High')).toHaveClass('bg-success')
 
     rerender(<Badge variant="error">Low</Badge>)
-    expect(screen.getByText('Low')).toHaveClass('bg-red-500')
+    expect(screen.getByText('Low')).toHaveClass('text-destructive')
 
     rerender(<Badge variant="warning">Middle</Badge>)
-    expect(screen.getByText('Middle')).toHaveClass('bg-warning-500')
+    expect(screen.getByText('Middle')).toHaveClass('bg-warning')
   })
 })

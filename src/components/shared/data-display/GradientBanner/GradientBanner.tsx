@@ -14,7 +14,7 @@ export function GradientBanner({ children, className, contentClassName, ariaLabe
       aria-label={ariaLabel}
       className={cn(
         'relative overflow-hidden rounded-lg p-6 text-neutral-0 ',
-        'bg-linear-to-b from-brand-500 to-[#002D7A]',
+        'bg-linear-to-b from-primary to-gold-800',
         className
       )}
     >

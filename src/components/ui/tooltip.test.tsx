@@ -28,18 +28,18 @@ function renderTooltip(className?: string) {
 }
 
 describe('TooltipContent', () => {
-  it('uses the global black tooltip tokens and matching arrow', () => {
+  it('uses the semantic tooltip colors and matching arrow', () => {
     const content = renderTooltip()
     const arrow = content.querySelector('svg')
 
-    expect(content).toHaveClass('bg-black-50', 'text-black-600')
-    expect(arrow).toHaveClass('bg-black-50', 'fill-black-50')
+    expect(content).toHaveClass('bg-foreground', 'text-background')
+    expect(arrow).toHaveClass('bg-foreground', 'fill-foreground')
   })
 
   it('preserves explicit content color overrides', () => {
-    const content = renderTooltip('bg-error-50 text-error-600')
+    const content = renderTooltip('bg-destructive/10 text-destructive')
 
-    expect(content).toHaveClass('bg-error-50', 'text-error-600')
-    expect(content).not.toHaveClass('bg-black-50', 'text-black-600')
+    expect(content).toHaveClass('bg-destructive/10', 'text-destructive')
+    expect(content).not.toHaveClass('bg-foreground', 'text-background')
   })
 })

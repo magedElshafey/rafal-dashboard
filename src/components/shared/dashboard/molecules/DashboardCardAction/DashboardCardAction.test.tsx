@@ -161,22 +161,22 @@ describe('DashboardCardActions', () => {
     await user.click(screen.getByRole('button', { name: 'Open actions menu' }))
 
     expect(await screen.findByRole('menuitem', { name: 'View' })).toHaveClass(
-      'hover:bg-black-50',
-      'hover:text-black-700'
+      'hover:bg-accent',
+      'hover:text-accent-foreground'
     )
     expect(await screen.findByRole('menuitem', { name: 'Delete' })).toHaveClass(
-      'text-error-700',
-      'hover:bg-error-50',
-      'focus:text-error-700'
+      'text-destructive',
+      'hover:bg-destructive/10',
+      'focus:text-destructive'
     )
 
     await user.keyboard('{Escape}')
     rerender(<DashboardCardActions actions={[createAction({ label: 'Delete', variant: 'destructive' })]} />)
 
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
-      'text-error-700',
-      'hover:bg-error-50',
-      'active:text-error-700'
+      'text-destructive',
+      'hover:bg-destructive/10',
+      'active:text-destructive'
     )
   })
 })

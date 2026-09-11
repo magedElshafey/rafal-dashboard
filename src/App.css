@@ -36,6 +36,7 @@
   ========================= */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-page: var(--page);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -45,6 +46,7 @@
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary-foreground: var(--primary-foreground);
 
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
@@ -53,6 +55,7 @@
   --color-accent-foreground: var(--accent-foreground);
 
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -76,6 +79,16 @@
   /* =========================
      BRAND
   ========================= */
+  --color-gold-50: var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-200: var(--gold-200);
+  --color-gold-300: var(--gold-300);
+  --color-gold-400: var(--gold-400);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+  --color-gold-700: var(--gold-700);
+  --color-gold-800: var(--gold-800);
+  --color-gold-900: var(--gold-900);
   --color-brand: var(--brand-500);
   --color-brand-50: var(--brand-50);
   --color-brand-70: var(--brand-70);
@@ -92,7 +105,7 @@
   /* =========================
      PRIMARY ALIAS
   ========================= */
-  --color-primary: var(--brand-500);
+  --color-primary: var(--primary);
   --color-primary-50: var(--brand-50);
   --color-primary-100: var(--brand-100);
   --color-primary-200: var(--brand-200);
@@ -120,6 +133,7 @@
   --color-neutral-800: var(--neutral-800);
   --color-neutral-900: var(--neutral-900);
   --color-neutral-950: var(--neutral-950);
+  --color-neutral-1000: var(--neutral-1000);
   --color-neutral-black: var(--neutral-black);
 
   /* =========================
@@ -177,6 +191,7 @@
      SUCCESS
   ========================= */
   --color-success: var(--success-500);
+  --color-success-foreground: var(--success-foreground);
   --color-success-50: var(--success-50);
   --color-success-100: var(--success-100);
   --color-success-200: var(--success-200);
@@ -192,6 +207,7 @@
      WARNING
   ========================= */
   --color-warning: var(--warning-500);
+  --color-warning-foreground: var(--warning-foreground);
   --color-warning-50: var(--warning-50);
   --color-warning-100: var(--warning-100);
   --color-warning-200: var(--warning-200);
@@ -222,6 +238,7 @@
      INFO
   ========================= */
   --color-info: var(--info-500);
+  --color-info-foreground: var(--info-foreground);
   --color-info-50: var(--info-50);
   --color-info-100: var(--info-100);
   --color-info-200: var(--info-200);
@@ -318,31 +335,6 @@
 
   .spin-animation {
     animation: spin-animation 1s linear infinite;
-  }
-
-  .auth-gradient-border {
-    position: relative;
-    border-radius: var(--radius);
-  }
-
-  .auth-gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    padding: var(--auth-border-width);
-
-    border-radius: inherit;
-
-    background: linear-gradient(180deg, var(--auth-border-start), var(--auth-border-end));
-
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-
-    mask-composite: exclude;
-
-    pointer-events: none;
   }
 }
 

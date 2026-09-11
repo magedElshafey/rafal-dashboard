@@ -5,19 +5,19 @@ import { ProgressBar } from './ProgressBar'
 
 describe('ProgressBar percentage colors', () => {
   it.each([
-    [0, 0, 'bg-neutral-600'],
-    [1, 1, 'bg-error-500'],
-    [20, 20, 'bg-error-500'],
-    [21, 21, 'bg-orange-500'],
-    [40, 40, 'bg-orange-500'],
-    [41, 41, 'bg-yellow-500'],
-    [60, 60, 'bg-yellow-500'],
-    [61, 61, 'bg-brand-500'],
-    [80, 80, 'bg-brand-500'],
-    [99, 99, 'bg-brand-500'],
-    [100, 100, 'bg-success-600'],
-    [-5, 0, 'bg-neutral-600'],
-    [120, 100, 'bg-success-600'],
+    [0, 0, 'bg-muted-foreground'],
+    [1, 1, 'bg-destructive'],
+    [20, 20, 'bg-destructive'],
+    [21, 21, 'bg-warning'],
+    [40, 40, 'bg-warning'],
+    [41, 41, 'bg-warning'],
+    [60, 60, 'bg-warning'],
+    [61, 61, 'bg-primary'],
+    [80, 80, 'bg-primary'],
+    [99, 99, 'bg-primary'],
+    [100, 100, 'bg-success'],
+    [-5, 0, 'bg-muted-foreground'],
+    [120, 100, 'bg-success'],
   ] as const)('renders %s as visual value %s with %s', (value, safeValue, colorClass) => {
     render(<ProgressBar value={value} ariaLabel={`Progress ${value}`} />)
 
@@ -29,7 +29,7 @@ describe('ProgressBar percentage colors', () => {
 
   it('preserves explicit variant and indicator class overrides', () => {
     const { rerender } = render(<ProgressBar value={20} variant="info" ariaLabel="Variant progress" />)
-    expect(screen.getByRole('progressbar').firstElementChild).toHaveClass('bg-info-600')
+    expect(screen.getByRole('progressbar').firstElementChild).toHaveClass('bg-info')
 
     rerender(<ProgressBar value={20} indicatorClassName="bg-purple-500" ariaLabel="Custom progress" />)
     expect(screen.getByRole('progressbar').firstElementChild).toHaveClass('bg-purple-500')

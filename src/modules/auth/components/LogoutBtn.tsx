@@ -24,9 +24,9 @@ const LogoutBtn = ({ className = '', variant = 'sidebar' }: LogoutBtnProps) => {
     variant === 'dropdown' ? (
       <DropdownMenuItem
         className={cn(
-          'flex h-9 w-full items-center gap-2 rounded-none px-3 text-start text-sm font-normal text-[#D93E3E] transition-colors',
-          'bg-[#FDECEC] hover:bg-[#FDECEC] hover:text-[#D93E3E]',
-          'focus:bg-[#FDECEC] focus:text-[#D93E3E]',
+          'flex h-9 w-full items-center gap-2 rounded-none px-3 text-start text-sm font-normal text-destructive transition-colors',
+          'bg-destructive/10 hover:bg-destructive/15 hover:text-destructive',
+          'focus:bg-destructive/15 focus:text-destructive',
           className
         )}
         onSelect={(event) => event.preventDefault()}
@@ -38,8 +38,8 @@ const LogoutBtn = ({ className = '', variant = 'sidebar' }: LogoutBtnProps) => {
         type="button"
         className={cn(
           'flex h-9 w-full items-center justify-start gap-2',
-          'bg-[#FDECEC] text-start text-sm font-normal text-[#D93E3E] shadow-none',
-          'hover:bg-[#FDECEC] hover:text-[#D93E3E]',
+          'bg-destructive/10 text-start text-sm font-normal text-destructive shadow-none',
+          'hover:bg-destructive/15 hover:text-destructive',
           className
         )}
       >

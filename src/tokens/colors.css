@@ -1,289 +1,200 @@
 :root {
-  /* =========================
-     BRAND / PRIMARY
-  ========================= */
-  --brand-50: #e6ebf4;
-  --brand-70: #c5d4f0;
-  --brand-100: #b0c0de;
-  --brand-200: #8aa2ce;
-  --brand-300: #5478b7;
-  --brand-400: #335da9;
-  --brand-500: #042d6e;
-  --brand-600: #003087;
-  --brand-700: #002669;
-  --brand-800: #001d51;
-  --brand-900: #00163e;
-  --brand-50: #e6ebf4;
-  --brand-100: #b0c0de;
-  --brand-200: #8aa2ce;
-  --brand-300: #5478b7;
-  --brand-400: #335da9;
-  --brand-500: #042d6e;
-  --brand-600: #003087;
-  --brand-700: #002669;
-  --brand-800: #001d51;
-  --brand-900: #00163e;
+  /* Rafal gold */
+  --gold-50: #fbf3e7;
+  --gold-100: #f3e0c2;
+  --gold-200: #e8c99a;
+  --gold-300: #dcb073;
+  --gold-400: #cc9a5c;
+  --gold-500: #b8834a;
+  --gold-600: #9c6b39;
+  --gold-700: #7d5330;
+  --gold-800: #5e3e26;
+  --gold-900: #402a1a;
 
-  /* =========================
-     NEUTRAL
-  ========================= */
-  --neutral-0: #fffefe;
-  --neutral-5: #f2f2f2;
-  --neutral-50: #f8fafc;
+  /* Compatibility aliases for reusable components. */
+  --brand-50: var(--gold-50);
+  --brand-70: var(--gold-100);
+  --brand-100: var(--gold-100);
+  --brand-200: var(--gold-200);
+  --brand-300: var(--gold-300);
+  --brand-400: var(--gold-400);
+  --brand-500: var(--gold-500);
+  --brand-600: var(--gold-600);
+  --brand-700: var(--gold-700);
+  --brand-800: var(--gold-800);
+  --brand-900: var(--gold-900);
+
+  /* Rafal neutral scale */
+  --neutral-0: #ffffff;
+  --neutral-5: var(--neutral-50);
+  --neutral-50: #fafafa;
   --neutral-100: #f2f2f2;
   --neutral-200: #e5e5e5;
-  --neutral-300: #cccccc;
-  --neutral-400: #b3b3b3;
-  --neutral-500: #999999;
-  --neutral-600: #808080;
-  --neutral-700: #666666;
-  --neutral-800: #4d4d4d;
-  --neutral-900: #333333;
-  --neutral-950: #1a1a1a;
-  --neutral-black: #000000;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --neutral-950: var(--neutral-900);
+  --neutral-1000: #000000;
+  --neutral-black: var(--neutral-1000);
 
-  /* =========================
-     ALPHA
-  ========================= */
-  --white-alpha-10: #ffffff1a;
-  --white-alpha-20: #ffffff33;
-  --brand-alpha-12: #00359420;
-  --black-alpha-35: rgb(0 0 0 / 35%);
+  /* Rafal semantic colors */
+  --background: #ffffff;
+  --foreground: #000000;
+  --page: #f9f9f9;
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --primary: #b8834a;
+  --primary-foreground: #ffffff;
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-900);
+  --muted: #f2f2f2;
+  --muted-foreground: #525252;
+  --accent: #fbf3e7;
+  --accent-foreground: #402a1a;
+  --border: #e5e5e5;
+  --input: var(--border);
+  --ring: #b8834a;
+  --destructive: #c62828;
+  --destructive-foreground: #ffffff;
+  --success: #168b47;
+  --success-foreground: #ffffff;
+  --warning: #c77700;
+  --warning-foreground: #ffffff;
+  --info: #1565c0;
+  --info-foreground: #ffffff;
 
-  /* =========================
-     SUCCESS
-  ========================= */
-  --success-50: #e9f9ef;
-  --success-100: #baedcd;
-  --success-200: #99e4b5;
-  --success-300: #6bd893;
-  --success-400: #4ed17e;
-  --success-500: #22c55e;
-  --success-600: #1fb356;
-  --success-700: #188c43;
-  --success-800: #136c34;
-  --success-900: #0e5327;
+  /* Status scales retain existing utility names while using Rafal semantics. */
+  --success-50: color-mix(in srgb, var(--success) 10%, var(--background));
+  --success-100: color-mix(in srgb, var(--success) 20%, var(--background));
+  --success-200: color-mix(in srgb, var(--success) 35%, var(--background));
+  --success-300: color-mix(in srgb, var(--success) 50%, var(--background));
+  --success-400: color-mix(in srgb, var(--success) 75%, var(--background));
+  --success-500: var(--success);
+  --success-600: var(--success);
+  --success-700: var(--success);
+  --success-800: var(--success);
+  --success-900: var(--success);
+  --warning-50: color-mix(in srgb, var(--warning) 10%, var(--background));
+  --warning-100: color-mix(in srgb, var(--warning) 20%, var(--background));
+  --warning-200: color-mix(in srgb, var(--warning) 35%, var(--background));
+  --warning-300: color-mix(in srgb, var(--warning) 50%, var(--background));
+  --warning-400: color-mix(in srgb, var(--warning) 75%, var(--background));
+  --warning-500: var(--warning);
+  --warning-600: var(--warning);
+  --warning-700: var(--warning);
+  --warning-800: var(--warning);
+  --warning-900: var(--warning);
+  --error-50: color-mix(in srgb, var(--destructive) 10%, var(--background));
+  --error-100: color-mix(in srgb, var(--destructive) 20%, var(--background));
+  --error-200: color-mix(in srgb, var(--destructive) 35%, var(--background));
+  --error-300: color-mix(in srgb, var(--destructive) 50%, var(--background));
+  --error-400: color-mix(in srgb, var(--destructive) 75%, var(--background));
+  --error-500: var(--destructive);
+  --error-600: var(--destructive);
+  --error-700: var(--destructive);
+  --error-800: var(--destructive);
+  --error-900: var(--destructive);
+  --info-50: color-mix(in srgb, var(--info) 10%, var(--background));
+  --info-100: color-mix(in srgb, var(--info) 20%, var(--background));
+  --info-200: color-mix(in srgb, var(--info) 35%, var(--background));
+  --info-300: color-mix(in srgb, var(--info) 50%, var(--background));
+  --info-400: color-mix(in srgb, var(--info) 75%, var(--background));
+  --info-500: var(--info);
+  --info-600: var(--info);
+  --info-700: var(--info);
+  --info-800: var(--info);
+  --info-900: var(--info);
 
-  /* =========================
-     WARNING
-  ========================= */
-  --warning-50: #fef5e7;
-  --warning-100: #fce1b3;
-  --warning-200: #fad28f;
-  --warning-300: #f8be5c;
-  --warning-400: #f7b13c;
-  --warning-500: #f59e0b;
-  --warning-600: #df900a;
-  --warning-700: #ae7008;
-  --warning-800: #875706;
-  --warning-900: #674205;
-
-  /* =========================
-     ERROR
-  ========================= */
-  --error-50: #fdecec;
-  --error-100: #fac5c5;
-  --error-200: #f8a9a9;
-  --error-300: #f48282;
-  --error-400: #f26969;
-  --error-500: #ef4444;
-  --error-600: #d93e3e;
-  --error-700: #aa3030;
-  --error-800: #832525;
-  --error-900: #641d1d;
-
-  /* =========================
-     INFO
-  ========================= */
-  --info-50: #e6f5fb;
-  --info-100: #b2dff2;
-  --info-200: #8dcfec;
-  --info-300: #59b9e3;
-  --info-400: #39acdd;
-  --info-500: #0797d5;
-  --info-600: #0689c2;
-  --info-700: #056b97;
-  --info-800: #045375;
-  --info-900: #033f59;
-
-  /* =========================
-     PURPLE
-  ========================= */
-
-  --purple-50: #f5f1fd;
-  --purple-600: #8b5cf6;
-
-  --surface-light-base: #e8edf5;
-  --dark-text: #6b7280;
-
-  /* =========================
-     SEMANTIC SURFACES
-  ========================= */
-  --surface-page: var(--neutral-50);
-  --surface-card: var(--neutral-0);
-  --surface-muted: var(--neutral-100);
-  --surface-light: var(--surface-light-base);
-  --surface-inverted: var(--neutral-black);
-
-  /* =========================
-     SEMANTIC CONTENT
-  ========================= */
-  --content-primary: var(--neutral-950);
-  --content-secondary: #6a7282;
-  --content-tertiary: var(--neutral-600);
+  /* Shared surface/content aliases. */
+  --surface-page: var(--page);
+  --surface-card: var(--card);
+  --surface-muted: var(--muted);
+  --surface-light: var(--accent);
+  --surface-inverted: var(--foreground);
+  --content-primary: var(--foreground);
+  --content-secondary: var(--neutral-600);
+  --content-tertiary: var(--neutral-500);
   --content-muted: var(--neutral-500);
-  --content-inverted: var(--neutral-0);
-
-  /* =========================
-     SEMANTIC BORDER
-  ========================= */
+  --content-inverted: var(--background);
+  --content-strong: var(--neutral-900);
+  --content-heavy: var(--foreground);
   --border-subtle: var(--neutral-100);
-  --border-default: var(--neutral-200);
+  --border-default: var(--border);
   --border-strong: var(--neutral-300);
 
-  /* =========================
-     ICON TOKENS
-  ========================= */
-  --icon-brand-bg: var(--brand-alpha-12);
-  --icon-brand-text: var(--brand-500);
+  /* Sidebar and chart semantics. */
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --chart-1: var(--primary);
+  --chart-2: var(--success);
+  --chart-3: var(--info);
+  --chart-4: var(--warning);
+  --chart-5: var(--destructive);
 
-  /* =========================
-     RESOURCE TYPE TOKENS
-  ========================= */
-  --resource-ebook-bg: #faf5ff;
-  --resource-ebook-text: #ad46ff;
+  /* Legacy component aliases mapped onto the Rafal palette. */
+  --white-alpha-10: rgb(255 255 255 / 10%);
+  --white-alpha-20: rgb(255 255 255 / 20%);
+  --brand-alpha-12: color-mix(in srgb, var(--primary) 12%, transparent);
+  --black-alpha-35: rgb(0 0 0 / 35%);
+  --icon-brand-bg: var(--accent);
+  --icon-brand-text: var(--primary);
+  --resource-ebook-bg: var(--accent);
+  --resource-ebook-text: var(--accent-foreground);
+  --resource-slides-bg: var(--gold-50);
+  --resource-slides-text: var(--gold-800);
+  --resource-pdf-bg: var(--error-50);
+  --resource-pdf-text: var(--destructive);
+  --resource-badge-bg: var(--muted);
+  --resource-action-text: var(--muted-foreground);
+  --course-chapter-description: var(--neutral-300);
+  --course-chapter-meta: var(--neutral-600);
+  --course-chapter-title: var(--neutral-500);
+  --assignment-materials-bg: var(--page);
+  --assignment-materials-border: var(--border);
+  --purple-50: var(--accent);
+  --purple-600: var(--accent-foreground);
 
-  --resource-slides-bg: #fff7ed;
-  --resource-slides-text: #ff6900;
-
-  --resource-pdf-bg: #fef2f2;
-  --resource-pdf-text: #fb2c36;
-
-  --resource-badge-bg: #f3f4f6;
-  --resource-action-text: #364153;
-
-  /* =========================
-     COURSE TOKENS
-  ========================= */
-  --course-chapter-description: #d1d5dc;
-  --course-chapter-meta: #4a5565;
-  --course-chapter-title: #99a1af;
-  /* =========================
-        ASSIGNMENTS TOKENS
-     ========================= */
-  --assignment-materials-bg: #f9fafb;
-  --assignment-materials-border: #e5e7eb;
-  /* =========================
-        content TOKENS
-     ========================= */
-  --content-strong: #141b34;
-  --content-heavy: #101828;
-  /* =========================
-   GLASS / FALLBACK
-========================= */
-  --glass-fallback-bg: rgb(255 255 255 / 55%);
-  --glass-fallback-border: rgb(255 255 255 / 25%);
-  --glass-fallback-shadow: rgb(0 0 0 / 8%);
-  /* =========================
-     SHADCN BASE TOKENS
-  ========================= */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-
-  --primary-foreground: oklch(0.985 0 0);
-
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-
-  --destructive: oklch(0.577 0.245 27.325);
-
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-
-  /* =========================
-     LEGACY ALIASES
-  ========================= */
-
-  /* old primary aliases */
-  --primary-50: var(--brand-50);
-  --primary-100: var(--brand-100);
-  --primary-200: var(--brand-200);
-  --primary-300: var(--brand-300);
-  --primary-400: var(--brand-400);
-  --primary-500: var(--brand-500);
-  --primary-600: var(--brand-600);
-  --primary-700: var(--brand-700);
-  --primary-800: var(--brand-800);
-  --primary-900: var(--brand-900);
-
-  /* old black aliases */
-  --black-50: #f2f2f2;
-  --black-100: #e5e5e5;
-  --black-200: #cccccc;
-  --black-300: #b3b3b3;
-  --black-400: #999999;
-  --black-500: #000000;
-  --black-600: #666666;
-  --black-700: #4d4d4d;
-  --black-800: #333333;
-  --black-900: #1a1a1a;
-  --black-text: #808080;
-
-  --light-text: #9ca3af;
-
-  /* old white/bg aliases */
-  --white: var(--neutral-0);
-  --light-white: var(--white-alpha-20);
-  --bg: var(--surface-page);
-
-  /* old icon aliases */
-  --icon-bg-primary: var(--icon-brand-bg);
-  --icon-ebook-bg: var(--resource-ebook-bg);
-  --icon-ebook-text: var(--resource-ebook-text);
-  --icon-slides-bg: var(--resource-slides-bg);
-  --icon-slides-text: var(--resource-slides-text);
-  --icon-pdf-bg: var(--resource-pdf-bg);
-  --icon-pdf-text: var(--resource-pdf-text);
-
-  /* old course aliases */
+  --primary-50: var(--gold-50);
+  --primary-100: var(--gold-100);
+  --primary-200: var(--gold-200);
+  --primary-300: var(--gold-300);
+  --primary-400: var(--gold-400);
+  --primary-500: var(--gold-500);
+  --primary-600: var(--gold-600);
+  --primary-700: var(--gold-700);
+  --primary-800: var(--gold-800);
+  --primary-900: var(--gold-900);
+  --black-50: var(--neutral-100);
+  --black-100: var(--neutral-200);
+  --black-200: var(--neutral-300);
+  --black-300: var(--neutral-400);
+  --black-400: var(--neutral-500);
+  --black-500: var(--neutral-1000);
+  --black-600: var(--neutral-700);
+  --black-700: var(--neutral-800);
+  --black-800: var(--neutral-900);
+  --black-900: var(--neutral-1000);
+  --black-text: var(--neutral-600);
+  --light-text: var(--neutral-400);
+  --dark-text: var(--neutral-600);
   --sidebar-course-chapter-description: var(--course-chapter-description);
   --sidebar-course-chapter-complete: var(--course-chapter-meta);
   --sidebar-course-chapter-title: var(--course-chapter-title);
-
-  /* old library aliases */
   --library-intro: var(--content-primary);
   --library-badge: var(--resource-badge-bg);
   --library-btn: var(--resource-action-text);
-
-  /* old text aliases */
   --text-primary: var(--content-tertiary);
   --text-secondary: var(--content-secondary);
 }

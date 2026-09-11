@@ -20,7 +20,7 @@ const TableHeader = ({ headers, children, ...restProps }: TableHeaderProps) => {
           {headers?.map((item, index) => (
             <TableHead
               key={`${item.title}-${index}`}
-              className="p-3 bg-gray-50 text-gray-500 dark:bg-gray-800 font-normal text-typography capitalize h-12.75 text-start sticky top-0"
+              className="sticky top-0 h-12.75 bg-muted p-3 text-start font-normal text-muted-foreground capitalize"
             >
               {item.sortKey ? <SortableHeaderBtn title={item.title} sortKey={item.sortKey} /> : item.title}
             </TableHead>
@@ -55,7 +55,7 @@ const SortableHeaderBtn = ({ title, sortKey }: ISortableHeaderBtnProps) => {
   return (
     <Button
       variant="ghost"
-      className={`group flex items-center gap-1 dark:text-white ${isActive ? 'text-primary' : 'text-gray-700'}`}
+      className={`group flex items-center gap-1 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
       onClick={nextSortAction}
       type="button"
     >

@@ -12,7 +12,7 @@ export function ReportDetailsAccordionItem({
   children: ReactNode
 }) {
   return (
-    <AccordionItem value={value} className="overflow-hidden rounded-lg border-0 bg-[#eeeeef] px-4">
+    <AccordionItem value={value} className="overflow-hidden rounded-lg border-0 bg-muted px-4">
       <AccordionTrigger className="text-base font-semibold text-content-primary hover:no-underline">
         {title}
       </AccordionTrigger>

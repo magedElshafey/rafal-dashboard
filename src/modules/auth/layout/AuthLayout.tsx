@@ -23,7 +23,7 @@ export const AuthLayout = memo(function AuthLayout({
   const { t } = useTranslation()
 
   return (
-    <main className="min-h-dvh overflow-x-hidden bg-[#F8FAFC]">
+    <main className="min-h-dvh overflow-x-hidden bg-page">
       <section
         aria-label={t('auth.common.page_label')}
         className="

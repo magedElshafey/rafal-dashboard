@@ -78,7 +78,7 @@ const LoadingTableRow = ({ columnCount }: { columnCount: number }) => {
         <TableRow key={`loading-${index}`} className="group">
           {Array.from({ length: columnCount }, (_, index) => (
             <TableCell key={`loading-${index}`} className="text-start">
-              <Skeleton className="w-28 rounded-[5px] h-3 bg-gray-400" />
+              <Skeleton className="h-3 w-28 rounded-[5px] bg-neutral-400" />
             </TableCell>
           ))}
         </TableRow>

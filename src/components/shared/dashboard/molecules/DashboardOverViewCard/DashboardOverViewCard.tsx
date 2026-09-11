@@ -21,7 +21,7 @@ export const DashboardOverViewCard = ({
         title={title}
         action={action && { ...action }}
         actionClassName={cn(
-          'inline-block bg-gradient-to-r from-brand-500 to-[#7097DD] bg-clip-text text-transparent transition-all duration-300 hover:from-[#7097DD] hover:to-brand-500',
+          'inline-block bg-gradient-to-r from-primary to-gold-300 bg-clip-text text-transparent transition-all duration-300 hover:from-gold-300 hover:to-primary',
           actionClassName
         )}
       />

@@ -145,7 +145,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
         {footerStatus}
         {footer !== null && (
           <SheetFooter
-            className={cn('grid shrink-0 grid-cols-2 gap-3 border-t border-[#DDE1E8] bg-white p-6', footerClassName)}
+            className={cn('grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-white p-6', footerClassName)}
           >
             {footer === undefined ? (
               <>
@@ -154,7 +154,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
                   variant="outline"
                   disabled={isClosePrevented}
                   onClick={handleCancel}
-                  className="h-11 rounded-lg border-[#DDE1E8] text-black-800"
+                  className="h-11 rounded-lg border-border text-foreground"
                 >
                   {cancelLabel}
                 </Button>

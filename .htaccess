@@ -2,7 +2,7 @@
   RewriteEngine On
   RewriteBase /
 
-  # Preserve every emitted Vite file, including the isolated Zoom HTML entry.
+  # Preserve every emitted Vite file before applying the SPA fallback.
   RewriteCond %{REQUEST_URI} ^/dist/
   RewriteCond %{REQUEST_FILENAME} -f
   RewriteRule ^ - [L]

@@ -6,8 +6,8 @@ export const statTileToneClassNames: Record<StatTileTone, string> = {
   warning: 'text-warning-600',
   error: 'text-error-600',
   neutral: 'text-content-primary',
-  green: 'text-emerald-600',
-  amber: 'text-amber-600',
-  red: 'text-red-500',
+  green: 'text-success',
+  amber: 'text-warning',
+  red: 'text-destructive',
   dark: 'text-dark-text',
 }

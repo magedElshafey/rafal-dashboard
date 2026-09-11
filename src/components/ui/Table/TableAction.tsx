@@ -15,9 +15,9 @@ import { useTranslation } from 'react-i18next'
 
 // Icon variants per action
 export const tableVariants = {
-  Edit: <Pencil className="text-yellow-600" size={20} />,
-  Delete: <Trash2 className="text-red-500" size={20} />,
-  View: <Eye className="text-blue-900" size={20} />,
+  Edit: <Pencil className="text-warning" size={20} />,
+  Delete: <Trash2 className="text-destructive" size={20} />,
+  View: <Eye className="text-info" size={20} />,
 } as const
 
 function TableAction({ tableActionVariant, className, onClick, children, ...restProps }: TableActionProps) {

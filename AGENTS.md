@@ -1,4 +1,4 @@
-# Smart Hub agent guidance
+# Rafal Dashboard agent guidance
 
 Before changing this repository:
 

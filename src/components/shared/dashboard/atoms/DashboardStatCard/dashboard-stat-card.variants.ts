@@ -24,7 +24,7 @@ export const dashboardStatCardVariants: Record<
     icon: 'bg-error-50 text-error-600',
   },
   purple: {
-    value: 'text-purple-600',
-    icon: 'bg-transparent text-purple-600',
+    value: 'text-primary',
+    icon: 'bg-transparent text-primary',
   },
 }

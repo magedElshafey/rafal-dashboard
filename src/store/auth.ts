@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
-import type { AppRole, AuthSession, IUser, LoginPayload, LoginResponseData } from '@/modules/auth/types/auth.types'
-import { $http } from '@/utils/http'
+import { loginRequest } from '@/modules/auth/service/login.service'
+import type { AppRole, AuthSession, IUser, LoginPayload } from '@/modules/auth/types/auth.types'
 
 type AuthPersistence = 'session' | 'persistent'
 
@@ -117,17 +117,7 @@ export const useAuth = create<State & Actions>((set, get) => ({
       throw new Error('You are already logged in. Please log out before signing in with another account.')
     }
 
-    const response = await $http.post<{ data: LoginResponseData }>({
-      url: '/auth/login',
-      data: {
-        phone: data.phone,
-        password: data.password,
-        remember_me: data.rememberMe ? 1 : 0,
-        country_code: data.countryCode,
-      },
-      isFormData: false,
-    })
-    const responseData = response.data?.data
+    const responseData = await loginRequest(data)
     if (!responseData || typeof responseData.token !== 'string' || !responseData.token.trim()) {
       throw new Error('Invalid login response')
     }

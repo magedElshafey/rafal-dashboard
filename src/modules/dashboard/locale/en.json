@@ -2,6 +2,15 @@
   "dashboard": {
     "brand": "Rafal Dashboard",
     "title": "Dashboard",
-    "welcome": "Welcome, {{name}}"
+    "welcome": "Welcome, {{name}}",
+    "sidebar": {
+      "brandMark": "R",
+      "navigation": "Dashboard navigation",
+      "dashboard": "Dashboard",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "resize": "Resize sidebar",
+      "logout": "Log out"
+    }
   }
 }

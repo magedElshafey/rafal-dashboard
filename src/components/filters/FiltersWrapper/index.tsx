@@ -84,11 +84,11 @@ const FiltersWrapperDialog = ({
 
           <div className={cn('min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5', bodyClassName)}>{children}</div>
 
-          <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#DDE1E8] bg-white px-5 py-4">
+          <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border bg-white px-5 py-4">
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-lg border-[#DDE1E8] text-black-800"
+              className="h-11 rounded-lg border-border text-foreground"
               onClick={onCancel ?? onReset}
             >
               {resetLabel ?? t('button.reset')}

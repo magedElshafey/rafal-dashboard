@@ -14,7 +14,7 @@ export const AuthIllustration = memo(function AuthIllustration() {
         items-start
         justify-center
         overflow-hidden
-        bg-[#F8FAFC]
+        bg-page
         px-5
         pb-6
         pt-1

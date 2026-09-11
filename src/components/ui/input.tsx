@@ -10,7 +10,7 @@ interface Props extends Omit<ComponentProps<'input'>, 'prefix' | 'suffix'> {
   containerClassName?: string
 }
 
-const iconStyles = 'flex items-center justify-center px-2 text-red-700'
+const iconStyles = 'flex items-center justify-center px-2 text-destructive'
 
 function Input({
   className,
