@@ -1,11 +1,18 @@
 import { yupResolver } from '@hookform/resolvers/yup'
-import { type PropsWithChildren, createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import {
+  type BaseSyntheticEvent,
+  type PropsWithChildren,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
 import {
   type Control,
   type DefaultValues,
   type FieldErrors,
   type FieldValues,
-  FormProvider,
   type Mode,
   type UseFormReturn,
   useForm,
@@ -31,7 +38,11 @@ interface FormWrapperProps<TFieldValues extends FieldValues> {
    */
   resetValuesKey?: string | number
 
-  onSubmit: (data: TFieldValues, methods: UseFormReturn<TFieldValues>) => void | Promise<void>
+  onSubmit: (
+    data: TFieldValues,
+    methods: UseFormReturn<TFieldValues>,
+    event?: BaseSyntheticEvent
+  ) => void | Promise<void>
 
   formId?: string
   className?: string
@@ -127,23 +138,21 @@ export const FormWrapper = <TFieldValues extends FieldValues>({
 
   return (
     <FormValidationVisibilityProvider mode={validationVisibility}>
-      <FormProvider {...methods}>
-        <Form {...methods}>
-          <form
-            id={formId}
-            noValidate
-            className={className}
-            onSubmit={
-              submissionDisabled
-                ? (event) => event.preventDefault()
-                : methods.handleSubmit((data) => onSubmit(data, methods))
-            }
-          >
-            {onFormStateChange && <FormStateNotifier control={methods.control} onChange={onFormStateChange} />}
-            <FormErrorsProvider control={methods.control}>{children}</FormErrorsProvider>
-          </form>
-        </Form>
-      </FormProvider>
+      <Form {...methods}>
+        <form
+          id={formId}
+          noValidate
+          className={className}
+          onSubmit={
+            submissionDisabled
+              ? (event) => event.preventDefault()
+              : methods.handleSubmit((data, event) => onSubmit(data, methods, event))
+          }
+        >
+          {onFormStateChange && <FormStateNotifier control={methods.control} onChange={onFormStateChange} />}
+          <FormErrorsProvider control={methods.control}>{children}</FormErrorsProvider>
+        </form>
+      </Form>
     </FormValidationVisibilityProvider>
   )
 }

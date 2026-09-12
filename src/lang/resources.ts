@@ -6,8 +6,10 @@ import * as dashboardAr from '@/modules/dashboard/locale/ar.json'
 import * as dashboardEn from '@/modules/dashboard/locale/en.json'
 import * as queryStateAr from '@/components/shared/query-state/locale/ar.json'
 import * as queryStateEn from '@/components/shared/query-state/locale/en.json'
+import * as rolesAr from '@/modules/roles/locale/ar.json'
+import * as rolesEn from '@/modules/roles/locale/en.json'
 
 export const resources = {
-  en: { translation: { ...en, ...authEn, ...dashboardEn, ...queryStateEn } },
-  ar: { translation: { ...ar, ...authAr, ...dashboardAr, ...queryStateAr } },
+  en: { translation: { ...en, ...authEn, ...dashboardEn, ...queryStateEn, ...rolesEn } },
+  ar: { translation: { ...ar, ...authAr, ...dashboardAr, ...queryStateAr, ...rolesAr } },
 } as const

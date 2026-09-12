@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 
 type MultiSelectOptionValue = string | number
 
@@ -26,6 +27,7 @@ export interface MultiSelectProps<T> extends Omit<
 
   placeholder?: string
   searchPlaceholder?: string
+  searchable?: boolean
 
   maxCount?: number
   modalPopover?: boolean
@@ -38,12 +40,17 @@ export interface MultiSelectProps<T> extends Omit<
 
   isLoading?: boolean
   isFetchingNextPage?: boolean
+  isError?: boolean
+  isRetrying?: boolean
   hasNextPage?: boolean
   onLoadMore?: () => void | Promise<unknown>
+  onRetry?: () => void | Promise<unknown>
 
   emptyMessage?: React.ReactNode
   loadingMessage?: React.ReactNode
   loadMoreMessage?: React.ReactNode
+  errorMessage?: React.ReactNode
+  retryLabel?: React.ReactNode
   selectAllLabel?: React.ReactNode
   clearLabel?: string
 
@@ -67,7 +74,7 @@ function MultiSelectStatusRow({ children, isLoading, className }: MultiSelectSta
   return (
     <div
       role="status"
-      className={cn('flex min-h-9 items-center gap-2 rounded-xl px-3 py-2', 'text-sm text-content-muted', className)}
+      className={cn('flex min-h-9 items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted-foreground', className)}
     >
       {isLoading && <Loader2Icon className="size-4 shrink-0 animate-spin" />}
 
@@ -88,6 +95,7 @@ function MultiSelectComponent<T>(
 
     placeholder,
     searchPlaceholder,
+    searchable = true,
 
     maxCount = 3,
     modalPopover = false,
@@ -100,12 +108,17 @@ function MultiSelectComponent<T>(
 
     isLoading = false,
     isFetchingNextPage = false,
+    isError = false,
+    isRetrying = false,
     hasNextPage = false,
     onLoadMore,
+    onRetry,
 
     emptyMessage,
     loadingMessage,
     loadMoreMessage,
+    errorMessage,
+    retryLabel,
     selectAllLabel,
     clearLabel,
 
@@ -149,6 +162,24 @@ function MultiSelectComponent<T>(
     optionValues.length > 0 && optionValues.every((optionValue) => selectedValues.includes(optionValue))
 
   const showInitialLoading = isLoading && data.length === 0
+
+  const requestLoadMore = React.useCallback(async () => {
+    if (!onLoadMore || !hasNextPage || isLoading || isFetchingNextPage || isError || loadMoreLockRef.current) return
+
+    loadMoreLockRef.current = true
+    try {
+      await onLoadMore()
+    } finally {
+      loadMoreLockRef.current = false
+    }
+  }, [hasNextPage, isError, isFetchingNextPage, isLoading, onLoadMore])
+
+  const loadMoreRef = useInfiniteScroll({
+    enabled: isOpen && hasNextPage && !isLoading && !isFetchingNextPage && !isError,
+    onLoadMore: requestLoadMore,
+    operationKey: data.length,
+    rootMargin: '48px 0px',
+  })
 
   React.useEffect(() => {
     if (!isFetchingNextPage) {
@@ -232,10 +263,6 @@ function MultiSelectComponent<T>(
   }
 
   const handleListScroll = async (event: React.UIEvent<HTMLDivElement>) => {
-    if (!onLoadMore || !hasNextPage || isLoading || isFetchingNextPage || loadMoreLockRef.current) {
-      return
-    }
-
     const target = event.currentTarget
 
     const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight
@@ -244,13 +271,7 @@ function MultiSelectComponent<T>(
       return
     }
 
-    loadMoreLockRef.current = true
-
-    try {
-      await onLoadMore()
-    } finally {
-      loadMoreLockRef.current = false
-    }
+    await requestLoadMore()
   }
 
   const getOptionByValue = (optionValue: string) =>
@@ -270,17 +291,17 @@ function MultiSelectComponent<T>(
             className={cn(
               [
                 'relative flex min-h-14 w-full items-center',
-                'rounded-2xl border border-black-50',
-                'bg-black-50 px-4 py-3',
-                'text-start text-sm text-neutral-600',
+                'rounded-2xl border border-border',
+                'bg-background px-4 py-3',
+                'text-start text-sm text-foreground',
                 'outline-none transition-all',
                 'shadow-none',
-                'hover:border-black-100',
-                'focus-visible:border-brand-500',
-                'focus-visible:ring-3 focus-visible:ring-brand-500/20',
-                'aria-invalid:border-error-500',
-                'aria-invalid:ring-3 aria-invalid:ring-error-500/20',
-                'disabled:cursor-not-allowed disabled:border-black-100 disabled:bg-black-100 disabled:text-content-secondary disabled:opacity-100',
+                'hover:border-ring',
+                'focus-visible:border-ring',
+                'focus-visible:ring-3 focus-visible:ring-ring/20',
+                'aria-invalid:border-destructive',
+                'aria-invalid:ring-3 aria-invalid:ring-destructive/20',
+                'disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
                 '[&_svg]:pointer-events-none [&_svg]:shrink-0',
               ].join(' '),
               selectedValues.length > 0 ? 'pe-20' : 'pe-11',
@@ -305,7 +326,7 @@ function MultiSelectComponent<T>(
                         [
                           'flex max-w-full items-center gap-1.5',
                           'rounded-full',
-                          'bg-surface-elevated p-2 text-foreground',
+                          'bg-muted p-2 text-foreground',
                           'text-xs font-medium ',
                         ].join(' '),
                         badgeClassName
@@ -322,9 +343,9 @@ function MultiSelectComponent<T>(
                   <span
                     className={cn(
                       [
-                        'rounded-lg border border-border-subtle',
-                        'bg-surface-card px-2 py-1',
-                        'text-xs font-medium text-content-secondary',
+                        'rounded-lg border border-border',
+                        'bg-background px-2 py-1',
+                        'text-xs font-medium text-muted-foreground',
                       ].join(' '),
                       badgeClassName
                     )}
@@ -334,13 +355,13 @@ function MultiSelectComponent<T>(
                 )}
               </div>
             ) : (
-              <span className="truncate text-content-muted">{placeholder}</span>
+              <span className="truncate text-muted-foreground">{placeholder}</span>
             )}
 
             <ChevronDownIcon
               className={cn(
                 'absolute end-4 top-1/2 size-4 -translate-y-1/2',
-                'text-content-muted transition-transform',
+                'text-muted-foreground transition-transform',
                 isOpen && 'rotate-180'
               )}
             />
@@ -356,11 +377,11 @@ function MultiSelectComponent<T>(
               [
                 'absolute end-10 top-1/2 z-10',
                 'flex size-7 -translate-y-1/2 items-center justify-center',
-                'rounded-lg text-content-muted',
+                'rounded-lg text-muted-foreground',
                 'transition-colors',
-                'hover:bg-brand-50 hover:text-brand-700',
+                'hover:bg-accent hover:text-accent-foreground',
                 'focus-visible:outline-none',
-                'focus-visible:ring-2 focus-visible:ring-brand/20',
+                'focus-visible:ring-2 focus-visible:ring-ring/50',
               ].join(' ')
             )}
           >
@@ -379,8 +400,8 @@ function MultiSelectComponent<T>(
             'z-50 w-[var(--radix-popover-trigger-width)]',
             'min-w-[var(--radix-popover-trigger-width)]',
             'overflow-hidden p-1',
-            'rounded-2xl border border-border-subtle',
-            'bg-surface-card text-content-primary',
+            'rounded-2xl border border-border',
+            'bg-popover text-popover-foreground',
             'shadow-dropdown',
             'data-[state=open]:animate-in',
             'data-[state=closed]:animate-out',
@@ -392,23 +413,43 @@ function MultiSelectComponent<T>(
           contentClassName
         )}
       >
-        <Command dir={direction} shouldFilter={!onSearch} className="bg-transparent">
-          <CommandInput
-            surface="field"
-            value={searchValue}
-            placeholder={searchPlaceholder ?? t('label.search')}
-            onValueChange={handleSearchChange}
-            onKeyDown={handleSearchKeyDown}
-            className={searchClassName}
-          />
+        <Command dir={direction} shouldFilter={searchable && !onSearch} className="bg-transparent">
+          {searchable ? (
+            <CommandInput
+              surface="field"
+              value={searchValue}
+              placeholder={searchPlaceholder ?? t('label.search')}
+              onValueChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+              className={searchClassName}
+            />
+          ) : null}
 
           <CommandList
             role="listbox"
             aria-multiselectable="true"
+            aria-busy={showInitialLoading || isFetchingNextPage || isRetrying}
             className="max-h-64 overflow-y-auto"
             onScroll={handleListScroll}
           >
-            {showInitialLoading ? (
+            {isError && data.length === 0 ? (
+              <div
+                role="alert"
+                className="flex min-h-16 items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-destructive"
+              >
+                <span>{errorMessage}</span>
+                {onRetry && retryLabel ? (
+                  <button
+                    type="button"
+                    disabled={isRetrying}
+                    className="shrink-0 rounded-md px-2 py-1 font-medium text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                    onClick={() => void onRetry()}
+                  >
+                    {retryLabel}
+                  </button>
+                ) : null}
+              </div>
+            ) : showInitialLoading ? (
               <MultiSelectStatusRow isLoading className={statusClassName}>
                 {loadingMessage ?? t('label.loading')}
               </MultiSelectStatusRow>
@@ -424,14 +465,16 @@ function MultiSelectComponent<T>(
                   {showSelectAll && data.length > 0 && !searchValue.trim() && (
                     <CommandItem
                       value="select-all"
+                      aria-checked={allVisibleOptionsSelected}
+                      data-checked={allVisibleOptionsSelected}
                       onSelect={handleToggleAll}
                       className={cn(
                         [
                           'cursor-pointer rounded-xl px-3 py-2',
-                          'text-sm text-neutral-700',
+                          'text-sm text-foreground',
                           'transition-colors',
-                          'data-[selected=true]:bg-brand-50',
-                          'data-[selected=true]:text-brand-700',
+                          'data-[selected=true]:bg-accent',
+                          'data-[selected=true]:text-accent-foreground',
                         ].join(' '),
                         optionClassName
                       )}
@@ -439,11 +482,13 @@ function MultiSelectComponent<T>(
                       <span
                         aria-hidden="true"
                         className={cn(
-                          ['flex size-4 shrink-0 items-center justify-center', 'rounded border border-brand'].join(' '),
-                          allVisibleOptionsSelected ? 'bg-brand text-white' : 'bg-surface-card text-transparent'
+                          ['flex size-4 shrink-0 items-center justify-center', 'rounded border border-ring'].join(' '),
+                          allVisibleOptionsSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background text-transparent'
                         )}
                       >
-                        <CheckIcon className={cn('size-3.5', allVisibleOptionsSelected && 'text-white')} />
+                        <CheckIcon className="size-3.5" />
                       </span>
 
                       <span>{selectAllLabel ?? t('label.select_all')}</span>
@@ -463,15 +508,16 @@ function MultiSelectComponent<T>(
                       <CommandItem
                         key={optionValue}
                         value={`${optionValue} ${optionLabel}`}
-                        aria-selected={isSelected}
+                        aria-checked={isSelected}
+                        data-checked={isSelected}
                         onSelect={() => handleToggleOption(optionValue)}
                         className={cn(
                           [
                             'cursor-pointer rounded-xl px-3 py-2',
-                            'text-sm text-content-primary',
+                            'text-sm text-foreground',
                             'transition-colors',
-                            'data-[selected=true]:bg-brand-50',
-                            'data-[selected=true]:text-brand-700',
+                            'data-[selected=true]:bg-accent',
+                            'data-[selected=true]:text-accent-foreground',
                           ].join(' '),
                           optionClassName
                         )}
@@ -479,16 +525,16 @@ function MultiSelectComponent<T>(
                         <span
                           aria-hidden="true"
                           className={cn(
-                            ['flex size-4 shrink-0 items-center justify-center', 'rounded border border-brand'].join(
+                            ['flex size-4 shrink-0 items-center justify-center', 'rounded border border-ring'].join(
                               ' '
                             ),
-                            isSelected ? 'bg-brand-500 text-white' : 'bg-surface-card text-transparent'
+                            isSelected ? 'bg-primary text-primary-foreground' : 'bg-background text-transparent'
                           )}
                         >
-                          <CheckIcon className={cn('size-3.5', isSelected && 'text-white')} />
+                          <CheckIcon className="size-3.5" />
                         </span>
 
-                        {Icon && <Icon className="size-4 text-content-muted" />}
+                        {Icon && <Icon className="size-4 text-muted-foreground" />}
 
                         <span className="min-w-0 flex-1 truncate">{optionLabel}</span>
                       </CommandItem>
@@ -503,9 +549,11 @@ function MultiSelectComponent<T>(
                 )}
 
                 {data.length > 0 && hasNextPage && !isFetchingNextPage && !isLoading && (
-                  <MultiSelectStatusRow className={statusClassName}>
-                    {loadMoreMessage ?? t('label.load_more')}
-                  </MultiSelectStatusRow>
+                  <div ref={loadMoreRef} data-slot="multi-select-load-more">
+                    <MultiSelectStatusRow className={statusClassName}>
+                      {loadMoreMessage ?? t('label.load_more')}
+                    </MultiSelectStatusRow>
+                  </div>
                 )}
               </>
             )}

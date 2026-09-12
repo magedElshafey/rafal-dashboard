@@ -41,6 +41,7 @@ describe('FormWrapper render isolation', () => {
     renderUnsubscribedChild.mockClear()
 
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Alex')
+    expect(screen.getByText('Name')).toHaveClass('text-foreground')
     await user.clear(screen.getByRole('textbox', { name: 'Name' }))
 
     expect(renderUnsubscribedChild).not.toHaveBeenCalled()
@@ -48,6 +49,8 @@ describe('FormWrapper render isolation', () => {
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     expect(await screen.findByText('Name is required')).toBeInTheDocument()
+    expect(screen.getByText('Name')).toHaveAttribute('data-error', 'true')
+    expect(screen.getByText('Name')).toHaveClass('data-[error=true]:text-destructive')
     expect(renderUnsubscribedChild).not.toHaveBeenCalled()
   })
 
@@ -64,7 +67,7 @@ describe('FormWrapper render isolation', () => {
 
     await user.click(screen.getByRole('button', { name: 'Submit without resolver' }))
 
-    expect(onSubmit).toHaveBeenCalledWith({ name: '' }, expect.any(Object))
+    expect(onSubmit).toHaveBeenCalledWith({ name: '' }, expect.any(Object), expect.any(Object))
     expect(screen.queryByText('Name is required')).not.toBeInTheDocument()
   })
 })

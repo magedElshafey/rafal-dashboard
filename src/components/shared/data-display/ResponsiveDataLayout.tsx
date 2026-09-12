@@ -58,7 +58,7 @@ export function ResponsiveDataTable({ columns, headerRowClassName, children, ...
             <TableHead
               key={column.id}
               className={cn(
-                'h-12 px-5 text-start text-[10px] xl:text-xs font-bold  tracking-wide text-neutral-900 text-nowrap',
+                'h-12 px-5 text-start text-[10px] xl:text-xs font-bold  tracking-wide text-neutral-900 text-nowrap text-primary',
                 column.className
               )}
             >

@@ -3,6 +3,7 @@ export const Routes = {
 
   login: '/login',
   dashboard: '/dashboard',
+  roles: '/dashboard/roles',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

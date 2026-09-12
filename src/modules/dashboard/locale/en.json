@@ -8,6 +8,7 @@
       "brand": "Rafal",
       "navigation": "Dashboard navigation",
       "dashboard": "Dashboard",
+      "roles": "Roles",
       "collapse": "Collapse sidebar",
       "expand": "Expand sidebar",
       "close": "Close navigation",

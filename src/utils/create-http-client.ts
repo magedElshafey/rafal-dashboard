@@ -7,6 +7,7 @@ type TRequest = {
   signal?: AbortSignal
   suppressErrorNotification?: boolean
   suppressSuccessNotification?: boolean
+  suppressForbiddenRedirect?: boolean
 }
 
 type TGet = TRequest & {
@@ -19,11 +20,12 @@ type TDelete = TRequest & {
   data?: TBody
 }
 
-type TBody = object | FormData
+type TBody = object | FormData | URLSearchParams
 
 type TPost = TRequest & {
   data?: TBody
   isFormData?: boolean
+  isFormUrlEncoded?: boolean
   onUploadProgress?: AxiosRequestConfig['onUploadProgress']
 }
 
@@ -44,6 +46,7 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
       signal,
       suppressErrorNotification,
       suppressSuccessNotification,
+      suppressForbiddenRedirect,
     }: TGet) {
       return instance<T>({
         url,
@@ -53,6 +56,7 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
         signal,
         suppressErrorNotification,
         suppressSuccessNotification,
+        suppressForbiddenRedirect,
       })
     },
 
@@ -60,10 +64,12 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
       url,
       data,
       isFormData,
+      isFormUrlEncoded,
       onUploadProgress,
       signal,
       suppressErrorNotification,
       suppressSuccessNotification,
+      suppressForbiddenRedirect,
     }: TPost) {
       return instance<T>({
         url,
@@ -73,10 +79,11 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
         signal,
         suppressErrorNotification,
         suppressSuccessNotification,
+        suppressForbiddenRedirect,
         headers: isFormData
           ? undefined
           : {
-              'Content-Type': 'application/json',
+              'Content-Type': isFormUrlEncoded ? 'application/x-www-form-urlencoded' : 'application/json',
             },
       })
     },
@@ -85,10 +92,12 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
       url,
       data,
       isFormData,
+      isFormUrlEncoded,
       onUploadProgress,
       signal,
       suppressErrorNotification,
       suppressSuccessNotification,
+      suppressForbiddenRedirect,
     }: TPost) {
       return instance<T>({
         url,
@@ -98,10 +107,11 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
         signal,
         suppressErrorNotification,
         suppressSuccessNotification,
+        suppressForbiddenRedirect,
         headers: isFormData
           ? undefined
           : {
-              'Content-Type': 'application/json',
+              'Content-Type': isFormUrlEncoded ? 'application/x-www-form-urlencoded' : 'application/json',
             },
       })
     },
@@ -110,10 +120,12 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
       url,
       data,
       isFormData,
+      isFormUrlEncoded,
       onUploadProgress,
       signal,
       suppressErrorNotification,
       suppressSuccessNotification,
+      suppressForbiddenRedirect,
     }: TPost) {
       return instance<T>({
         url,
@@ -123,21 +135,24 @@ export function createHttpClient(instance: AxiosInstance): IHttp {
         signal,
         suppressErrorNotification,
         suppressSuccessNotification,
+        suppressForbiddenRedirect,
         headers: isFormData
           ? undefined
           : {
-              'Content-Type': 'application/json',
+              'Content-Type': isFormUrlEncoded ? 'application/x-www-form-urlencoded' : 'application/json',
             },
       })
     },
 
-    delete<T = unknown>({ url, query, data, signal }: TDelete) {
+    delete<T = unknown>({ url, query, data, signal, suppressErrorNotification, suppressForbiddenRedirect }: TDelete) {
       return instance<T>({
         url,
         params: cleanQueryParams(query),
         data,
         method: 'delete',
         signal,
+        suppressErrorNotification,
+        suppressForbiddenRedirect,
       })
     },
   }

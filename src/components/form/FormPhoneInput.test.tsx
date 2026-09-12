@@ -84,6 +84,11 @@ describe('FormPhoneInput', () => {
     expect(group).toBeInTheDocument()
     expect(input).toHaveAttribute('autocomplete', 'tel-national')
     expect(input).toHaveAttribute('placeholder', 'Enter your phone number')
+    expect(group.querySelector('[data-slot="phone-input-container"]')).toHaveClass(
+      'border-border',
+      'bg-background',
+      'focus-within:border-ring'
+    )
     expect(screen.getByRole('combobox', { name: 'Select a country' })).toHaveTextContent('+1')
     expect(screen.getByTestId('flag-us')).toBeInTheDocument()
   })

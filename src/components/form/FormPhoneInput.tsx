@@ -81,11 +81,11 @@ export const FormPhoneInput = memo(function FormPhoneInput({
       <label
         id={labelId}
         htmlFor={phoneInputId}
-        className={cn('text-base font-normal leading-6 text-nu', labelClassName)}
+        className={cn('text-base font-normal leading-6 text-foreground', labelClassName)}
       >
         {resolvedLabel}
         {required && (
-          <span aria-hidden="true" className="ms-1 text-error-500">
+          <span aria-hidden="true" className="ms-1 text-destructive">
             *
           </span>
         )}
@@ -94,12 +94,12 @@ export const FormPhoneInput = memo(function FormPhoneInput({
       <div
         data-slot="phone-input-container"
         className={cn(
-          'flex h-14 w-full overflow-hidden rounded-2xl border border-black-50 bg-black-50',
-          'transition-all duration-200 ease-out hover:border-black-100',
-          'focus-within:border-brand-500 focus-within:ring-3 focus-within:ring-brand-500/20',
+          'flex h-14 w-full overflow-hidden rounded-2xl border border-border bg-background',
+          'transition-all duration-200 ease-out hover:border-ring',
+          'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20',
           hasError &&
-            'border-error-500 ring-3 ring-error-500/20 focus-within:border-error-500 focus-within:ring-error-500/20',
-          disabled && 'cursor-not-allowed border-black-100 bg-black-100',
+            'border-destructive ring-3 ring-destructive/20 focus-within:border-destructive focus-within:ring-destructive/20',
+          disabled && 'cursor-not-allowed bg-muted text-muted-foreground',
           size === 'compact' && 'h-12 rounded-xl'
         )}
       >
@@ -124,7 +124,7 @@ export const FormPhoneInput = memo(function FormPhoneInput({
         />
 
         <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
-          <Phone className="size-4 shrink-0 text-black-400" aria-hidden="true" />
+          <Phone className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 
           <input
             ref={phoneField.ref}
@@ -142,9 +142,9 @@ export const FormPhoneInput = memo(function FormPhoneInput({
             onBlur={phoneField.onBlur}
             onChange={phoneField.onChange}
             className={cn(
-              'h-full min-w-0 flex-1 bg-transparent text-sm font-normal text-content-primary outline-none',
-              'placeholder:text-black-400',
-              'disabled:cursor-not-allowed disabled:text-content-secondary',
+              'h-full min-w-0 flex-1 bg-transparent text-sm font-normal text-foreground outline-none',
+              'placeholder:text-muted-foreground',
+              'disabled:cursor-not-allowed disabled:text-muted-foreground',
               inputClassName
             )}
           />
@@ -152,7 +152,7 @@ export const FormPhoneInput = memo(function FormPhoneInput({
       </div>
 
       {errorMessage && (
-        <p id={messageId} role="alert" className="text-sm text-error-500">
+        <p id={messageId} role="alert" className="text-sm text-destructive">
           {errorMessage}
         </p>
       )}

@@ -104,7 +104,7 @@ describe('shared form-control surfaces', () => {
 
     expect(screen.getByLabelText('Birthday')).toHaveClass('border-black-50', 'bg-black-50', 'disabled:bg-black-100')
     expect(screen.getByLabelText('City')).toHaveClass('border-black-50', 'bg-black-50')
-    expect(screen.getByLabelText('Groups')).toHaveClass('border-black-50', 'bg-black-50')
+    expect(screen.getByLabelText('Groups')).toHaveClass('border-border', 'bg-background', 'focus-visible:border-ring')
     expect(screen.getByLabelText('Search records').closest('[data-slot="command-input-wrapper"]')).toHaveClass(
       'border-black-50',
       'bg-black-50',

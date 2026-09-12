@@ -77,7 +77,7 @@ export function FormSelect<T>({
             <FormLabel className={labelClassName}>
               {label}
               {required && (
-                <span aria-hidden="true" className="ms-1 text-error-500">
+                <span aria-hidden="true" className="ms-1 text-destructive">
                   *
                 </span>
               )}
@@ -136,7 +136,7 @@ export function FormSelect<T>({
               <button
                 type="button"
                 disabled={disabled}
-                className="absolute inset-e-8 top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-content-muted hover:bg-black-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="absolute inset-e-8 top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 aria-label={clearLabel ?? t('label.clear_selection')}
                 onClick={() => {
                   field.onChange('')

@@ -1,0 +1,63 @@
+{
+  "roles": {
+    "title": "Roles",
+    "listTitle": "Roles list",
+    "total_one": "{{count}} role",
+    "total_other": "{{count}} roles",
+    "createRole": "Create Role",
+    "editRole": "Edit Role",
+    "roleName": "Role Name",
+    "permissions": "Permissions",
+    "noPermissions": "No permissions",
+    "loadingForm": "Loading role form…",
+    "loadingMore": "Loading more roles…",
+    "morePermissions_one": "{{count}} more permission",
+    "morePermissions_other": "{{count}} more permissions",
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close role form",
+      "forRole": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}"
+    },
+    "form": {
+      "namePlaceholder": "Enter role name",
+      "permissionsPlaceholder": "Select permissions",
+      "permissionsLoading": "Loading permissions…",
+      "permissionsLoadMore": "Scroll to load more permissions…",
+      "permissionsEmpty": "No permissions available.",
+      "permissionsError": "Permissions could not be loaded.",
+      "permissionsRetry": "Try again",
+      "permissionsClear": "Clear selected permissions",
+      "createDescription": "Add a role and select its permissions.",
+      "editDescription": "Update the role name or permissions."
+    },
+    "validation": { "nameRequired": "Role name is required." },
+    "empty": {
+      "title": "No roles yet",
+      "description": "Create the first role to start organizing access."
+    },
+    "delete": {
+      "title": "Delete Role",
+      "description": "Are you sure you want to delete {{name}}? This action cannot be undone."
+    },
+    "errors": {
+      "selfDelete": "You cannot delete a role assigned to your own account."
+    },
+    "feedback": {
+      "created": "Role created successfully.",
+      "updated": "Role updated successfully.",
+      "deleted": "Role deleted successfully.",
+      "createError": "The role could not be created. Please review the form and try again.",
+      "updateError": "The role could not be updated. Please try again.",
+      "deleteError": "The role could not be deleted. Please try again."
+    }
+  }
+}

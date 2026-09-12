@@ -157,13 +157,25 @@ Every network-backed list MUST distinguish:
 - Targeted cache updates SHOULD be used when safe and simple; otherwise invalidate the narrowest correct key.
 - Global cache clears, broad unrelated invalidation, page reloads, and extra reconciliation requests MUST NOT be used.
 - Create, update, and delete pending state MUST be scoped so unrelated entity actions remain usable where safe.
+- Independent feature queries and mutations SHOULD live in focused hook files by use case, such as `useProducts`, `useProduct`, `useCreateProduct`, `useUpdateProduct`, and `useDeleteProduct`. Query-key factories remain separate. Avoid feature query files that grow to own every independent lifecycle; trivial utilities do not need one-file-per-function treatment.
 
 ## Forms and shared drawer responsibilities
 
+- Standard application forms MUST use `src/components/core/FormWrapper.tsx`; feature forms MUST NOT duplicate `FormProvider` or React Hook Form provider infrastructure without a documented technical exception.
+- Feature fields SHOULD use the shared React Hook Form-aware components in `src/components/form/`. Features MUST NOT repeatedly rebuild an existing shared field from raw RHF and shadcn primitives. Business-specific fields MAY compose shared primitives when no generic field is suitable.
+- Shared form primitives MUST use Rafal semantic tokens and support light/dark themes, RTL/LTR, visible focus, hover, disabled, required, and error states. Hardcoded colors and legacy product branding are forbidden in shared form components.
 - Shared drawer responsibilities are layout, focus-managed sheet lifecycle, loading/error slots, submit buttons, pending guards, and responsive presentation.
 - Feature form responsibilities are fields, initial values, Yup schema, mapping, dirty state, validation errors, reset behavior, and focus after reset.
 - Feature mutation hooks own API calls, cache lifecycle, success/error feedback, and post-success drawer decisions.
 - Domain validation, endpoint fields, and entity mapping MUST NOT be added to `EntityFormDrawer`.
+
+## Remote option fields
+
+- Large or dynamic option sets from paginated endpoints MUST use a scalable async/infinite selection control instead of rendering the full catalog permanently.
+- The feature query/service layer owns data fetching and pagination. Generic form controls receive option data, loading/error state, and load/retry callbacks through props and MUST NOT call feature APIs or TanStack Query directly.
+- Initial loading, loading more, end-of-list, empty, and recoverable error states MUST remain visible within the field without blocking unrelated form fields.
+- Selected values SHOULD remain compact while all selections stay inspectable when the control opens.
+- Search MUST be enabled only when the backend contract documents a search parameter. Client filtering over partially loaded paginated data MUST NOT be presented as complete remote search.
 
 ## Localization, RTL, and accessibility
 

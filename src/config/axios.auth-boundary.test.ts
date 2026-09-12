@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
     clearQueryClientAtAuthBoundary: vi.fn(),
     getState: vi.fn(),
     logout: vi.fn(),
+    notifyErrorResponse: vi.fn(),
   }
 })
 
@@ -21,7 +22,7 @@ vi.mock('axios', () => ({
 }))
 vi.mock('@/config/axios.helpers', () => ({
   applyCommonHeaders: vi.fn(),
-  notifyErrorResponse: vi.fn(),
+  notifyErrorResponse: mocks.notifyErrorResponse,
   notifySuccessResponse: vi.fn(),
 }))
 vi.mock('@/lib/react-query/query-client', () => ({
@@ -34,7 +35,7 @@ import './axios'
 
 type ResponseErrorHandler = (error: {
   code?: string
-  config?: { headers: { get: (name: string) => unknown } }
+  config?: { headers: { get: (name: string) => unknown }; suppressForbiddenRedirect?: boolean }
   response?: { status: number }
 }) => Promise<never>
 
@@ -47,6 +48,7 @@ describe('shared axios auth boundary', () => {
     mocks.getState.mockReset()
     mocks.logout.mockClear()
     mocks.isCancel.mockClear()
+    mocks.notifyErrorResponse.mockClear()
   })
 
   it('uses the single neutral API base URL', () => {
@@ -69,5 +71,17 @@ describe('shared axios auth boundary', () => {
 
     expect(mocks.clearQueryClientAtAuthBoundary).toHaveBeenCalledOnce()
     expect(mocks.logout).toHaveBeenCalledOnce()
+  })
+
+  it('allows a feature to own a documented domain 403 without a global redirect', async () => {
+    const error = {
+      config: { headers: { get: () => undefined }, suppressForbiddenRedirect: true },
+      response: { status: 403 },
+    }
+
+    await expect(responseErrorHandler(error)).rejects.toBe(error)
+
+    expect(mocks.notifyErrorResponse).toHaveBeenCalledWith(error)
+    expect(window.location.pathname).toBe('/')
   })
 })

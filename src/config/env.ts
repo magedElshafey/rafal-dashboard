@@ -5,6 +5,9 @@ const env = {
   // `import.meta.env.DEV` prevents this escape hatch from enabling in production builds.
   AUTH_BYPASS: import.meta.env.DEV && import.meta.env.VITE_AUTH_BYPASS === 'true',
 
+  // Temporary feature transport until the Laravel Roles API is available locally.
+  ROLES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_ROLES_USE_MOCK !== 'false',
+
   DEFAULT_LOCALE: import.meta.env.VITE_REACT_APP_DEFAULT_LOCALE || 'ar',
 
   THEME_KEY: import.meta.env.VITE_REACT_APP_THEME_KEY || 'theme',

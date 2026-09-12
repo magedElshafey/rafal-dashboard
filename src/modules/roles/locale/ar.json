@@ -1,0 +1,71 @@
+{
+  "roles": {
+    "title": "الأدوار",
+    "listTitle": "قائمة الأدوار",
+    "total_zero": "لا توجد أدوار",
+    "total_one": "دور واحد",
+    "total_two": "دوران",
+    "total_few": "{{count}} أدوار",
+    "total_many": "{{count}} دورًا",
+    "total_other": "{{count}} دور",
+    "createRole": "إضافة دور",
+    "editRole": "تعديل الدور",
+    "roleName": "اسم الدور",
+    "permissions": "الصلاحيات",
+    "noPermissions": "لا توجد صلاحيات",
+    "loadingForm": "جارٍ تحميل نموذج الدور…",
+    "loadingMore": "جارٍ تحميل المزيد من الأدوار…",
+    "morePermissions_zero": "لا توجد صلاحيات إضافية",
+    "morePermissions_one": "صلاحية إضافية واحدة",
+    "morePermissions_two": "صلاحيتان إضافيتان",
+    "morePermissions_few": "{{count}} صلاحيات إضافية",
+    "morePermissions_many": "{{count}} صلاحية إضافية",
+    "morePermissions_other": "{{count}} صلاحية إضافية",
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إضافة",
+      "createAnother": "إضافة وإنشاء دور آخر",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق نموذج الدور",
+      "forRole": "إجراءات الدور {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}"
+    },
+    "form": {
+      "namePlaceholder": "أدخل اسم الدور",
+      "permissionsPlaceholder": "اختر الصلاحيات",
+      "permissionsLoading": "جارٍ تحميل الصلاحيات…",
+      "permissionsLoadMore": "مرّر لتحميل المزيد من الصلاحيات…",
+      "permissionsEmpty": "لا توجد صلاحيات متاحة.",
+      "permissionsError": "تعذر تحميل الصلاحيات.",
+      "permissionsRetry": "حاول مرة أخرى",
+      "permissionsClear": "مسح الصلاحيات المحددة",
+      "createDescription": "أضف دورًا وحدد صلاحياته.",
+      "editDescription": "حدّث اسم الدور أو صلاحياته."
+    },
+    "validation": { "nameRequired": "اسم الدور مطلوب." },
+    "empty": {
+      "title": "لا توجد أدوار بعد",
+      "description": "أنشئ الدور الأول لبدء تنظيم الوصول."
+    },
+    "delete": {
+      "title": "حذف الدور",
+      "description": "هل أنت متأكد من حذف {{name}}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "errors": {
+      "selfDelete": "لا يمكنك حذف دور مُسند إلى حسابك الحالي."
+    },
+    "feedback": {
+      "created": "تم إنشاء الدور بنجاح.",
+      "updated": "تم تحديث الدور بنجاح.",
+      "deleted": "تم حذف الدور بنجاح.",
+      "createError": "تعذر إنشاء الدور. راجع النموذج وحاول مرة أخرى.",
+      "updateError": "تعذر تحديث الدور. حاول مرة أخرى.",
+      "deleteError": "تعذر حذف الدور. حاول مرة أخرى."
+    }
+  }
+}

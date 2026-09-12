@@ -38,9 +38,19 @@ Components should render query data directly. Do not mirror server lists in loca
 
 Mutations own cache cancellation, snapshots, optimistic changes, reconciliation, rollback, and targeted stale marking. Use TanStack Query v5 invalidation with `refetchType: 'none'` when the requirement is to mark data stale without an immediate GET.
 
+Feature-level TanStack Query hooks SHOULD be separated by independent use case and lifecycle, for example `useProducts`, `useProduct`, `useCreateProduct`, `useUpdateProduct`, and `useDeleteProduct`. Keep query-key factories separate and avoid a single query file that accumulates every query and mutation for a feature. This convention does not require splitting trivial utilities that do not have independent responsibilities.
+
 ## Forms
 
-The repository provides `FormWrapper`, React Hook Form-aware inputs, Yup integration, date controls, and file-upload components. Prefer these components when they satisfy the required interaction. Validation schemas remain domain-specific, expose accessible descriptions/errors, and should not validate an entire form on every keystroke without a product reason.
+All standard application forms MUST use `src/components/core/FormWrapper.tsx`. Feature forms MUST NOT duplicate `FormProvider` or other React Hook Form provider wiring already owned by `FormWrapper` unless a documented technical exception requires it. `FormWrapper` remains infrastructure; schemas, validation messages, domain fields, and business mapping remain feature-owned.
+
+Feature modules SHOULD compose React Hook Form-aware controls from `src/components/form/` and MUST NOT repeatedly rebuild an existing shared field from raw RHF and shadcn primitives. A business-specific field MAY compose shared primitives when no suitable generic field exists.
+
+Shared form controls MUST use Rafal semantic design tokens and preserve light/dark themes, RTL/LTR direction, visible focus, hover, disabled, and error states. Form labels and required/error indicators use semantic foreground/destructive tokens; hardcoded colors and legacy product branding do not belong in shared form components.
+
+Large or dynamic option sets backed by paginated endpoints SHOULD use an async/infinite select or multiselect rather than permanently rendering every option. Data fetching stays in a feature hook/service composition and the generic control receives options and paging behavior through props. Search MUST be enabled only when the backend contract supports it; do not invent search parameters or imply complete client-side search over partially loaded data.
+
+Validation schemas remain domain-specific, expose accessible descriptions/errors, and should not validate an entire form on every keystroke without a product reason.
 
 ## Components and pages
 

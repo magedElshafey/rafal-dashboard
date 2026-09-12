@@ -31,7 +31,7 @@ export function FormCheckbox({ name, onChange, label, ...props }: FormCheckboxPr
                   }}
                 />
               </FormControl>
-              {label && <FormLabel className="text-neutral-900 font-medium text-sm">{label}</FormLabel>}
+              {label && <FormLabel className="cursor-pointer text-sm font-medium text-foreground">{label}</FormLabel>}
             </div>
             <FormMessage />
           </FormItem>

@@ -7,6 +7,7 @@ import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
 import { Routes } from '@/routes/routes'
 
 const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
+const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -21,6 +22,9 @@ export const PrivateRoutes: RouteObject[] = [
         </DashboardShell>
       </RequireAuth>
     ),
-    children: [{ path: Routes.dashboard, Component: DashboardPage }],
+    children: [
+      { path: Routes.dashboard, Component: DashboardPage },
+      { path: Routes.roles, Component: RolesPage },
+    ],
   },
 ]

@@ -40,7 +40,7 @@ axiosInstance.interceptors.response.use(notifySuccessResponse, (error: AxiosErro
     return Promise.reject(error)
   }
 
-  if (status === 403) {
+  if (status === 403 && !error.config?.suppressForbiddenRedirect) {
     window.location.href = '/403'
 
     return Promise.reject(error)

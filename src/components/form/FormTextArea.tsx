@@ -34,7 +34,11 @@ export function FormTextArea({
           {label && (
             <FormLabel className={labelClassName}>
               {label}
-              {required && <span className="text-error-500">*</span>}
+              {required && (
+                <span aria-hidden="true" className="ms-1 text-destructive">
+                  *
+                </span>
+              )}
             </FormLabel>
           )}
 

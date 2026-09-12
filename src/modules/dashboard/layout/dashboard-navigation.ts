@@ -1,4 +1,4 @@
-import { LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard, ShieldCheck } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
 
@@ -15,5 +15,11 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     labelKey: 'dashboard.sidebar.dashboard',
     icon: LayoutDashboard,
     match: 'exact',
+  },
+  {
+    to: Routes.roles,
+    labelKey: 'dashboard.sidebar.roles',
+    icon: ShieldCheck,
+    match: 'prefix',
   },
 ]

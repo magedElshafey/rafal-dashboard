@@ -70,7 +70,7 @@ export function FormPasswordInput({
                   disabled={disabled}
                   aria-label={showPassword ? resolvedHideLabel : resolvedShowLabel}
                   aria-pressed={showPassword}
-                  className="size-10 shrink-0 rounded-lg text-black-400 hover:bg-black-100 disabled:opacity-100"
+                  className="size-10 shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-100"
                   onClick={() => setShowPassword((currentValue) => !currentValue)}
                 >
                   {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}

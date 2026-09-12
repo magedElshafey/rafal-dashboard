@@ -63,7 +63,7 @@ export function FormMultiSelect<TData, TFieldValues extends FieldValues>({
                 {label}
 
                 {required && (
-                  <span aria-hidden="true" className="ms-1 text-error-500">
+                  <span aria-hidden="true" className="ms-1 text-destructive">
                     *
                   </span>
                 )}
