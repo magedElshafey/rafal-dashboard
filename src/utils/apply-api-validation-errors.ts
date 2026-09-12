@@ -7,7 +7,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function applyApiValidationErrors<TValues extends FieldValues>(
   error: unknown,
-  setError: UseFormSetError<TValues>
+  setError: UseFormSetError<TValues>,
+  fieldAliases: Readonly<Record<string, Path<TValues>>> = {}
 ) {
   if (!isAxiosError(error) || !isRecord(error.response?.data)) return false
   const errors = error.response.data.errors
@@ -17,7 +18,7 @@ export function applyApiValidationErrors<TValues extends FieldValues>(
   Object.entries(errors).forEach(([field, messages]) => {
     const message = Array.isArray(messages) ? messages.find((item) => typeof item === 'string') : undefined
     if (!message) return
-    setError(field as Path<TValues>, { type: 'server', message })
+    setError(fieldAliases[field] ?? (field as Path<TValues>), { type: 'server', message })
     applied = true
   })
   return applied

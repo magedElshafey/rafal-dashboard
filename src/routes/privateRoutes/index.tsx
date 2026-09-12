@@ -8,6 +8,7 @@ import { Routes } from '@/routes/routes'
 
 const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
 const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
+const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -25,6 +26,7 @@ export const PrivateRoutes: RouteObject[] = [
     children: [
       { path: Routes.dashboard, Component: DashboardPage },
       { path: Routes.roles, Component: RolesPage },
+      { path: Routes.admins, Component: AdminsPage },
     ],
   },
 ]

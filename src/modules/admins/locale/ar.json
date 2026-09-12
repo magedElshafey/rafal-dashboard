@@ -1,0 +1,82 @@
+{
+  "admins": {
+    "title": "المشرفون",
+    "listTitle": "قائمة المشرفين",
+    "total_zero": "لا يوجد مشرفون",
+    "total_one": "مشرف واحد",
+    "total_two": "مشرفان",
+    "total_few": "{{count}} مشرفين",
+    "total_many": "{{count}} مشرفًا",
+    "total_other": "{{count}} مشرف",
+    "createAdmin": "إضافة مشرف",
+    "editAdmin": "تعديل المشرف",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "passwordConfirmation": "تأكيد كلمة المرور",
+    "roles": "الأدوار",
+    "noRoles": "لا توجد أدوار",
+    "loadingForm": "جارٍ تحميل نموذج المشرف…",
+    "loadingMore": "جارٍ تحميل المزيد من المشرفين…",
+    "moreRoles_zero": "لا توجد أدوار إضافية",
+    "moreRoles_one": "دور إضافي واحد",
+    "moreRoles_two": "دوران إضافيان",
+    "moreRoles_few": "{{count}} أدوار إضافية",
+    "moreRoles_many": "{{count}} دورًا إضافيًا",
+    "moreRoles_other": "{{count}} دور إضافي",
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إضافة",
+      "createAnother": "إضافة وإنشاء مشرف آخر",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق نموذج المشرف",
+      "forAdmin": "إجراءات المشرف {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}"
+    },
+    "form": {
+      "namePlaceholder": "أدخل اسم المشرف",
+      "emailPlaceholder": "أدخل البريد الإلكتروني",
+      "rolesPlaceholder": "اختر الأدوار",
+      "rolesLoading": "جارٍ تحميل الأدوار…",
+      "rolesLoadMore": "مرّر لتحميل المزيد من الأدوار…",
+      "rolesEmpty": "لا توجد أدوار متاحة.",
+      "rolesError": "تعذر تحميل الأدوار.",
+      "rolesRetry": "حاول مرة أخرى",
+      "rolesClear": "مسح الأدوار المحددة",
+      "createDescription": "أضف مشرفًا وحدد أدواره.",
+      "editDescription": "حدّث اسم المشرف أو بريده الإلكتروني أو أدواره."
+    },
+    "validation": {
+      "nameRequired": "اسم المشرف مطلوب.",
+      "emailRequired": "البريد الإلكتروني مطلوب.",
+      "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
+      "passwordRequired": "كلمة المرور مطلوبة.",
+      "passwordConfirmationRequired": "تأكيد كلمة المرور مطلوب.",
+      "passwordMismatch": "يجب أن تتطابق كلمتا المرور."
+    },
+    "empty": {
+      "title": "لا يوجد مشرفون بعد",
+      "description": "أنشئ المشرف الأول لبدء إدارة الوصول."
+    },
+    "delete": {
+      "title": "حذف المشرف",
+      "description": "هل أنت متأكد من حذف {{name}}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "errors": {
+      "selfDelete": "لا يمكنك حذف حسابك الحالي."
+    },
+    "feedback": {
+      "created": "تم إنشاء المشرف بنجاح.",
+      "updated": "تم تحديث المشرف بنجاح.",
+      "deleted": "تم حذف المشرف بنجاح.",
+      "createError": "تعذر إنشاء المشرف. راجع النموذج وحاول مرة أخرى.",
+      "updateError": "تعذر تحديث المشرف. حاول مرة أخرى.",
+      "deleteError": "تعذر حذف المشرف. حاول مرة أخرى."
+    }
+  }
+}

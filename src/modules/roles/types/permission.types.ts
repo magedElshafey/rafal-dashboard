@@ -1,4 +1,4 @@
-import type { PaginatedDashboardResponse } from '@/modules/roles/types/pagination.types'
+import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 
 export type Permission = {
   id: number

@@ -35,7 +35,7 @@ function PasswordHarness() {
   const methods = useForm({ defaultValues: { password: '' } })
   return (
     <FormProvider {...methods}>
-      <FormPasswordInput name="password" label="Password" disabled />
+      <FormPasswordInput name="password" label="Password" disabled required />
     </FormProvider>
   )
 }
@@ -136,11 +136,12 @@ describe('shared form-control surfaces', () => {
       </>
     )
 
-    expect(screen.getByLabelText('Password').closest('[data-slot="input-container"]')).toHaveClass(
+    expect(screen.getByLabelText(/^Password/).closest('[data-slot="input-container"]')).toHaveClass(
       'border-black-50',
       'bg-black-50'
     )
     expect(screen.getByRole('button', { name: 'Show password' })).toBeDisabled()
+    expect(screen.getByLabelText(/^Password/)).toBeRequired()
     expect(container.querySelector('[aria-disabled="true"]')).toHaveClass('border-black-100', 'bg-black-100')
   })
 })

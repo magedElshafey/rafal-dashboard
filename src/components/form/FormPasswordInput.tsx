@@ -34,6 +34,7 @@ export function FormPasswordInput({
   reserveMessageSpace = false,
   onChange,
   disabled,
+  required,
   ...props
 }: FormPasswordInputProps) {
   const { control } = useFormContext()
@@ -48,12 +49,22 @@ export function FormPasswordInput({
       name={name}
       render={({ field, fieldState }) => (
         <FormItem className={itemClassName}>
-          {label && <FormLabel className={labelClassName}>{label}</FormLabel>}
+          {label && (
+            <FormLabel className={labelClassName}>
+              {label}
+              {required ? (
+                <span aria-hidden="true" className="ms-1 text-destructive">
+                  *
+                </span>
+              ) : null}
+            </FormLabel>
+          )}
           <FormControl>
             <Input
               {...field}
               {...props}
               disabled={disabled}
+              required={required}
               type={showPassword ? 'text' : 'password'}
               containerClassName={containerClassName}
               controlSize={controlSize}

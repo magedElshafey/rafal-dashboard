@@ -32,4 +32,4 @@ export type RoleFormValues = {
 export type RolesListParams = {
   page: number
 }
-import type { PaginatedDashboardResponse } from '@/modules/roles/types/pagination.types'
+import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'

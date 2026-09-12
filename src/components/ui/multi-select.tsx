@@ -292,7 +292,7 @@ function MultiSelectComponent<T>(
               [
                 'relative flex min-h-14 w-full items-center',
                 'rounded-2xl border border-border',
-                'bg-background px-4 py-3',
+                'bg-black-50 px-4 py-3',
                 'text-start text-sm text-foreground',
                 'outline-none transition-all',
                 'shadow-none',

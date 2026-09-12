@@ -10,7 +10,7 @@ import { usePermissions } from '@/modules/roles/hooks/usePermissions'
 import { createRoleSchema } from '@/modules/roles/schemas/role.schema'
 import type { Permission } from '@/modules/roles/types/permission.types'
 import type { Role, RoleFormValues } from '@/modules/roles/types/role.types'
-import { applyApiValidationErrors } from '@/modules/roles/utils/role-form-error'
+import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
 export type RoleSubmitIntent = 'create' | 'create-another' | 'edit'
 

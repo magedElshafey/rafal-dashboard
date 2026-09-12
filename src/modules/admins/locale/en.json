@@ -1,0 +1,74 @@
+{
+  "admins": {
+    "title": "Admins",
+    "listTitle": "Admins list",
+    "total_one": "{{count}} admin",
+    "total_other": "{{count}} admins",
+    "createAdmin": "Create Admin",
+    "editAdmin": "Edit Admin",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "passwordConfirmation": "Confirm Password",
+    "roles": "Roles",
+    "noRoles": "No roles",
+    "loadingForm": "Loading admin form…",
+    "loadingMore": "Loading more admins…",
+    "moreRoles_one": "{{count}} more role",
+    "moreRoles_other": "{{count}} more roles",
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close admin form",
+      "forAdmin": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}"
+    },
+    "form": {
+      "namePlaceholder": "Enter admin name",
+      "emailPlaceholder": "Enter email address",
+      "rolesPlaceholder": "Select roles",
+      "rolesLoading": "Loading roles…",
+      "rolesLoadMore": "Scroll to load more roles…",
+      "rolesEmpty": "No roles available.",
+      "rolesError": "Roles could not be loaded.",
+      "rolesRetry": "Try again",
+      "rolesClear": "Clear selected roles",
+      "createDescription": "Add an admin and assign their roles.",
+      "editDescription": "Update the admin name, email, or roles."
+    },
+    "validation": {
+      "nameRequired": "Admin name is required.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Password is required.",
+      "passwordConfirmationRequired": "Password confirmation is required.",
+      "passwordMismatch": "Passwords must match."
+    },
+    "empty": {
+      "title": "No admins yet",
+      "description": "Create the first admin to start managing access."
+    },
+    "delete": {
+      "title": "Delete Admin",
+      "description": "Are you sure you want to delete {{name}}? This action cannot be undone."
+    },
+    "errors": {
+      "selfDelete": "You cannot delete your own account."
+    },
+    "feedback": {
+      "created": "Admin created successfully.",
+      "updated": "Admin updated successfully.",
+      "deleted": "Admin deleted successfully.",
+      "createError": "The admin could not be created. Please review the form and try again.",
+      "updateError": "The admin could not be updated. Please try again.",
+      "deleteError": "The admin could not be deleted. Please try again."
+    }
+  }
+}

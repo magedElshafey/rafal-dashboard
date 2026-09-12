@@ -4,6 +4,7 @@ export const Routes = {
   login: '/login',
   dashboard: '/dashboard',
   roles: '/dashboard/roles',
+  admins: '/dashboard/admins',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',
