@@ -177,6 +177,15 @@ Every network-backed list MUST distinguish:
 - Selected values SHOULD remain compact while all selections stay inspectable when the control opens.
 - Search MUST be enabled only when the backend contract documents a search parameter. Client filtering over partially loaded paginated data MUST NOT be presented as complete remote search.
 
+## Sort order and image fields
+
+- Repeated explicit `sort_order`, `order`, or `position` fields MUST use the shared sort-order form primitive. The feature schema owns required, integer, and range validation.
+- Image fields SHOULD compose the shared controlled uploader and React Hook Form adapter. Single/multiple mode, count, size, accepted types, optional dimensions, and preview fit remain configurable.
+- Existing API images and newly selected local files MUST remain distinct typed values. Remote images MUST NOT be converted to fake `File` objects.
+- Object URLs for local previews MUST be revoked on removal, replacement, and unmount. Previews preserve aspect ratio; large sets use constrained component-level overflow.
+- Shared upload UI MUST NOT know feature endpoints, FormData, queries, or backend removal fields. Replacement/removal semantics belong to the feature and documented service contract.
+- Browse, drag/drop, preview actions, errors, counts, focus, themes, and RTL/LTR behavior MUST remain accessible.
+
 ## Localization, RTL, and accessibility
 
 - Arabic is the default locale and English is secondary. Every visible string and accessible name MUST use i18n or be supplied as translated feature content.

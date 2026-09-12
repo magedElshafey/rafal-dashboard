@@ -1,0 +1,81 @@
+{
+  "banners": {
+    "title": "Banners",
+    "createBanner": "Create Banner",
+    "editBanner": "Edit Banner",
+    "listTitle": "Banner list",
+    "total_one": "{{count}} banner",
+    "total_other": "{{count}} banners",
+    "loadingMore": "Loading more banners",
+    "fields": {
+      "image": "Image",
+      "title": "Title",
+      "titleAr": "Arabic Title",
+      "titleEn": "English Title",
+      "placement": "Placement",
+      "platform": "Platform",
+      "link": "Link URL",
+      "startsAt": "Start Date/Time",
+      "endsAt": "End Date/Time",
+      "active": "Active",
+      "sortOrder": "Sort Order",
+      "schedule": "Schedule / Status"
+    },
+    "placements": { "home": "Home", "splash": "Splash" },
+    "platforms": { "web": "Web", "mobile": "Mobile", "both": "Both" },
+    "schedule": {
+      "inactive": "Inactive",
+      "upcoming": "Scheduled",
+      "current": "Active now",
+      "ended": "Ended",
+      "unscheduled": "Active"
+    },
+    "form": {
+      "createDescription": "Add banner content, display settings, schedule, and image.",
+      "editDescription": "Update the banner content, display settings, schedule, or image."
+    },
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "forBanner": "Actions for {{title}}",
+      "editNamed": "Edit {{title}}",
+      "deleteNamed": "Delete {{title}}"
+    },
+    "empty": {
+      "title": "No banners yet",
+      "description": "Create the first promotional banner."
+    },
+    "delete": {
+      "title": "Delete Banner",
+      "description": "Are you sure you want to delete “{{title}}”?"
+    },
+    "feedback": {
+      "created": "Banner created successfully.",
+      "updated": "Banner updated successfully.",
+      "deleted": "Banner deleted successfully.",
+      "createError": "Banner could not be created.",
+      "updateError": "Banner could not be updated.",
+      "deleteError": "Banner could not be deleted."
+    },
+    "validation": {
+      "titleArRequired": "Arabic title is required.",
+      "titleEnRequired": "English title is required.",
+      "placementRequired": "Placement is required.",
+      "platformRequired": "Platform is required.",
+      "linkInvalid": "Enter a valid absolute URL or an application path beginning with /.",
+      "dateInvalid": "Enter a valid date and time.",
+      "endBeforeStart": "End date cannot be earlier than start date.",
+      "sortRequired": "Sort order is required.",
+      "sortInteger": "Sort order must be an integer.",
+      "sortNonNegative": "Sort order cannot be negative.",
+      "imageRequired": "An image is required. Choose a replacement before removing the current image."
+    }
+  }
+}

@@ -10,8 +10,34 @@ import * as rolesAr from '@/modules/roles/locale/ar.json'
 import * as rolesEn from '@/modules/roles/locale/en.json'
 import * as adminsAr from '@/modules/admins/locale/ar.json'
 import * as adminsEn from '@/modules/admins/locale/en.json'
+import * as formAr from '@/components/form/locale/ar.json'
+import * as formEn from '@/components/form/locale/en.json'
+import * as bannersAr from '@/modules/banners/locale/ar.json'
+import * as bannersEn from '@/modules/banners/locale/en.json'
 
 export const resources = {
-  en: { translation: { ...en, ...authEn, ...dashboardEn, ...queryStateEn, ...rolesEn, ...adminsEn } },
-  ar: { translation: { ...ar, ...authAr, ...dashboardAr, ...queryStateAr, ...rolesAr, ...adminsAr } },
+  en: {
+    translation: {
+      ...en,
+      ...formEn,
+      ...authEn,
+      ...dashboardEn,
+      ...queryStateEn,
+      ...rolesEn,
+      ...adminsEn,
+      ...bannersEn,
+    },
+  },
+  ar: {
+    translation: {
+      ...ar,
+      ...formAr,
+      ...authAr,
+      ...dashboardAr,
+      ...queryStateAr,
+      ...rolesAr,
+      ...adminsAr,
+      ...bannersAr,
+    },
+  },
 } as const

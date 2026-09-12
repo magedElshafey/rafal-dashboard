@@ -5,6 +5,7 @@ export const Routes = {
   dashboard: '/dashboard',
   roles: '/dashboard/roles',
   admins: '/dashboard/admins',
+  banners: '/dashboard/banners',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

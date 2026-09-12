@@ -1,0 +1,85 @@
+{
+  "banners": {
+    "title": "اللافتات",
+    "createBanner": "إنشاء لافتة",
+    "editBanner": "تعديل اللافتة",
+    "listTitle": "قائمة اللافتات",
+    "total_zero": "لا توجد لافتات",
+    "total_one": "لافتة واحدة",
+    "total_two": "لافتتان",
+    "total_few": "{{count}} لافتات",
+    "total_many": "{{count}} لافتة",
+    "total_other": "{{count}} لافتة",
+    "loadingMore": "جارٍ تحميل المزيد من اللافتات",
+    "fields": {
+      "image": "الصورة",
+      "title": "العنوان",
+      "titleAr": "العنوان بالعربية",
+      "titleEn": "العنوان بالإنجليزية",
+      "placement": "الموضع",
+      "platform": "المنصة",
+      "link": "رابط الوجهة",
+      "startsAt": "تاريخ ووقت البدء",
+      "endsAt": "تاريخ ووقت الانتهاء",
+      "active": "نشطة",
+      "sortOrder": "ترتيب العرض",
+      "schedule": "الجدولة / الحالة"
+    },
+    "placements": { "home": "الرئيسية", "splash": "شاشة البداية" },
+    "platforms": { "web": "الويب", "mobile": "الجوال", "both": "كلاهما" },
+    "schedule": {
+      "inactive": "غير نشطة",
+      "upcoming": "مجدولة",
+      "current": "نشطة الآن",
+      "ended": "منتهية",
+      "unscheduled": "نشطة"
+    },
+    "form": {
+      "createDescription": "أضف محتوى اللافتة وإعدادات العرض والجدولة والصورة.",
+      "editDescription": "حدّث محتوى اللافتة أو إعدادات العرض أو الجدولة أو الصورة."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة أخرى",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "forBanner": "إجراءات اللافتة {{title}}",
+      "editNamed": "تعديل {{title}}",
+      "deleteNamed": "حذف {{title}}"
+    },
+    "empty": {
+      "title": "لا توجد لافتات بعد",
+      "description": "أنشئ أول لافتة ترويجية."
+    },
+    "delete": {
+      "title": "حذف اللافتة",
+      "description": "هل أنت متأكد من حذف «{{title}}»؟"
+    },
+    "feedback": {
+      "created": "تم إنشاء اللافتة بنجاح.",
+      "updated": "تم تحديث اللافتة بنجاح.",
+      "deleted": "تم حذف اللافتة بنجاح.",
+      "createError": "تعذر إنشاء اللافتة.",
+      "updateError": "تعذر تحديث اللافتة.",
+      "deleteError": "تعذر حذف اللافتة."
+    },
+    "validation": {
+      "titleArRequired": "العنوان بالعربية مطلوب.",
+      "titleEnRequired": "العنوان بالإنجليزية مطلوب.",
+      "placementRequired": "الموضع مطلوب.",
+      "platformRequired": "المنصة مطلوبة.",
+      "linkInvalid": "أدخل رابطًا صحيحًا أو مسارًا داخل التطبيق يبدأ بـ /.",
+      "dateInvalid": "أدخل تاريخًا ووقتًا صحيحين.",
+      "endBeforeStart": "لا يمكن أن يسبق تاريخ الانتهاء تاريخ البدء.",
+      "sortRequired": "ترتيب العرض مطلوب.",
+      "sortInteger": "يجب أن يكون ترتيب العرض عددًا صحيحًا.",
+      "sortNonNegative": "لا يمكن أن يكون ترتيب العرض سالبًا.",
+      "imageRequired": "الصورة مطلوبة. اختر صورة بديلة قبل إزالة الصورة الحالية."
+    }
+  }
+}

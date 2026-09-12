@@ -9,6 +9,7 @@ import { Routes } from '@/routes/routes'
 const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
 const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
+const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -27,6 +28,7 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.dashboard, Component: DashboardPage },
       { path: Routes.roles, Component: RolesPage },
       { path: Routes.admins, Component: AdminsPage },
+      { path: Routes.banners, Component: BannersPage },
     ],
   },
 ]

@@ -1,0 +1,26 @@
+{
+  "imageUploader": {
+    "label": "Images",
+    "drag": "Drag images here or choose from your device",
+    "browse": "Browse images",
+    "processing": "Checking image…",
+    "replaceInput": "Choose a replacement image",
+    "replaceNamed": "Replace {{name}}",
+    "removeNamed": "Remove {{name}}",
+    "previewList": "Selected image previews",
+    "existingImage": "Existing image",
+    "remote": "Existing",
+    "selectedCount_one": "{{count}} image selected",
+    "selectedCount_other": "{{count}} images selected",
+    "hint": "Maximum {{maximum}} · {{size}} per image",
+    "unlimited": "Not limited",
+    "errors": {
+      "invalidType": "{{file}} is not an accepted image type.",
+      "maxSize": "{{file}} exceeds the allowed maximum of {{size}}.",
+      "maxFiles": "You can select up to {{count}} images.",
+      "duplicate": "That image is already selected.",
+      "dimensions": "{{file}} does not meet the required image dimensions.",
+      "preview": "{{file}} could not be read as an image."
+    }
+  }
+}

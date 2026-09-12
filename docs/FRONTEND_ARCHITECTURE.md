@@ -52,6 +52,16 @@ Large or dynamic option sets backed by paginated endpoints SHOULD use an async/i
 
 Validation schemas remain domain-specific, expose accessible descriptions/errors, and should not validate an entire form on every keystroke without a product reason.
 
+### Sort order fields
+
+Entities with an explicit `sort_order`, `order`, or `position` contract use the shared `FormSortOrder` field. The primitive owns numeric input presentation, form integration, direction, and reusable min/max/step behavior. Feature schemas own the exact integer, range, and required rules.
+
+### File and image fields
+
+Image selection uses the shared controlled `ImageUploader` primitive and its `FormImageUploader` adapter. The same primitive supports configurable single and multiple modes, typed remote images and local `File` values, replacement/removal callbacks, type/count/size/dimension validation, and non-distorting previews. Object URLs must be revoked after replacement, removal, and unmount. Large local collections stay inside a constrained responsive preview surface.
+
+Remote API media remains a remote entity and MUST NOT be converted into a fake `File`. A feature service owns multipart serialization, while feature/API contracts own the meaning of replacing or removing existing media. Image controls must preserve native file selection, keyboard access, semantic errors, RTL/LTR direction, and light/dark semantic tokens.
+
 ## Components and pages
 
 Pages coordinate route/auth/query state. Templates render loaded domain data. Smaller components own cohesive visual or interaction responsibilities. Reuse `Container`, `Section`, Dashboard cards/stat cards, segmented tabs, status badges, breadcrumbs, query states, file rows, buttons, and skeleton primitives before introducing new variants.

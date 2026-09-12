@@ -1,0 +1,30 @@
+{
+  "imageUploader": {
+    "label": "الصور",
+    "drag": "اسحب الصور هنا أو اخترها من جهازك",
+    "browse": "تصفح الصور",
+    "processing": "جارٍ فحص الصورة…",
+    "replaceInput": "اختر صورة بديلة",
+    "replaceNamed": "استبدال {{name}}",
+    "removeNamed": "إزالة {{name}}",
+    "previewList": "معاينات الصور المحددة",
+    "existingImage": "الصورة الحالية",
+    "remote": "حالية",
+    "selectedCount_zero": "لم يتم تحديد صور",
+    "selectedCount_one": "تم تحديد صورة واحدة",
+    "selectedCount_two": "تم تحديد صورتين",
+    "selectedCount_few": "تم تحديد {{count}} صور",
+    "selectedCount_many": "تم تحديد {{count}} صورة",
+    "selectedCount_other": "تم تحديد {{count}} صورة",
+    "hint": "الحد الأقصى {{maximum}} · {{size}} لكل صورة",
+    "unlimited": "غير محدد",
+    "errors": {
+      "invalidType": "الملف {{file}} ليس من أنواع الصور المقبولة.",
+      "maxSize": "يتجاوز الملف {{file}} الحد الأقصى المسموح وهو {{size}}.",
+      "maxFiles": "يمكنك تحديد {{count}} صور كحد أقصى.",
+      "duplicate": "هذه الصورة محددة بالفعل.",
+      "dimensions": "لا يطابق الملف {{file}} أبعاد الصورة المطلوبة.",
+      "preview": "تعذرت قراءة الملف {{file}} كصورة."
+    }
+  }
+}
