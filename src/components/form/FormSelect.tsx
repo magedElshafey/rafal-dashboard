@@ -27,6 +27,13 @@ interface FormSelectProps<T> {
   emptyMessage?: ReactNode
   loadingMessage?: ReactNode
   loadMoreMessage?: ReactNode
+  isError?: boolean
+  isRetrying?: boolean
+  errorMessage?: ReactNode
+  retryLabel?: ReactNode
+  onRetry?: () => void | Promise<unknown>
+  serializeValue?: (value: unknown) => string
+  deserializeValue?: (value: string) => unknown
 
   itemClassName?: string
   labelClassName?: string
@@ -55,6 +62,13 @@ export function FormSelect<T>({
   emptyMessage,
   loadingMessage,
   loadMoreMessage,
+  isError,
+  isRetrying,
+  errorMessage,
+  retryLabel,
+  onRetry,
+  serializeValue = (value) => (value != null ? String(value) : ''),
+  deserializeValue = (value) => value,
   itemClassName,
   labelClassName,
   triggerClassName,
@@ -87,10 +101,10 @@ export function FormSelect<T>({
           <div className="relative">
             <Select
               name={field.name}
-              value={field.value != null ? String(field.value) : ''}
+              value={serializeValue(field.value)}
               disabled={disabled}
               onValueChange={(newValue) => {
-                field.onChange(newValue)
+                field.onChange(deserializeValue(newValue))
                 onChange?.(newValue)
               }}
             >
@@ -118,6 +132,11 @@ export function FormSelect<T>({
                 emptyMessage={emptyMessage}
                 loadingMessage={loadingMessage}
                 loadMoreMessage={loadMoreMessage}
+                isError={isError}
+                isRetrying={isRetrying}
+                errorMessage={errorMessage}
+                retryLabel={retryLabel}
+                onRetry={onRetry}
               >
                 {data.map((item) => {
                   const value = String(item[valueKey] as SelectOptionValue)
@@ -139,7 +158,7 @@ export function FormSelect<T>({
                 className="absolute inset-e-8 top-1/2 z-10 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 aria-label={clearLabel ?? t('label.clear_selection')}
                 onClick={() => {
-                  field.onChange('')
+                  field.onChange(deserializeValue(''))
                   onChange?.('')
                 }}
               >

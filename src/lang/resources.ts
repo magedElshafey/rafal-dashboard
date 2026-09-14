@@ -14,6 +14,8 @@ import * as formAr from '@/components/form/locale/ar.json'
 import * as formEn from '@/components/form/locale/en.json'
 import * as bannersAr from '@/modules/banners/locale/ar.json'
 import * as bannersEn from '@/modules/banners/locale/en.json'
+import * as categoriesAr from '@/modules/categories/locale/ar.json'
+import * as categoriesEn from '@/modules/categories/locale/en.json'
 
 export const resources = {
   en: {
@@ -26,6 +28,7 @@ export const resources = {
       ...rolesEn,
       ...adminsEn,
       ...bannersEn,
+      ...categoriesEn,
     },
   },
   ar: {
@@ -38,6 +41,7 @@ export const resources = {
       ...rolesAr,
       ...adminsAr,
       ...bannersAr,
+      ...categoriesAr,
     },
   },
 } as const

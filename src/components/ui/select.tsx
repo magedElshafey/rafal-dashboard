@@ -77,6 +77,11 @@ export type SelectContentProps = React.ComponentProps<typeof SelectPrimitive.Con
   emptyMessage?: React.ReactNode
   loadingMessage?: React.ReactNode
   loadMoreMessage?: React.ReactNode
+  isError?: boolean
+  isRetrying?: boolean
+  errorMessage?: React.ReactNode
+  retryLabel?: React.ReactNode
+  onRetry?: () => void | Promise<unknown>
   scrollThreshold?: number
 }
 
@@ -100,6 +105,11 @@ function SelectContent({
   emptyMessage,
   loadingMessage,
   loadMoreMessage,
+  isError = false,
+  isRetrying = false,
+  errorMessage,
+  retryLabel,
+  onRetry,
   scrollThreshold = 48,
   ...props
 }: SelectContentProps) {
@@ -121,7 +131,7 @@ function SelectContent({
 
   const handleViewportScroll = React.useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
-      if (!onLoadMore || !hasNextPage || isLoading || isFetchingNextPage || loadMoreLockRef.current) return
+      if (!onLoadMore || !hasNextPage || isLoading || isFetchingNextPage || isError || loadMoreLockRef.current) return
 
       const target = event.currentTarget
       const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight
@@ -133,7 +143,7 @@ function SelectContent({
         })
       }
     },
-    [hasNextPage, isFetchingNextPage, isLoading, onLoadMore, scrollThreshold]
+    [hasNextPage, isError, isFetchingNextPage, isLoading, onLoadMore, scrollThreshold]
   )
 
   return (
@@ -167,12 +177,24 @@ function SelectContent({
           )}
           onScroll={handleViewportScroll}
         >
-          {showInitialLoading ? (
+          {isError && !hasOptions ? (
+            <SelectErrorRow message={errorMessage} retryLabel={retryLabel} isRetrying={isRetrying} onRetry={onRetry} />
+          ) : showInitialLoading ? (
             <SelectStatusRow isLoading>{loadingMessage ?? t('label.loading')}</SelectStatusRow>
           ) : showEmptyState ? (
             <SelectStatusRow>{emptyMessage ?? t('label.no_options')}</SelectStatusRow>
           ) : (
-            children
+            <>
+              {children}
+              {isError ? (
+                <SelectErrorRow
+                  message={errorMessage}
+                  retryLabel={retryLabel}
+                  isRetrying={isRetrying}
+                  onRetry={onRetry}
+                />
+              ) : null}
+            </>
           )}
           {hasOptions && isFetchingNextPage && (
             <SelectStatusRow isLoading>{loadingMessage ?? t('label.loading')}</SelectStatusRow>
@@ -184,6 +206,38 @@ function SelectContent({
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
+  )
+}
+
+function SelectErrorRow({
+  message,
+  retryLabel,
+  isRetrying,
+  onRetry,
+}: {
+  message?: React.ReactNode
+  retryLabel?: React.ReactNode
+  isRetrying?: boolean
+  onRetry?: () => void | Promise<unknown>
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex min-h-12 items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-destructive"
+    >
+      <span>{message}</span>
+      {onRetry && retryLabel ? (
+        <button
+          type="button"
+          disabled={isRetrying}
+          className="shrink-0 rounded-md px-2 py-1 font-medium text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => void onRetry()}
+        >
+          {retryLabel}
+        </button>
+      ) : null}
+    </div>
   )
 }
 

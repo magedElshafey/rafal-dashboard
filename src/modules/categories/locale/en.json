@@ -1,0 +1,85 @@
+{
+  "categories": {
+    "title": "Categories",
+    "createCategory": "Create Category",
+    "editCategory": "Edit Category",
+    "listTitle": "Category list",
+    "total_one": "{{count}} category",
+    "total_other": "{{count}} categories",
+    "loadingMore": "Loading more categories",
+    "noImage": "No image",
+    "fields": {
+      "image": "Image",
+      "currentImage": "Current Image",
+      "name": "Name",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "slug": "Slug",
+      "descriptionAr": "Arabic Description",
+      "descriptionEn": "English Description",
+      "parent": "Parent Category",
+      "children": "Children",
+      "status": "Status",
+      "active": "Active",
+      "sortOrder": "Sort Order"
+    },
+    "hierarchy": {
+      "root": "Root Category",
+      "childOf": "Child of {{name}}",
+      "childId": "Child Category · #{{id}}"
+    },
+    "parent": {
+      "root": "No parent / Root category",
+      "idFallback": "Parent category #{{id}}",
+      "empty": "No parent categories available",
+      "loading": "Loading categories…",
+      "loadMore": "Scroll for more categories",
+      "error": "Parent categories could not be loaded.",
+      "retry": "Retry"
+    },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "form": {
+      "createDescription": "Add bilingual category details and hierarchy settings.",
+      "editDescription": "Update category details and hierarchy settings.",
+      "imageReadOnly": "Image editing is unavailable until the backend upload contract is confirmed."
+    },
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "forCategory": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}"
+    },
+    "empty": {
+      "title": "No categories yet",
+      "description": "Create the first root or child category."
+    },
+    "delete": {
+      "title": "Delete Category",
+      "description": "Are you sure you want to delete “{{name}}”?"
+    },
+    "feedback": {
+      "created": "Category created successfully.",
+      "updated": "Category updated successfully.",
+      "deleted": "Category deleted successfully.",
+      "createError": "Category could not be created.",
+      "updateError": "Category could not be updated.",
+      "deleteError": "Category could not be deleted."
+    },
+    "validation": {
+      "nameArRequired": "Arabic name is required.",
+      "nameEnRequired": "English name is required.",
+      "slugRequired": "Slug is required.",
+      "sortRequired": "Sort order is required.",
+      "sortInteger": "Sort order must be an integer.",
+      "sortNonNegative": "Sort order cannot be negative."
+    }
+  }
+}

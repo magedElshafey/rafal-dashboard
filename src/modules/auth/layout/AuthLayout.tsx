@@ -1,4 +1,5 @@
 import { memo, type PropsWithChildren, type ReactNode } from 'react'
+
 import { useTranslation } from 'react-i18next'
 
 import { AuthIllustration } from '@/modules/auth/layout/AuthIllustration'
@@ -27,7 +28,10 @@ export const AuthLayout = memo(function AuthLayout({
       <section
         aria-label={t('auth.common.page_label')}
         className="
-          flex min-h-dvh flex-col
+          flex
+          min-h-dvh
+          flex-col
+
           lg:grid
           lg:h-dvh
           lg:min-h-0
@@ -37,7 +41,10 @@ export const AuthLayout = memo(function AuthLayout({
       >
         <div
           className="
-            flex min-w-0
+            flex
+            min-w-0
+            flex-1
+
             lg:min-h-0
             lg:items-center
             lg:justify-center

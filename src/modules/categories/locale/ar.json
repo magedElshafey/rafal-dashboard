@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "title": "الأقسام",
+    "createCategory": "إنشاء قسم",
+    "editCategory": "تعديل القسم",
+    "listTitle": "قائمة الأقسام",
+    "total_zero": "لا توجد أقسام",
+    "total_one": "قسم واحد",
+    "total_two": "قسمان",
+    "total_few": "{{count}} أقسام",
+    "total_many": "{{count}} قسمًا",
+    "total_other": "{{count}} قسم",
+    "loadingMore": "جارٍ تحميل المزيد من الأقسام",
+    "noImage": "لا توجد صورة",
+    "fields": {
+      "image": "الصورة",
+      "currentImage": "الصورة الحالية",
+      "name": "الاسم",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "slug": "الرابط المختصر",
+      "descriptionAr": "الوصف بالعربية",
+      "descriptionEn": "الوصف بالإنجليزية",
+      "parent": "القسم الرئيسي",
+      "children": "الأقسام الفرعية",
+      "status": "الحالة",
+      "active": "نشط",
+      "sortOrder": "ترتيب العرض"
+    },
+    "hierarchy": {
+      "root": "قسم رئيسي",
+      "childOf": "قسم فرعي من {{name}}",
+      "childId": "قسم فرعي · #{{id}}"
+    },
+    "parent": {
+      "root": "بدون قسم رئيسي",
+      "idFallback": "القسم الرئيسي #{{id}}",
+      "empty": "لا توجد أقسام رئيسية متاحة",
+      "loading": "جارٍ تحميل الأقسام…",
+      "loadMore": "مرر لتحميل المزيد من الأقسام",
+      "error": "تعذر تحميل الأقسام الرئيسية.",
+      "retry": "إعادة المحاولة"
+    },
+    "status": { "active": "نشط", "inactive": "غير نشط" },
+    "form": {
+      "createDescription": "أضف بيانات القسم باللغتين وإعدادات التسلسل.",
+      "editDescription": "حدّث بيانات القسم وإعدادات التسلسل.",
+      "imageReadOnly": "تعديل الصورة غير متاح حتى يتم تأكيد عقد الرفع من الخادم."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة آخر",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "forCategory": "إجراءات القسم {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}"
+    },
+    "empty": {
+      "title": "لا توجد أقسام بعد",
+      "description": "أنشئ أول قسم رئيسي أو فرعي."
+    },
+    "delete": {
+      "title": "حذف القسم",
+      "description": "هل أنت متأكد من حذف «{{name}}»؟"
+    },
+    "feedback": {
+      "created": "تم إنشاء القسم بنجاح.",
+      "updated": "تم تحديث القسم بنجاح.",
+      "deleted": "تم حذف القسم بنجاح.",
+      "createError": "تعذر إنشاء القسم.",
+      "updateError": "تعذر تحديث القسم.",
+      "deleteError": "تعذر حذف القسم."
+    },
+    "validation": {
+      "nameArRequired": "الاسم بالعربية مطلوب.",
+      "nameEnRequired": "الاسم بالإنجليزية مطلوب.",
+      "slugRequired": "الرابط المختصر مطلوب.",
+      "sortRequired": "ترتيب العرض مطلوب.",
+      "sortInteger": "يجب أن يكون ترتيب العرض عددًا صحيحًا.",
+      "sortNonNegative": "لا يمكن أن يكون ترتيب العرض سالبًا."
+    }
+  }
+}

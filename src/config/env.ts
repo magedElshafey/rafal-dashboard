@@ -14,6 +14,9 @@ const env = {
   // Temporary feature transport until the Laravel Banners API is available locally.
   BANNERS_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_BANNERS_USE_MOCK !== 'false',
 
+  // Temporary feature transport until the Laravel Categories API is available locally.
+  CATEGORIES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_CATEGORIES_USE_MOCK !== 'false',
+
   DEFAULT_LOCALE: import.meta.env.VITE_REACT_APP_DEFAULT_LOCALE || 'ar',
 
   THEME_KEY: import.meta.env.VITE_REACT_APP_THEME_KEY || 'theme',
