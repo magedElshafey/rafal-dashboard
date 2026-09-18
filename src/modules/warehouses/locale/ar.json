@@ -1,0 +1,55 @@
+{
+  "warehouses": {
+    "title": "المستودعات",
+    "createWarehouse": "إنشاء مستودع",
+    "editWarehouse": "تعديل المستودع",
+    "listTitle": "قائمة المستودعات",
+    "total_zero": "لا توجد مستودعات",
+    "total_one": "مستودع واحد",
+    "total_two": "مستودعان",
+    "total_few": "{{count}} مستودعات",
+    "total_many": "{{count}} مستودعًا",
+    "total_other": "{{count}} مستودع",
+    "loadingMore": "جارٍ تحميل المزيد من المستودعات",
+    "noCoverageZones": "لا توجد نطاقات تغطية",
+    "moreCoverageZones": "{{count}} نطاقات تغطية إضافية",
+    "fields": {
+      "name": "اسم المستودع",
+      "coverageZones": "نطاقات التغطية",
+      "addCoverageZone": "أضف نطاق تغطية…",
+      "removeCoverageZone": "إزالة {{value}}",
+      "status": "الحالة",
+      "active": "نشط"
+    },
+    "status": { "active": "نشط", "inactive": "غير نشط" },
+    "form": {
+      "createDescription": "أضف المستودع ونطاقات التغطية النصية الحالية.",
+      "editDescription": "حدّث المستودع ونطاقات التغطية النصية الحالية."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة آخر",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "forWarehouse": "إجراءات المستودع {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}"
+    },
+    "empty": { "title": "لا توجد مستودعات بعد", "description": "أنشئ أول مستودع." },
+    "delete": { "title": "حذف المستودع", "description": "هل أنت متأكد من حذف «{{name}}»؟" },
+    "feedback": {
+      "created": "تم إنشاء المستودع بنجاح.",
+      "updated": "تم تحديث المستودع بنجاح.",
+      "deleted": "تم حذف المستودع بنجاح.",
+      "createError": "تعذر إنشاء المستودع.",
+      "updateError": "تعذر تحديث المستودع.",
+      "deleteError": "تعذر حذف المستودع."
+    },
+    "validation": { "nameRequired": "اسم المستودع مطلوب." }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "regions": {
+    "title": "المناطق",
+    "createRegion": "إنشاء منطقة",
+    "editRegion": "تعديل المنطقة",
+    "listTitle": "قائمة المناطق",
+    "total_zero": "لا توجد مناطق",
+    "total_one": "منطقة واحدة",
+    "total_two": "منطقتان",
+    "total_few": "{{count}} مناطق",
+    "total_many": "{{count}} منطقة",
+    "total_other": "{{count}} منطقة",
+    "citiesCount_zero": "لا توجد مدن",
+    "citiesCount_one": "مدينة واحدة",
+    "citiesCount_two": "مدينتان",
+    "citiesCount_few": "{{count}} مدن",
+    "citiesCount_many": "{{count}} مدينة",
+    "citiesCount_other": "{{count}} مدينة",
+    "loadingMore": "جارٍ تحميل المزيد من المناطق",
+    "fields": {
+      "name": "اسم المنطقة",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "code": "الرمز",
+      "cities": "المدن",
+      "sortOrder": "ترتيب العرض",
+      "status": "الحالة",
+      "active": "نشطة"
+    },
+    "status": { "active": "نشطة", "inactive": "غير نشطة" },
+    "form": {
+      "createDescription": "أضف المنطقة ورمزها وترتيب عرضها الاختياريين.",
+      "editDescription": "حدّث تفاصيل المنطقة وحالتها."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة أخرى",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "forRegion": "إجراءات المنطقة {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}"
+    },
+    "empty": { "title": "لا توجد مناطق بعد", "description": "أنشئ أول منطقة." },
+    "delete": { "title": "حذف المنطقة", "description": "هل أنت متأكد من حذف «{{name}}»؟" },
+    "feedback": {
+      "created": "تم إنشاء المنطقة بنجاح.",
+      "updated": "تم تحديث المنطقة بنجاح.",
+      "deleted": "تم حذف المنطقة بنجاح.",
+      "createError": "تعذر إنشاء المنطقة.",
+      "updateError": "تعذر تحديث المنطقة.",
+      "deleteError": "تعذر حذف المنطقة."
+    },
+    "validation": {
+      "nameArRequired": "الاسم بالعربية مطلوب.",
+      "nameEnRequired": "الاسم بالإنجليزية مطلوب.",
+      "sortInteger": "يجب أن يكون ترتيب العرض عددًا صحيحًا."
+    }
+  }
+}

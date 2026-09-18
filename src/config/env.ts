@@ -17,6 +17,12 @@ const env = {
   // Temporary feature transport until the Laravel Categories API is available locally.
   CATEGORIES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_CATEGORIES_USE_MOCK !== 'false',
 
+  // Temporary feature transport until the Laravel Warehouses API is available locally.
+  WAREHOUSES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_WAREHOUSES_USE_MOCK !== 'false',
+
+  // Temporary feature transport until the Laravel Regions API is available locally.
+  REGIONS_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_REGIONS_USE_MOCK !== 'false',
+
   DEFAULT_LOCALE: import.meta.env.VITE_REACT_APP_DEFAULT_LOCALE || 'ar',
 
   THEME_KEY: import.meta.env.VITE_REACT_APP_THEME_KEY || 'theme',

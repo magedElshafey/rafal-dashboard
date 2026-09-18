@@ -1,4 +1,4 @@
-import { FolderTree, Images, LayoutDashboard, ShieldCheck, UsersRound } from 'lucide-react'
+import { FolderTree, Images, LayoutDashboard, MapPinned, ShieldCheck, UsersRound, Warehouse } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
 
@@ -38,6 +38,18 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.categories,
     labelKey: 'dashboard.sidebar.categories',
     icon: FolderTree,
+    match: 'prefix',
+  },
+  {
+    to: Routes.warehouses,
+    labelKey: 'dashboard.sidebar.warehouses',
+    icon: Warehouse,
+    match: 'prefix',
+  },
+  {
+    to: Routes.regions,
+    labelKey: 'dashboard.sidebar.regions',
+    icon: MapPinned,
     match: 'prefix',
   },
 ]

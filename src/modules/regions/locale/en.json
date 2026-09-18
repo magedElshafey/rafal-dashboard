@@ -1,0 +1,57 @@
+{
+  "regions": {
+    "title": "Regions",
+    "createRegion": "Create Region",
+    "editRegion": "Edit Region",
+    "listTitle": "Region list",
+    "total_one": "{{count}} region",
+    "total_other": "{{count}} regions",
+    "citiesCount_one": "{{count}} City",
+    "citiesCount_other": "{{count}} Cities",
+    "loadingMore": "Loading more regions",
+    "fields": {
+      "name": "Region Name",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "code": "Code",
+      "cities": "Cities",
+      "sortOrder": "Sort Order",
+      "status": "Status",
+      "active": "Active"
+    },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "form": {
+      "createDescription": "Add a region and its optional code and sort order.",
+      "editDescription": "Update the region details and status."
+    },
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "forRegion": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}"
+    },
+    "empty": { "title": "No regions yet", "description": "Create the first region." },
+    "delete": { "title": "Delete Region", "description": "Are you sure you want to delete “{{name}}”?" },
+    "feedback": {
+      "created": "Region created successfully.",
+      "updated": "Region updated successfully.",
+      "deleted": "Region deleted successfully.",
+      "createError": "Region could not be created.",
+      "updateError": "Region could not be updated.",
+      "deleteError": "Region could not be deleted."
+    },
+    "validation": {
+      "nameArRequired": "Arabic name is required.",
+      "nameEnRequired": "English name is required.",
+      "sortInteger": "Sort order must be a whole number."
+    }
+  }
+}

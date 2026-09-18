@@ -50,6 +50,10 @@ Shared form controls MUST use Rafal semantic design tokens and preserve light/da
 
 Large or dynamic option sets backed by paginated endpoints SHOULD use an async/infinite select or multiselect rather than permanently rendering every option. Data fetching stays in a feature hook/service composition and the generic control receives options and paging behavior through props. Search MUST be enabled only when the backend contract supports it; do not invent search parameters or imply complete client-side search over partially loaded data.
 
+### Multi-value string fields
+
+User-editable `string[]` fields use the shared tags/multi-value form primitive. The shared primitive owns adding, removing, trimming, exact-duplicate prevention, keyboard behavior, disabled state, and basic input limits; the feature schema owns domain validation. UI components do not serialize arrays: the feature service owns request transport encoding. This convention does not apply to remote entity selection such as roles, permissions, or categories, which continues to use async select or multiselect controls.
+
 Validation schemas remain domain-specific, expose accessible descriptions/errors, and should not validate an entire form on every keystroke without a product reason.
 
 ### Sort order fields

@@ -7,6 +7,8 @@ export const Routes = {
   admins: '/dashboard/admins',
   banners: '/dashboard/banners',
   categories: '/dashboard/categories',
+  warehouses: '/dashboard/warehouses',
+  regions: '/dashboard/regions',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

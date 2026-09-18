@@ -1,0 +1,51 @@
+{
+  "warehouses": {
+    "title": "Warehouses",
+    "createWarehouse": "Create Warehouse",
+    "editWarehouse": "Edit Warehouse",
+    "listTitle": "Warehouse list",
+    "total_one": "{{count}} warehouse",
+    "total_other": "{{count}} warehouses",
+    "loadingMore": "Loading more warehouses",
+    "noCoverageZones": "No Coverage Zones",
+    "moreCoverageZones": "{{count}} more coverage zones",
+    "fields": {
+      "name": "Warehouse Name",
+      "coverageZones": "Coverage Zones",
+      "addCoverageZone": "Add coverage zone…",
+      "removeCoverageZone": "Remove {{value}}",
+      "status": "Status",
+      "active": "Active"
+    },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "form": {
+      "createDescription": "Add the warehouse and its current free-text coverage zones.",
+      "editDescription": "Update the warehouse and its current free-text coverage zones."
+    },
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "forWarehouse": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}"
+    },
+    "empty": { "title": "No warehouses yet", "description": "Create the first warehouse." },
+    "delete": { "title": "Delete Warehouse", "description": "Are you sure you want to delete “{{name}}”?" },
+    "feedback": {
+      "created": "Warehouse created successfully.",
+      "updated": "Warehouse updated successfully.",
+      "deleted": "Warehouse deleted successfully.",
+      "createError": "Warehouse could not be created.",
+      "updateError": "Warehouse could not be updated.",
+      "deleteError": "Warehouse could not be deleted."
+    },
+    "validation": { "nameRequired": "Warehouse name is required." }
+  }
+}

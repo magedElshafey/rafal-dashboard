@@ -16,6 +16,10 @@ import * as bannersAr from '@/modules/banners/locale/ar.json'
 import * as bannersEn from '@/modules/banners/locale/en.json'
 import * as categoriesAr from '@/modules/categories/locale/ar.json'
 import * as categoriesEn from '@/modules/categories/locale/en.json'
+import * as warehousesAr from '@/modules/warehouses/locale/ar.json'
+import * as warehousesEn from '@/modules/warehouses/locale/en.json'
+import * as regionsAr from '@/modules/regions/locale/ar.json'
+import * as regionsEn from '@/modules/regions/locale/en.json'
 
 export const resources = {
   en: {
@@ -29,6 +33,8 @@ export const resources = {
       ...adminsEn,
       ...bannersEn,
       ...categoriesEn,
+      ...warehousesEn,
+      ...regionsEn,
     },
   },
   ar: {
@@ -42,6 +48,8 @@ export const resources = {
       ...adminsAr,
       ...bannersAr,
       ...categoriesAr,
+      ...warehousesAr,
+      ...regionsAr,
     },
   },
 } as const
