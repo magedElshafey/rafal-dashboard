@@ -1,6 +1,6 @@
-import type { Coordinate } from '@/components/form'
-import type { LocalizedName } from '@/modules/regions/types/region.types'
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
+import type { Coordinate } from '@/types/geo.types'
+import type { LocalizedName } from '@/types/localized-name.types'
 
 export type RegionSummary = {
   id: number
@@ -36,9 +36,21 @@ export type CityCreateRequest = {
   name: LocalizedName
   is_active: boolean
   sort_order?: number
-  boundary: Coordinate[] | null
-  center: Coordinate | null
+  boundary: Coordinate[]
+  center: Coordinate
 }
+
+export type CityUpdatePayload = {
+  regionId?: number
+  nameAr?: string
+  nameEn?: string
+  sortOrder?: number | null
+  isActive?: boolean
+  center?: Coordinate
+  boundary?: Coordinate[]
+}
+
+export type DeleteCityResponse = { success: boolean; message: string }
 
 export type CitiesIndexResponse = PaginatedDashboardResponse<City>
 export type CityResponse = { success: boolean; message: string; data: City & { warehouse?: unknown } }

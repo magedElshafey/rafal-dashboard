@@ -13,6 +13,8 @@ const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
 const CategoriesPage = lazy(() => import('@/modules/categories/pages/CategoriesPage'))
 const WarehousesPage = lazy(() => import('@/modules/warehouses/pages/WarehousesPage'))
 const RegionsPage = lazy(() => import('@/modules/regions/pages/RegionsPage'))
+const CitiesPage = lazy(() => import('@/modules/cities/pages/CitiesPage'))
+const SettingsPage = lazy(() => import('@/modules/settings/pages/SettingsPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -35,6 +37,8 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.categories, Component: CategoriesPage },
       { path: Routes.warehouses, Component: WarehousesPage },
       { path: Routes.regions, Component: RegionsPage },
+      { path: Routes.cities, Component: CitiesPage },
+      { path: Routes.settings, Component: SettingsPage },
     ],
   },
 ]

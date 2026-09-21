@@ -1,0 +1,123 @@
+{
+  "cities": {
+    "title": "المدن",
+    "createCity": "إنشاء مدينة",
+    "editCity": "تعديل المدينة",
+    "listTitle": "قائمة المدن",
+    "total_zero": "لا توجد مدن",
+    "total_one": "مدينة واحدة",
+    "total_two": "مدينتان",
+    "total_few": "{{count}} مدن",
+    "total_many": "{{count}} مدينة",
+    "total_other": "{{count}} مدينة",
+    "loadingMore": "جارٍ تحميل المزيد من المدن",
+    "fields": {
+      "city": "المدينة",
+      "region": "المنطقة",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "boundary": "حدود المدينة",
+      "sortOrder": "ترتيب العرض",
+      "status": "الحالة",
+      "active": "نشطة"
+    },
+    "status": { "active": "نشطة", "inactive": "غير نشطة" },
+    "boundary": {
+      "defined_zero": "حدود معرّفة · لا توجد نقاط",
+      "defined_one": "حدود معرّفة · نقطة واحدة",
+      "defined_two": "حدود معرّفة · نقطتان",
+      "defined_few": "حدود معرّفة · {{count}} نقاط",
+      "defined_many": "حدود معرّفة · {{count}} نقطة",
+      "defined_other": "حدود معرّفة · {{count}} نقطة",
+      "none": "لا توجد حدود"
+    },
+    "sections": {
+      "basic": "المعلومات الأساسية",
+      "basicDescription": "اختر المنطقة وأدخل بيانات المدينة.",
+      "geography": "الموقع الجغرافي",
+      "geographyDescription": "حدّد مركز المدينة على الخريطة وارسم حدود المدينة."
+    },
+    "region": {
+      "placeholder": "اختر المنطقة",
+      "loading": "جارٍ تحميل المناطق…",
+      "loadMore": "مرر لتحميل المزيد من المناطق",
+      "empty": "لا توجد مناطق متاحة.",
+      "error": "تعذر تحميل المناطق.",
+      "retry": "إعادة المحاولة"
+    },
+    "geo": {
+      "boundary": "حدود المدينة",
+      "map": "خريطة موقع المدينة",
+      "mapLoading": "جارٍ تحميل الخريطة…",
+      "mapFailed": "تعذر تحميل الخريطة. يمكنك إعادة المحاولة أو استخدام الإحداثيات المتقدمة أدناه.",
+      "retryMap": "إعادة تحميل الخريطة",
+      "boundaryDescription": "راجع إحداثيات حدود المدينة أو عدّلها.",
+      "center": "المركز",
+      "centerDescription": "راجع إحداثي المركز أو عدّله.",
+      "point": "النقطة {{index}}",
+      "latitude": "خط العرض",
+      "longitude": "خط الطول",
+      "addPoint": "إضافة نقطة",
+      "removePoint": "إزالة النقطة {{index}}",
+      "movePointUp": "تحريك النقطة {{index}} لأعلى",
+      "movePointDown": "تحريك النقطة {{index}} لأسفل",
+      "clearBoundary": "مسح الحدود",
+      "setCenter": "تحديد المركز",
+      "changeCenter": "تغيير المركز",
+      "drawBoundary": "رسم الحدود",
+      "editBoundary": "تعديل الحدود",
+      "redrawBoundary": "إعادة رسم الحدود",
+      "fitCoverage": "إظهار حدود المدينة",
+      "centerSelected": "المركز المحدد",
+      "advancedCoordinates": "الإحداثيات المتقدمة",
+      "advancedDescription": "أدخل قيم خطوط العرض والطول بدقة إذا كانت الخريطة غير متاحة أو احتجت إلى دقة أكبر.",
+      "clearCenter": "مسح المركز",
+      "noBoundary": "لم تتم إضافة نقاط للحدود.",
+      "noBoundaryDefined": "لم يتم تحديد حدود.",
+      "noCenter": "لم يتم تحديد مركز."
+    },
+    "form": {
+      "createDescription": "أضف بيانات المدينة ومركزها وحدودها.",
+      "editDescription": "راجع بيانات المدينة ومركزها وحدودها وعدّلها."
+    },
+    "actions": {
+      "create": "إنشاء",
+      "edit": "تعديل",
+      "editNamed": "تعديل {{name}}",
+      "delete": "حذف",
+      "deleteNamed": "حذف {{name}}",
+      "deleting": "جارٍ الحذف…",
+      "forCity": "إجراءات {{name}}",
+      "label": "الإجراءات",
+      "update": "تحديث",
+      "createAnother": "إنشاء وإضافة أخرى",
+      "cancel": "إلغاء",
+      "close": "إغلاق"
+    },
+    "delete": {
+      "title": "حذف المدينة",
+      "description": "هل تريد حذف {{name}}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "empty": { "title": "لا توجد مدن بعد", "description": "أنشئ أول مدينة." },
+    "feedback": {
+      "created": "تم إنشاء المدينة بنجاح.",
+      "createError": "تعذر إنشاء المدينة.",
+      "updated": "تم تحديث المدينة بنجاح.",
+      "updateError": "تعذر تحديث المدينة.",
+      "deleted": "تم حذف المدينة بنجاح.",
+      "deleteError": "تعذر حذف المدينة."
+    },
+    "validation": {
+      "regionRequired": "المنطقة مطلوبة.",
+      "nameArRequired": "الاسم بالعربية مطلوب.",
+      "nameEnRequired": "الاسم بالإنجليزية مطلوب.",
+      "sortInteger": "يجب أن يكون ترتيب العرض عددًا صحيحًا.",
+      "coordinateRequired": "أدخل إحداثيًا صالحًا.",
+      "latitudeRange": "يجب أن يكون خط العرض بين -90 و90.",
+      "longitudeRange": "يجب أن يكون خط الطول بين -180 و180.",
+      "centerRequired": "مركز المدينة مطلوب.",
+      "boundaryRequired": "حدود المدينة مطلوبة.",
+      "boundaryMinimum": "يجب أن تحتوي حدود المدينة على ثلاث نقاط على الأقل."
+    }
+  }
+}

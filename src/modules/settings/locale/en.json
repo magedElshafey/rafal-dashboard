@@ -1,0 +1,58 @@
+{
+  "settings": {
+    "title": "Settings",
+    "description": "Manage store policies, customer limits, and security timing.",
+    "sections": {
+      "tax": {
+        "title": "Tax",
+        "description": "Set the VAT rate applied by the store."
+      },
+      "shipping": {
+        "title": "Shipping",
+        "description": "Control free shipping and its order-value threshold."
+      },
+      "giftWrap": {
+        "title": "Gift Wrap",
+        "description": "Control gift wrapping availability and its fee."
+      },
+      "customerLimits": {
+        "title": "Customer Limits",
+        "description": "Set practical limits for saved addresses and cart quantities."
+      },
+      "security": {
+        "title": "Security",
+        "description": "Set the wait time before another OTP can be requested."
+      }
+    },
+    "fields": {
+      "vatRate": "VAT Rate",
+      "freeShippingEnabled": "Free Shipping",
+      "freeShippingThreshold": "Free Shipping Threshold",
+      "giftWrapEnabled": "Enable Gift Wrap",
+      "giftWrapFee": "Gift Wrap Fee",
+      "maxAddressesPerUser": "Maximum Addresses Per User",
+      "maxCartItemQuantity": "Maximum Cart Item Quantity",
+      "otpResendCooldownSeconds": "OTP Resend Cooldown"
+    },
+    "units": {
+      "currency": "order value",
+      "seconds": "seconds"
+    },
+    "actions": {
+      "save": "Save Changes",
+      "saving": "Saving"
+    },
+    "feedback": {
+      "updated": "Settings updated successfully.",
+      "updateError": "Settings could not be updated. Your changes have been preserved."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "validNumber": "Enter a valid number.",
+      "nonNegative": "Enter zero or a positive number.",
+      "integer": "Enter a whole number.",
+      "minimumOne": "Enter a whole number of at least 1.",
+      "vatRange": "VAT rate must be between 0 and 100."
+    }
+  }
+}

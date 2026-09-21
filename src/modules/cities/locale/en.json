@@ -1,0 +1,115 @@
+{
+  "cities": {
+    "title": "Cities",
+    "createCity": "Create City",
+    "editCity": "Edit City",
+    "listTitle": "City list",
+    "total_one": "{{count}} city",
+    "total_other": "{{count}} cities",
+    "loadingMore": "Loading more cities",
+    "fields": {
+      "city": "City",
+      "region": "Region",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "boundary": "City Boundary",
+      "sortOrder": "Sort Order",
+      "status": "Status",
+      "active": "Active"
+    },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "boundary": {
+      "defined_one": "Boundary defined · {{count}} point",
+      "defined_other": "Boundary defined · {{count}} points",
+      "none": "No boundary"
+    },
+    "sections": {
+      "basic": "Basic Information",
+      "basicDescription": "Choose the Region and enter the City details.",
+      "geography": "Geographic Location",
+      "geographyDescription": "Set the City center on the map and draw the City boundary."
+    },
+    "region": {
+      "placeholder": "Select a Region",
+      "loading": "Loading Regions…",
+      "loadMore": "Scroll for more Regions",
+      "empty": "No Regions available.",
+      "error": "Regions could not be loaded.",
+      "retry": "Try again"
+    },
+    "geo": {
+      "boundary": "City Boundary",
+      "map": "City location map",
+      "mapLoading": "Loading map…",
+      "mapFailed": "The map could not be loaded. You can retry or use Advanced Coordinates below.",
+      "retryMap": "Retry map",
+      "boundaryDescription": "Review or adjust the City boundary coordinates.",
+      "center": "Center",
+      "centerDescription": "Review or adjust the center coordinate.",
+      "point": "Point {{index}}",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "addPoint": "Add Point",
+      "removePoint": "Remove Point {{index}}",
+      "movePointUp": "Move Point {{index}} Up",
+      "movePointDown": "Move Point {{index}} Down",
+      "clearBoundary": "Clear Boundary",
+      "setCenter": "Set Center",
+      "changeCenter": "Change Center",
+      "drawBoundary": "Draw Boundary",
+      "editBoundary": "Edit Boundary",
+      "redrawBoundary": "Redraw Boundary",
+      "fitCoverage": "Fit City Boundary",
+      "centerSelected": "Selected center",
+      "advancedCoordinates": "Advanced Coordinates",
+      "advancedDescription": "Enter exact latitude and longitude values if the map is unavailable or greater precision is needed.",
+      "clearCenter": "Clear Center",
+      "noBoundary": "No boundary points added.",
+      "noBoundaryDefined": "No boundary defined.",
+      "noCenter": "No center selected."
+    },
+    "form": {
+      "createDescription": "Add the City details, center, and boundary.",
+      "editDescription": "Review and update the City details, center, and boundary."
+    },
+    "actions": {
+      "create": "Create",
+      "edit": "Edit",
+      "editNamed": "Edit {{name}}",
+      "delete": "Delete",
+      "deleteNamed": "Delete {{name}}",
+      "deleting": "Deleting…",
+      "forCity": "Actions for {{name}}",
+      "label": "Actions",
+      "update": "Update",
+      "createAnother": "Create & Create Another",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "delete": {
+      "title": "Delete City",
+      "description": "Delete {{name}}? This action cannot be undone."
+    },
+    "empty": { "title": "No cities yet", "description": "Create the first City." },
+    "feedback": {
+      "created": "City created successfully.",
+      "createError": "City could not be created.",
+      "updated": "City updated successfully.",
+      "updateError": "City could not be updated.",
+      "deleted": "City deleted successfully.",
+      "deleteError": "City could not be deleted."
+    },
+    "validation": {
+      "regionRequired": "Region is required.",
+      "nameArRequired": "Arabic name is required.",
+      "nameEnRequired": "English name is required.",
+      "sortInteger": "Sort order must be a whole number.",
+      "coordinateRequired": "Enter a valid coordinate.",
+      "latitudeRange": "Latitude must be between -90 and 90.",
+      "longitudeRange": "Longitude must be between -180 and 180.",
+      "centerRequired": "City center is required.",
+      "boundaryRequired": "City boundary is required.",
+      "boundaryMinimum": "City boundary must contain at least three points."
+    }
+  }
+}

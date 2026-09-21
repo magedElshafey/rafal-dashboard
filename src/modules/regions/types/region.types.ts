@@ -1,6 +1,5 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
-
-export type LocalizedName = { ar: string; en: string }
+import type { LocalizedName } from '@/types/localized-name.types'
 
 export type Region = {
   id: number

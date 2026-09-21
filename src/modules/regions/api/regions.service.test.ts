@@ -72,7 +72,7 @@ describe('regionsService', () => {
       { name: { ar: 'منطقة حائل', en: "Ha'il Region" }, code: 'HAL' },
       { name: { ar: 'منطقة الباحة', en: 'Al-Baha Region' }, code: 'BHA' },
       { name: { ar: 'منطقة نجران', en: 'Najran Region' }, code: 'NJN' },
-      { name: { ar: 'المنطقة المحايدة', en: 'Neutral Zone' }, code: 'NZ' },
+      { name: { ar: 'الجزيرة المحايدة', en: 'Neutral Zone' }, code: 'NZ' },
     ])
   })
 

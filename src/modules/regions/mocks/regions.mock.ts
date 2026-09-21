@@ -19,7 +19,7 @@ const REGION_NAMES = [
   ['منطقة حائل', "Ha'il Region", 'HAL'],
   ['منطقة الباحة', 'Al-Baha Region', 'BHA'],
   ['منطقة نجران', 'Najran Region', 'NJN'],
-  ['المنطقة المحايدة', 'Neutral Zone', 'NZ'],
+  ['الجزيرة المحايدة', 'Neutral Zone', 'NZ'],
 ] as const
 
 const INITIAL_REGIONS: Region[] = REGION_NAMES.map(([ar, en, code], index) => ({

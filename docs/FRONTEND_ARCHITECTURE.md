@@ -23,6 +23,8 @@ Required data must come from route parameters and canonical queries. Do not requ
 
 Services are the only feature layer that calls project HTTP clients. `createHttpClient` supports typed GET/POST/PUT/PATCH/DELETE requests, cleaned query parameters, upload progress, multipart bodies, and `AbortSignal` cancellation.
 
+Frontend/domain boolean state remains `boolean`. Laravel/API boolean writes use the shared serializer and the wire representation `0 | 1`; feature components do not repeat this conversion.
+
 Service functions should:
 
 - Model the approved endpoint contract explicitly.
@@ -38,7 +40,13 @@ Components should render query data directly. Do not mirror server lists in loca
 
 Mutations own cache cancellation, snapshots, optimistic changes, reconciliation, rollback, and targeted stale marking. Use TanStack Query v5 invalidation with `refetchType: 'none'` when the requirement is to mark data stale without an immediate GET.
 
+When an endpoint explicitly guarantees partial updates, React Hook Form dirty state determines the changed domain fields and the feature service owns their wire-field conversion. Aggregate values such as a center coordinate or polygon boundary serialize atomically. Omission means unchanged only when the backend contract explicitly guarantees that semantic.
+
 Feature-level TanStack Query hooks SHOULD be separated by independent use case and lifecycle, for example `useProducts`, `useProduct`, `useCreateProduct`, `useUpdateProduct`, and `useDeleteProduct`. Keep query-key factories separate and avoid a single query file that accumulates every query and mutation for a feature. This convention does not require splitting trivial utilities that do not have independent responsibilities.
+
+Singleton resources such as Settings use focused detail-query and update hooks. They do not use generic CRUD, list, pagination, search, or filter abstractions.
+
+Cross-domain invalidation is allowed only when a mutation changes a documented aggregate in another entity. For example, Create City invalidates City lists and Region lists because Region records expose `cities_count`.
 
 ## Forms
 
@@ -49,6 +57,14 @@ Feature modules SHOULD compose React Hook Form-aware controls from `src/componen
 Shared form controls MUST use Rafal semantic design tokens and preserve light/dark themes, RTL/LTR direction, visible focus, hover, disabled, and error states. Form labels and required/error indicators use semantic foreground/destructive tokens; hardcoded colors and legacy product branding do not belong in shared form components.
 
 Large or dynamic option sets backed by paginated endpoints SHOULD use an async/infinite select or multiselect rather than permanently rendering every option. Data fetching stays in a feature hook/service composition and the generic control receives options and paging behavior through props. Search MUST be enabled only when the backend contract supports it; do not invent search parameters or imply complete client-side search over partially loaded data.
+
+### Geographic data
+
+Shared geographic types belong in the shared type layer, not UI components. Geographic form editors remain API-agnostic and expose structured controls rather than raw JSON. Nullable geometry remains nullable unless the backend contract says otherwise, and feature services own transport conversion.
+
+City geography uses a map-first editor: `CityForm` → `FormLocationMap` → `LocationMapEditor`. MapLibre GL JS renders the map, Terra Draw owns polygon drawing/editing, and OpenFreeMap currently supplies the Liberty style and tiles. The public style URL is configured through `VITE_MAP_STYLE_URL`; local development falls back centrally to the OpenFreeMap Liberty URL. City components do not contain provider-specific logic.
+
+The domain and React Hook Form state remain `Coordinate` / `Coordinate[]`. GeoJSON exists only inside the map adapter, where longitude/latitude order and polygon ring closure are converted explicitly. The Laravel City payload is unchanged. Exact coordinate inputs remain available as a collapsed, synchronized accessibility and power-user fallback.
 
 ### Multi-value string fields
 

@@ -10,6 +10,9 @@ type Messages = {
   coordinateNumber: string
   latitudeRange: string
   longitudeRange: string
+  centerRequired: string
+  boundaryRequired: string
+  boundaryMinimum: string
 }
 
 export function createCitySchema(messages: Messages) {
@@ -41,7 +44,13 @@ export function createCitySchema(messages: Messages) {
       .nullable()
       .defined()
       .integer(messages.sortInteger),
-    boundary: yup.array().of(coordinate).defined(),
-    center: coordinate.nullable().defined(),
+    boundary: yup
+      .array()
+      .of(coordinate)
+      .required(messages.boundaryRequired)
+      .test('boundary-required', messages.boundaryRequired, (value) => value.length > 0)
+      .min(3, messages.boundaryMinimum)
+      .defined(),
+    center: coordinate.nullable().required(messages.centerRequired).defined(),
   })
 }

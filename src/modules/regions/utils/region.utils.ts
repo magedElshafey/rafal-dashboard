@@ -1,4 +1,4 @@
-import type { LocalizedName } from '@/modules/regions/types/region.types'
+import type { LocalizedName } from '@/types/localized-name.types'
 
 export function getLocalizedRegionName(name: LocalizedName, language: string) {
   const preferred = language.startsWith('ar') ? name.ar : name.en

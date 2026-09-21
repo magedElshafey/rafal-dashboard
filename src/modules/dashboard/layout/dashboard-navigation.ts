@@ -1,4 +1,14 @@
-import { FolderTree, Images, LayoutDashboard, MapPinned, ShieldCheck, UsersRound, Warehouse } from 'lucide-react'
+import {
+  Building2,
+  FolderTree,
+  Images,
+  LayoutDashboard,
+  MapPinned,
+  Settings,
+  ShieldCheck,
+  UsersRound,
+  Warehouse,
+} from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
 
@@ -50,6 +60,18 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.regions,
     labelKey: 'dashboard.sidebar.regions',
     icon: MapPinned,
+    match: 'prefix',
+  },
+  {
+    to: Routes.cities,
+    labelKey: 'dashboard.sidebar.cities',
+    icon: Building2,
+    match: 'prefix',
+  },
+  {
+    to: Routes.settings,
+    labelKey: 'dashboard.sidebar.settings',
+    icon: Settings,
     match: 'prefix',
   },
 ]

@@ -5,6 +5,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+function resolveAlias<TValues extends FieldValues>(field: string, aliases: Readonly<Record<string, Path<TValues>>>) {
+  if (aliases[field]) return aliases[field]
+  const dottedField = field.replace(/\[([^\]]+)\]/g, '.$1')
+  const wildcardField = dottedField.replace(/\.\d+(?=\.|$)/g, '.*')
+  return aliases[dottedField] ?? aliases[wildcardField]
+}
+
 export function applyApiValidationErrors<TValues extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<TValues>,
@@ -18,7 +25,7 @@ export function applyApiValidationErrors<TValues extends FieldValues>(
   Object.entries(errors).forEach(([field, messages]) => {
     const message = Array.isArray(messages) ? messages.find((item) => typeof item === 'string') : undefined
     if (!message) return
-    setError(fieldAliases[field] ?? (field as Path<TValues>), { type: 'server', message })
+    setError(resolveAlias(field, fieldAliases) ?? (field as Path<TValues>), { type: 'server', message })
     applied = true
   })
   return applied

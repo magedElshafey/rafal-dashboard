@@ -2,8 +2,7 @@ import { ArrowDown, ArrowUp, MapPin, Plus, Trash2, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-export type Coordinate = { lat: number; lng: number }
+import type { Coordinate } from '@/types/geo.types'
 
 export type LocationBoundaryEditorLabels = {
   boundary: string
@@ -95,7 +94,7 @@ export function LocationBoundaryEditor({
               variant="outline"
               size="sm"
               disabled={disabled}
-              onClick={() => onBoundaryChange([...boundary, { lat: 0, lng: 0 }])}
+              onClick={() => onBoundaryChange([...boundary, { lat: Number.NaN, lng: Number.NaN }])}
             >
               <Plus aria-hidden="true" />
               {labels.addPoint}
@@ -199,13 +198,7 @@ export function LocationBoundaryEditor({
             <p className="text-sm text-muted-foreground">{labels.centerDescription}</p>
           </div>
           {center ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              onClick={() => onCenterChange(null)}
-            >
+            <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => onCenterChange(null)}>
               <X aria-hidden="true" />
               {labels.clearCenter}
             </Button>
@@ -215,7 +208,7 @@ export function LocationBoundaryEditor({
               variant="outline"
               size="sm"
               disabled={disabled}
-              onClick={() => onCenterChange({ lat: 0, lng: 0 })}
+              onClick={() => onCenterChange({ lat: Number.NaN, lng: Number.NaN })}
             >
               <MapPin aria-hidden="true" />
               {labels.setCenter}

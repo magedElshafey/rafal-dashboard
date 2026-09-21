@@ -9,6 +9,8 @@ export const Routes = {
   categories: '/dashboard/categories',
   warehouses: '/dashboard/warehouses',
   regions: '/dashboard/regions',
+  cities: '/dashboard/cities',
+  settings: '/dashboard/settings',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

@@ -1,4 +1,12 @@
-import type { City, CityPayload, CityResponse, CitiesIndexResponse, RegionSummary } from '@/modules/cities/types/city.types'
+import type {
+  City,
+  CityPayload,
+  CityResponse,
+  CityUpdatePayload,
+  CitiesIndexResponse,
+  DeleteCityResponse,
+  RegionSummary,
+} from '@/modules/cities/types/city.types'
 import { closeBoundaryRing } from '@/modules/cities/utils/city.utils'
 
 const REGIONS: RegionSummary[] = [
@@ -14,7 +22,7 @@ const REGIONS: RegionSummary[] = [
   { id: 10, name: { ar: 'منطقة حائل', en: "Ha'il Region" } },
   { id: 11, name: { ar: 'منطقة الباحة', en: 'Al-Baha Region' } },
   { id: 12, name: { ar: 'منطقة نجران', en: 'Najran Region' } },
-  { id: 13, name: { ar: 'المنطقة المحايدة', en: 'Neutral Zone' } },
+  { id: 13, name: { ar: 'الجزيرة المحايدة', en: 'Neutral Zone' } },
 ]
 
 const CITY_NAMES: ReadonlyArray<readonly [string, string, number]> = [
@@ -139,5 +147,40 @@ export const citiesMockTransport = {
     }
     cities.unshift(city)
     return { success: true, message: 'City created successfully', data: cloneCity(city) }
+  },
+  async update(id: number, payload: CityUpdatePayload): Promise<CityResponse> {
+    await wait()
+    const index = cities.findIndex((city) => city.id === id)
+    if (index < 0) throw new Error('City not found')
+    const current = cities[index]
+    const region =
+      payload.regionId === undefined ? current.region : REGIONS.find((item) => item.id === payload.regionId)
+    if (!region) throw new Error('Region not found')
+    const updated: City = {
+      ...current,
+      region_id: payload.regionId ?? current.region_id,
+      region: { id: region.id, name: { ...region.name } },
+      name: {
+        ar: payload.nameAr === undefined ? current.name.ar : payload.nameAr.trim(),
+        en: payload.nameEn === undefined ? current.name.en : payload.nameEn.trim(),
+      },
+      is_active: payload.isActive ?? current.is_active,
+      sort_order: payload.sortOrder ?? current.sort_order,
+      center: payload.center === undefined ? current.center : { ...payload.center },
+      boundary:
+        payload.boundary === undefined
+          ? current.boundary
+          : closeBoundaryRing(payload.boundary.map((point) => ({ ...point }))),
+      updated_at: new Date().toISOString(),
+    }
+    cities[index] = updated
+    return { success: true, message: 'City updated successfully', data: cloneCity(updated) }
+  },
+  async delete(id: number): Promise<DeleteCityResponse> {
+    await wait()
+    const index = cities.findIndex((city) => city.id === id)
+    if (index < 0) throw new Error('City not found')
+    cities.splice(index, 1)
+    return { success: true, message: 'City deleted successfully' }
   },
 }

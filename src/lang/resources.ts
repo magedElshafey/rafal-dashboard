@@ -20,6 +20,10 @@ import * as warehousesAr from '@/modules/warehouses/locale/ar.json'
 import * as warehousesEn from '@/modules/warehouses/locale/en.json'
 import * as regionsAr from '@/modules/regions/locale/ar.json'
 import * as regionsEn from '@/modules/regions/locale/en.json'
+import * as citiesAr from '@/modules/cities/locale/ar.json'
+import * as citiesEn from '@/modules/cities/locale/en.json'
+import * as settingsAr from '@/modules/settings/locale/ar.json'
+import * as settingsEn from '@/modules/settings/locale/en.json'
 
 export const resources = {
   en: {
@@ -35,6 +39,8 @@ export const resources = {
       ...categoriesEn,
       ...warehousesEn,
       ...regionsEn,
+      ...citiesEn,
+      ...settingsEn,
     },
   },
   ar: {
@@ -50,6 +56,8 @@ export const resources = {
       ...categoriesAr,
       ...warehousesAr,
       ...regionsAr,
+      ...citiesAr,
+      ...settingsAr,
     },
   },
 } as const

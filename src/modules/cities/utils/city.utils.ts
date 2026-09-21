@@ -1,5 +1,5 @@
-import type { Coordinate } from '@/components/form'
-import type { LocalizedName } from '@/modules/regions/types/region.types'
+import type { Coordinate } from '@/types/geo.types'
+import type { LocalizedName } from '@/types/localized-name.types'
 
 export function getLocalizedName(name: LocalizedName, language: string) {
   const primary = language.startsWith('ar') ? name.ar : name.en
@@ -19,5 +19,11 @@ export function getLogicalBoundaryPointCount(boundary: Coordinate[] | null) {
 export function closeBoundaryRing(boundary: Coordinate[]) {
   const cloned = boundary.map((point) => ({ ...point }))
   if (cloned.length > 0 && !sameCoordinate(cloned[0], cloned.at(-1)!)) cloned.push({ ...cloned[0] })
+  return cloned
+}
+
+export function openBoundaryRing(boundary: Coordinate[] | null) {
+  const cloned = boundary?.map((point) => ({ ...point })) ?? []
+  if (cloned.length > 1 && sameCoordinate(cloned[0], cloned.at(-1)!)) cloned.pop()
   return cloned
 }
