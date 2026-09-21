@@ -1,0 +1,81 @@
+{
+  "shippingMethods": {
+    "title": "طرق الشحن",
+    "shippingMethod": "طريقة الشحن",
+    "createShippingMethod": "إنشاء طريقة شحن",
+    "editShippingMethod": "تعديل طريقة الشحن",
+    "listTitle": "قائمة طرق الشحن",
+    "total_zero": "لا توجد طرق شحن",
+    "total_one": "طريقة شحن واحدة",
+    "total_two": "طريقتا شحن",
+    "total_few": "{{count}} طرق شحن",
+    "total_many": "{{count}} طريقة شحن",
+    "total_other": "{{count}} طريقة شحن",
+    "loadingMore": "جارٍ تحميل المزيد من طرق الشحن",
+    "sections": {
+      "basic": "المعلومات الأساسية",
+      "eta": "مدة التوصيل",
+      "pricing": "التسعير والنوع",
+      "status": "الحالة والترتيب"
+    },
+    "fields": {
+      "method": "طريقة الشحن",
+      "code": "الرمز",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "eta": "مدة التوصيل",
+      "etaAr": "مدة التوصيل بالعربية",
+      "etaEn": "مدة التوصيل بالإنجليزية",
+      "price": "السعر",
+      "isPickup": "استلام من الفرع",
+      "isActive": "نشط",
+      "sortOrder": "ترتيب العرض",
+      "type": "النوع",
+      "status": "الحالة"
+    },
+    "types": { "shipping": "شحن", "pickup": "استلام" },
+    "status": { "active": "نشط", "inactive": "غير نشط" },
+    "form": {
+      "createDescription": "إضافة خيار شحن أو استلام من الفرع باللغتين.",
+      "editDescription": "تحديث طريقة الشحن المحددة.",
+      "pickupHelper": "الاستلام من الفرع بدون رسوم شحن."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة أخرى",
+      "update": "تحديث",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "forMethod": "إجراءات {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}"
+    },
+    "empty": {
+      "title": "لا توجد طرق شحن بعد",
+      "description": "أنشئ أول طريقة شحن أو استلام."
+    },
+    "delete": {
+      "title": "حذف طريقة الشحن",
+      "description": "هل أنت متأكد من حذف «{{name}}»؟"
+    },
+    "feedback": {
+      "created": "تم إنشاء طريقة الشحن بنجاح.",
+      "updated": "تم تحديث طريقة الشحن بنجاح.",
+      "deleted": "تم حذف طريقة الشحن بنجاح.",
+      "createError": "تعذر إنشاء طريقة الشحن.",
+      "updateError": "تعذر تحديث طريقة الشحن.",
+      "deleteError": "تعذر حذف طريقة الشحن."
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "validNumber": "أدخل رقمًا صحيحًا.",
+      "nonNegative": "أدخل صفرًا أو رقمًا موجبًا.",
+      "integer": "أدخل عددًا صحيحًا.",
+      "pickupPriceZero": "يجب أن يكون سعر الاستلام صفرًا."
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "shippingMethods": {
+    "title": "Shipping Methods",
+    "shippingMethod": "Shipping Method",
+    "createShippingMethod": "Create Shipping Method",
+    "editShippingMethod": "Edit Shipping Method",
+    "listTitle": "Shipping method list",
+    "total_one": "{{count}} shipping method",
+    "total_other": "{{count}} shipping methods",
+    "loadingMore": "Loading more shipping methods",
+    "sections": {
+      "basic": "Basic Information",
+      "eta": "Delivery Estimate",
+      "pricing": "Pricing & Type",
+      "status": "Status & Ordering"
+    },
+    "fields": {
+      "method": "Shipping Method",
+      "code": "Code",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "eta": "Delivery Estimate",
+      "etaAr": "Arabic Delivery Estimate",
+      "etaEn": "English Delivery Estimate",
+      "price": "Price",
+      "isPickup": "Pickup from Branch",
+      "isActive": "Active",
+      "sortOrder": "Sort Order",
+      "type": "Type",
+      "status": "Status"
+    },
+    "types": { "shipping": "Shipping", "pickup": "Pickup" },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "form": {
+      "createDescription": "Add a localized shipping or branch-pickup option.",
+      "editDescription": "Update the selected shipping method.",
+      "pickupHelper": "Branch pickup has no shipping fee."
+    },
+    "actions": {
+      "label": "Actions",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "forMethod": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}"
+    },
+    "empty": {
+      "title": "No shipping methods yet",
+      "description": "Create the first shipping or pickup method."
+    },
+    "delete": {
+      "title": "Delete Shipping Method",
+      "description": "Are you sure you want to delete “{{name}}”?"
+    },
+    "feedback": {
+      "created": "Shipping method created successfully.",
+      "updated": "Shipping method updated successfully.",
+      "deleted": "Shipping method deleted successfully.",
+      "createError": "Shipping method could not be created.",
+      "updateError": "Shipping method could not be updated.",
+      "deleteError": "Shipping method could not be deleted."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "validNumber": "Enter a valid number.",
+      "nonNegative": "Enter zero or a positive number.",
+      "integer": "Enter a whole number.",
+      "pickupPriceZero": "Pickup price must be zero."
+    }
+  }
+}

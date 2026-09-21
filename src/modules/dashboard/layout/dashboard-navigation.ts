@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   UsersRound,
   Warehouse,
+  Truck,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -72,6 +73,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.settings,
     labelKey: 'dashboard.sidebar.settings',
     icon: Settings,
+    match: 'prefix',
+  },
+  {
+    to: Routes.shippingMethods,
+    labelKey: 'dashboard.sidebar.shippingMethods',
+    icon: Truck,
     match: 'prefix',
   },
 ]
