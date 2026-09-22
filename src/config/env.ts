@@ -34,6 +34,9 @@ const env = {
   // Temporary feature transport until the Laravel Shipping Methods API is available locally.
   SHIPPING_METHODS_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_SHIPPING_METHODS_USE_MOCK !== 'false',
 
+  // Temporary feature transport until the Laravel Products API is available locally.
+  PRODUCTS_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_PRODUCTS_USE_MOCK !== 'false',
+
   // Public, browser-safe MapLibre style JSON URL. Development defaults to OpenFreeMap Liberty.
   MAP_STYLE_URL: resolveMapStyleUrl(import.meta.env.VITE_MAP_STYLE_URL, import.meta.env.DEV),
 

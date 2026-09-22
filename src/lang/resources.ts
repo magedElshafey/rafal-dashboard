@@ -26,6 +26,8 @@ import * as settingsAr from '@/modules/settings/locale/ar.json'
 import * as settingsEn from '@/modules/settings/locale/en.json'
 import * as shippingMethodsAr from '@/modules/shipping-methods/locale/ar.json'
 import * as shippingMethodsEn from '@/modules/shipping-methods/locale/en.json'
+import * as productsAr from '@/modules/products/locale/ar.json'
+import * as productsEn from '@/modules/products/locale/en.json'
 
 export const resources = {
   en: {
@@ -44,6 +46,7 @@ export const resources = {
       ...citiesEn,
       ...settingsEn,
       ...shippingMethodsEn,
+      ...productsEn,
     },
   },
   ar: {
@@ -62,6 +65,7 @@ export const resources = {
       ...citiesAr,
       ...settingsAr,
       ...shippingMethodsAr,
+      ...productsAr,
     },
   },
 } as const

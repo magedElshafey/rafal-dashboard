@@ -12,6 +12,7 @@ export const Routes = {
   cities: '/dashboard/cities',
   settings: '/dashboard/settings',
   shippingMethods: '/dashboard/shipping-methods',
+  products: '/dashboard/products',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

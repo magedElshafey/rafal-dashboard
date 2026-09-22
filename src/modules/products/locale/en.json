@@ -1,0 +1,29 @@
+{
+  "products": {
+    "title": "Products",
+    "listTitle": "Product list",
+    "total_one": "{{count}} product",
+    "total_other": "{{count}} products",
+    "variantCount_one": "{{value}} variant",
+    "variantCount_other": "{{value}} variants",
+    "loadingMore": "Loading more products",
+    "noImage": "No product image",
+    "imageAlt": "Image of {{name}}",
+    "fields": {
+      "product": "Product",
+      "sku": "SKU",
+      "basePrice": "Base Price",
+      "discount": "Discount",
+      "variants": "Variants",
+      "newArrival": "New Arrival",
+      "status": "Status",
+      "sortOrder": "Sort Order"
+    },
+    "flags": { "newArrival": "New Arrival" },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "empty": {
+      "title": "No products yet",
+      "description": "Products will appear here after they are created."
+    }
+  }
+}

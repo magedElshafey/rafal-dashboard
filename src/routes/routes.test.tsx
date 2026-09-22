@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
+import { PrivateRoutes } from '@/routes/privateRoutes'
+import { Routes as AppRoutes } from '@/routes/routes'
 import { useAuth } from '@/store/auth'
 
 const environment = vi.hoisted(() => ({ authBypass: false }))
@@ -19,6 +21,15 @@ describe('core routes', () => {
   beforeEach(() => {
     environment.authBypass = false
     useAuth.setState({ token: null, role: null, user: null, isAuthenticated: false })
+  })
+
+  it('defines the Products Index route without future Product routes', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.products).toBe('/dashboard/products')
+    expect(privatePaths).toContain('/dashboard/products')
+    expect(privatePaths).not.toContain('/dashboard/products/new')
+    expect(privatePaths).not.toContain('/dashboard/products/:id/edit')
   })
 
   it('redirects unauthenticated dashboard access to /login', () => {

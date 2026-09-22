@@ -4,6 +4,7 @@ import {
   Images,
   LayoutDashboard,
   MapPinned,
+  Package,
   Settings,
   ShieldCheck,
   UsersRound,
@@ -49,6 +50,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.categories,
     labelKey: 'dashboard.sidebar.categories',
     icon: FolderTree,
+    match: 'prefix',
+  },
+  {
+    to: Routes.products,
+    labelKey: 'dashboard.sidebar.products',
+    icon: Package,
     match: 'prefix',
   },
   {

@@ -1,0 +1,37 @@
+{
+  "products": {
+    "title": "المنتجات",
+    "listTitle": "قائمة المنتجات",
+    "total_zero": "لا توجد منتجات",
+    "total_one": "منتج واحد",
+    "total_two": "منتجان",
+    "total_few": "{{count}} منتجات",
+    "total_many": "{{count}} منتجًا",
+    "total_other": "{{count}} منتج",
+    "variantCount_zero": "لا توجد خيارات",
+    "variantCount_one": "خيار واحد",
+    "variantCount_two": "خياران",
+    "variantCount_few": "{{value}} خيارات",
+    "variantCount_many": "{{value}} خيارًا",
+    "variantCount_other": "{{value}} خيار",
+    "loadingMore": "جارٍ تحميل المزيد من المنتجات",
+    "noImage": "لا توجد صورة للمنتج",
+    "imageAlt": "صورة {{name}}",
+    "fields": {
+      "product": "المنتج",
+      "sku": "رمز المنتج",
+      "basePrice": "السعر الأساسي",
+      "discount": "الخصم",
+      "variants": "الخيارات",
+      "newArrival": "وصل حديثًا",
+      "status": "الحالة",
+      "sortOrder": "ترتيب العرض"
+    },
+    "flags": { "newArrival": "وصل حديثًا" },
+    "status": { "active": "نشط", "inactive": "غير نشط" },
+    "empty": {
+      "title": "لا توجد منتجات بعد",
+      "description": "ستظهر المنتجات هنا بعد إنشائها."
+    }
+  }
+}
