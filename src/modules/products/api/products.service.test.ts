@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const httpMocks = vi.hoisted(() => ({ get: vi.fn() }))
+const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
 
 vi.mock('@/config/env', () => ({ default: { PRODUCTS_USE_MOCK: false } }))
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
-import { productsHttpTransport, productsService } from './products.service'
-import type { RawProductListItem } from '../types/product.types'
+import { productsHttpTransport, productsService, serializeProductCreate } from './products.service'
+import type { ProductCreatePayload, RawProductListItem } from '../types/product.types'
 
 const rawProduct = (overrides: Partial<RawProductListItem> = {}): RawProductListItem => ({
   id: 1,
@@ -35,6 +35,25 @@ function mockIndex(product: RawProductListItem, meta = { current_page: 2, last_p
     data: { success: true, message: 'ok', data: [product], meta },
   })
 }
+
+const createPayload = (overrides: Partial<ProductCreatePayload> = {}): ProductCreatePayload => ({
+  categoryId: 4,
+  sku: ' RFL-CREATE-001 ',
+  name: { ar: ' منتج جديد ', en: ' New Product ' },
+  description: { ar: ' وصف ', en: ' Description ' },
+  basePrice: 50.25,
+  discountPercentage: 10,
+  discountEndAt: '2026-10-03T14:05',
+  isPersonalizable: true,
+  personalizationMaxLength: 20,
+  personalizationFee: 5.5,
+  hidePriceOnPackaging: true,
+  isNewArrival: false,
+  isActive: true,
+  sortOrder: -2,
+  images: [],
+  ...overrides,
+})
 
 describe('products service', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -122,4 +141,83 @@ describe('products service', () => {
 
     await expect(productsService.list(1)).rejects.toThrow('Product discount percentage is unavailable')
   })
+
+  it('POSTs the exact multipart Product Create contract with trimmed values and repeated images', async () => {
+    const firstImage = new File(['first'], 'first.png', { type: 'image/png' })
+    const secondImage = new File(['second'], 'second.jpg', { type: 'image/jpeg' })
+    httpMocks.post.mockResolvedValue({ data: { success: true, message: 'created', data: { id: 81 } } })
+
+    await expect(productsService.create(createPayload({ images: [firstImage, secondImage] }))).resolves.toEqual({
+      id: 81,
+    })
+
+    expect(httpMocks.post).toHaveBeenCalledTimes(1)
+    const request = httpMocks.post.mock.calls[0][0]
+    expect(request).toMatchObject({
+      url: '/dashboard/products',
+      isFormData: true,
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+    expect([...request.data.entries()]).toEqual([
+      ['category_id', '4'],
+      ['sku', 'RFL-CREATE-001'],
+      ['name[ar]', 'منتج جديد'],
+      ['name[en]', 'New Product'],
+      ['description[ar]', 'وصف'],
+      ['description[en]', 'Description'],
+      ['base_price', '50.25'],
+      ['discount_percentage', '10'],
+      ['discount_end_at', '2026-10-03 14:05:00'],
+      ['is_personalizable', '1'],
+      ['personalization_max_length', '20'],
+      ['personalization_fee', '5.5'],
+      ['hide_price_on_packaging', '1'],
+      ['is_new_arrival', '0'],
+      ['is_active', '1'],
+      ['sort_order', '-2'],
+      ['images[]', firstImage],
+      ['images[]', secondImage],
+    ])
+    expect(request.data.has('slug')).toBe(false)
+    expect(request.data.has('variants')).toBe(false)
+    expect(request.data.has('stocks')).toBe(false)
+    expect(request.data.has('simulated_viewers_count')).toBe(false)
+    expect(request.data.has('simulated_orders_count')).toBe(false)
+  })
+
+  it('omits nullable Create fields and disabled personalization values', () => {
+    const body = serializeProductCreate(
+      createPayload({
+        name: { ar: 'منتج', en: '   ' },
+        description: { ar: '', en: ' ' },
+        discountPercentage: null,
+        discountEndAt: null,
+        isPersonalizable: false,
+        personalizationMaxLength: 20,
+        personalizationFee: 5,
+      })
+    )
+
+    expect([...body.keys()]).toEqual([
+      'category_id',
+      'sku',
+      'name[ar]',
+      'base_price',
+      'is_personalizable',
+      'hide_price_on_packaging',
+      'is_new_arrival',
+      'is_active',
+      'sort_order',
+    ])
+  })
+
+  it.each([{ basePrice: Number.NaN }, { discountPercentage: Number.POSITIVE_INFINITY }, { sortOrder: Number.NaN }])(
+    'never serializes invalid numeric Create values',
+    (override) => {
+      expect(() => serializeProductCreate(createPayload(override))).toThrow(
+        'Product Create contains an invalid numeric value'
+      )
+    }
+  )
 })

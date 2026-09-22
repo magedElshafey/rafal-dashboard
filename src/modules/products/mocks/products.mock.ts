@@ -1,4 +1,8 @@
-import type { ProductsIndexResponse, RawProductListItem } from '@/modules/products/types/product.types'
+import type {
+  ProductCreateResponse,
+  ProductsIndexResponse,
+  RawProductListItem,
+} from '@/modules/products/types/product.types'
 
 const INITIAL_PRODUCTS: RawProductListItem[] = [
   {
@@ -66,6 +70,7 @@ const INITIAL_PRODUCTS: RawProductListItem[] = [
 const PAGE_SIZE = 15
 const LATENCY = 180
 let products = INITIAL_PRODUCTS.map(cloneProduct)
+let nextId = Math.max(...INITIAL_PRODUCTS.map((product) => product.id)) + 1
 
 function cloneProduct(product: RawProductListItem): RawProductListItem {
   return {
@@ -98,10 +103,35 @@ function wait(signal?: AbortSignal) {
 
 export function resetProductsMock() {
   products = INITIAL_PRODUCTS.map(cloneProduct)
+  nextId = Math.max(...INITIAL_PRODUCTS.map((product) => product.id)) + 1
 }
 
 export function seedProductsMock(nextProducts: RawProductListItem[]) {
   products = nextProducts.map(cloneProduct)
+  nextId = Math.max(0, ...products.map((product) => product.id)) + 1
+}
+
+function requiredText(body: FormData, key: string) {
+  const value = body.get(key)
+  if (typeof value !== 'string' || value.trim() === '') throw new Error(`Missing Product Create field: ${key}`)
+  return value.trim()
+}
+
+function optionalText(body: FormData, key: string) {
+  const value = body.get(key)
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function booleanValue(body: FormData, key: string) {
+  return requiredText(body, key) === '1'
+}
+
+function mockSlug(sku: string, id: number) {
+  const normalized = sku
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+  return normalized || `product-${id}`
 }
 
 export const productsMockTransport = {
@@ -119,5 +149,47 @@ export const productsMockTransport = {
         total: products.length,
       },
     }
+  },
+  async create(body: FormData): Promise<ProductCreateResponse> {
+    await wait()
+    const id = nextId++
+    const timestamp = new Date().toISOString()
+    const sku = requiredText(body, 'sku')
+    const images = body
+      .getAll('images[]')
+      .filter((value): value is File => value instanceof File)
+      .map((_, index) => `mock://products/${id}/images/${index + 1}`)
+    const product: RawProductListItem = {
+      id,
+      category_id: Number(requiredText(body, 'category_id')),
+      sku,
+      name: { ar: requiredText(body, 'name[ar]'), en: optionalText(body, 'name[en]') ?? '' },
+      slug: mockSlug(sku, id),
+      base_price: requiredText(body, 'base_price'),
+      discount_percentage: optionalText(body, 'discount_percentage'),
+      discount_end_at: optionalText(body, 'discount_end_at'),
+      is_personalizable: booleanValue(body, 'is_personalizable'),
+      is_new_arrival: booleanValue(body, 'is_new_arrival'),
+      is_active: booleanValue(body, 'is_active'),
+      sort_order: Number(requiredText(body, 'sort_order')),
+      simulated_viewers_count: 0,
+      simulated_orders_count: 0,
+      variants: [],
+      images,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }
+    const createdProduct = {
+      ...product,
+      description: {
+        ar: optionalText(body, 'description[ar]') ?? '',
+        en: optionalText(body, 'description[en]') ?? '',
+      },
+      personalization_max_length: optionalText(body, 'personalization_max_length'),
+      personalization_fee: optionalText(body, 'personalization_fee'),
+      hide_price_on_packaging: booleanValue(body, 'hide_price_on_packaging'),
+    }
+    products.unshift(product)
+    return { success: true, message: 'Product created successfully', data: createdProduct }
   },
 }

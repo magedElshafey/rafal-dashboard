@@ -23,12 +23,13 @@ describe('core routes', () => {
     useAuth.setState({ token: null, role: null, user: null, isAuthenticated: false })
   })
 
-  it('defines the Products Index route without future Product routes', () => {
+  it('defines Product Index and Create routes without the future Edit route', () => {
     const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
 
     expect(AppRoutes.products).toBe('/dashboard/products')
+    expect(AppRoutes.productNew).toBe('/dashboard/products/new')
     expect(privatePaths).toContain('/dashboard/products')
-    expect(privatePaths).not.toContain('/dashboard/products/new')
+    expect(privatePaths).toContain('/dashboard/products/new')
     expect(privatePaths).not.toContain('/dashboard/products/:id/edit')
   })
 

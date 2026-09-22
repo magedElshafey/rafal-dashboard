@@ -1,7 +1,61 @@
 import env from '@/config/env'
 import { productsMockTransport } from '@/modules/products/mocks/products.mock'
-import type { ProductListItem, ProductsIndexResponse, RawProductListItem } from '@/modules/products/types/product.types'
+import type {
+  ProductCreatePayload,
+  ProductCreateResponse,
+  ProductListItem,
+  ProductsIndexResponse,
+  RawProductListItem,
+} from '@/modules/products/types/product.types'
+import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
+
+function appendOptional(body: FormData, key: string, value: string | number | null) {
+  if (value !== null && value !== '') body.append(key, String(value))
+}
+
+export function serializeProductCreate(payload: ProductCreatePayload) {
+  const numericValues = [
+    payload.categoryId,
+    payload.basePrice,
+    payload.sortOrder,
+    payload.discountPercentage,
+    payload.isPersonalizable ? payload.personalizationMaxLength : null,
+    payload.isPersonalizable ? payload.personalizationFee : null,
+  ].filter((value): value is number => value !== null)
+  if (numericValues.some((value) => !Number.isFinite(value))) {
+    throw new Error('Product Create contains an invalid numeric value')
+  }
+
+  const body = new FormData()
+  body.set('category_id', String(payload.categoryId))
+  body.set('sku', payload.sku.trim())
+  body.set('name[ar]', payload.name.ar.trim())
+  appendOptional(body, 'name[en]', payload.name.en.trim())
+  appendOptional(body, 'description[ar]', payload.description.ar.trim())
+  appendOptional(body, 'description[en]', payload.description.en.trim())
+  body.set('base_price', String(payload.basePrice))
+  appendOptional(body, 'discount_percentage', payload.discountPercentage)
+  appendOptional(body, 'discount_end_at', formatProductDateTime(payload.discountEndAt))
+  body.set('is_personalizable', String(toApiBoolean(payload.isPersonalizable)))
+  if (payload.isPersonalizable) {
+    appendOptional(body, 'personalization_max_length', payload.personalizationMaxLength)
+    appendOptional(body, 'personalization_fee', payload.personalizationFee)
+  }
+  body.set('hide_price_on_packaging', String(toApiBoolean(payload.hidePriceOnPackaging)))
+  body.set('is_new_arrival', String(toApiBoolean(payload.isNewArrival)))
+  body.set('is_active', String(toApiBoolean(payload.isActive)))
+  body.set('sort_order', String(payload.sortOrder))
+  payload.images.forEach((image) => body.append('images[]', image))
+  return body
+}
+
+export function formatProductDateTime(value: string | null) {
+  const trimmed = value?.trim() ?? ''
+  if (!trimmed) return null
+  const [date, time = ''] = trimmed.split('T')
+  return `${date} ${time.length === 5 ? `${time}:00` : time}`
+}
 
 export function normalizeProductListItem(raw: RawProductListItem): ProductListItem {
   const basePrice = raw.base_price.trim() === '' ? Number.NaN : Number(raw.base_price)
@@ -52,6 +106,17 @@ export const productsHttpTransport = {
       })
     ).data
   },
+  async create(body: FormData) {
+    return (
+      await $http.post<ProductCreateResponse>({
+        url: '/dashboard/products',
+        data: body,
+        isFormData: true,
+        suppressSuccessNotification: true,
+        suppressErrorNotification: true,
+      })
+    ).data
+  },
 }
 
 const transport = env.PRODUCTS_USE_MOCK ? productsMockTransport : productsHttpTransport
@@ -75,5 +140,9 @@ export const productsService = {
       },
       extra: null,
     }
+  },
+  async create(payload: ProductCreatePayload) {
+    const response = await transport.create(serializeProductCreate(payload))
+    return response.data
   },
 }

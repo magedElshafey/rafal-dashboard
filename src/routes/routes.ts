@@ -13,6 +13,7 @@ export const Routes = {
   settings: '/dashboard/settings',
   shippingMethods: '/dashboard/shipping-methods',
   products: '/dashboard/products',
+  productNew: '/dashboard/products/new',
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

@@ -9,6 +9,84 @@
     "loadingMore": "Loading more products",
     "noImage": "No product image",
     "imageAlt": "Image of {{name}}",
+    "actions": {
+      "create": "Create Product",
+      "creating": "Creating Product",
+      "cancel": "Cancel"
+    },
+    "feedback": {
+      "created": "Product created successfully.",
+      "createError": "Product could not be created. Your changes have been preserved."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "validNumber": "Enter a valid number.",
+      "nonNegative": "Enter zero or a positive number.",
+      "integer": "Enter a whole number.",
+      "minimumOne": "Enter a whole number of at least 1.",
+      "discountRange": "Discount percentage must be between 0 and 100.",
+      "maxLength": "Enter no more than 255 characters.",
+      "dateInvalid": "Enter a valid date and time.",
+      "imageType": "Upload image files only.",
+      "imageSize": "Each image must be 5 MB or smaller."
+    },
+    "create": {
+      "title": "Create Product",
+      "description": "Add the core product information. Variants and stock will be managed after creation.",
+      "fields": {
+        "category": "Category",
+        "sku": "SKU",
+        "nameAr": "Arabic Name",
+        "nameEn": "English Name",
+        "descriptionAr": "Arabic Description",
+        "descriptionEn": "English Description",
+        "basePrice": "Base Price",
+        "discountPercentage": "Discount Percentage",
+        "discountEndAt": "Discount End Date",
+        "isPersonalizable": "Personalizable",
+        "personalizationMaxLength": "Maximum Personalization Length",
+        "personalizationFee": "Personalization Fee",
+        "images": "Product Images",
+        "hidePriceOnPackaging": "Hide Price on Packaging",
+        "isNewArrival": "New Arrival",
+        "isActive": "Active",
+        "sortOrder": "Sort Order"
+      },
+      "category": {
+        "placeholder": "Select a category",
+        "empty": "No categories available",
+        "loading": "Loading categories",
+        "loadMore": "Scroll to load more categories",
+        "error": "Categories could not be loaded.",
+        "retry": "Try again"
+      },
+      "sections": {
+        "basic": {
+          "title": "Basic Information",
+          "description": "Choose the category and enter the product identity."
+        },
+        "description": {
+          "title": "Description",
+          "description": "Add optional Arabic and English product descriptions."
+        },
+        "pricing": {
+          "title": "Pricing & Discount",
+          "description": "Set the base price and optional discount details."
+        },
+        "personalization": {
+          "title": "Personalization",
+          "description": "Enable and configure customer personalization when available."
+        },
+        "images": {
+          "title": "Product Images",
+          "description": "Upload optional product images up to 5 MB each."
+        },
+        "settings": {
+          "title": "Product Settings",
+          "description": "Control storefront presentation and display order."
+        }
+      }
+    },
     "fields": {
       "product": "Product",
       "sku": "SKU",

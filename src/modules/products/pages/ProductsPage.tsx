@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { Package } from 'lucide-react'
+import { Package, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -8,11 +9,13 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { QueryStateBoundary } from '@/components/shared/query-state'
 import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { ProductsList } from '@/modules/products/components/ProductsList'
 import { ProductsListSkeleton } from '@/modules/products/components/ProductsListSkeleton'
 import { useProducts } from '@/modules/products/hooks/useProducts'
+import { Routes } from '@/routes/routes'
 
 function ProductsPage() {
   const { t } = useTranslation()
@@ -30,6 +33,14 @@ function ProductsPage() {
       <p className="text-sm text-muted-foreground">{t('products.total', { count: total })}</p>
     </div>
   )
+  const createAction = (
+    <Button asChild>
+      <Link to={Routes.productNew}>
+        <Plus aria-hidden="true" />
+        {t('products.actions.create')}
+      </Link>
+    </Button>
+  )
   const loading = (
     <ResponsiveDataLayout header={listHeader} isEmpty={false} empty={null} isLoading loading={<ProductsListSkeleton />}>
       {null}
@@ -38,7 +49,7 @@ function ProductsPage() {
 
   return (
     <main className="min-w-0">
-      <DashboardPageHeader title={t('products.title')} />
+      <DashboardPageHeader title={t('products.title')} actions={createAction} />
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -58,6 +69,7 @@ function ProductsPage() {
                 icon={<Package />}
                 title={t('products.empty.title')}
                 description={t('products.empty.description')}
+                primaryAction={createAction}
               />
             }
           >

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -37,7 +38,12 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <ProductsPage />
+      <MemoryRouter initialEntries={['/dashboard/products']}>
+        <Routes>
+          <Route path="/dashboard/products" element={<ProductsPage />} />
+          <Route path="/dashboard/products/new" element={<p>Product Create destination</p>} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -97,8 +103,9 @@ describe('ProductsPage', () => {
 
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /create|edit|delete/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /create|edit|delete/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Create Product' })).toHaveAttribute('href', '/dashboard/products/new')
+    expect(screen.queryByRole('button', { name: /edit|delete/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /edit|delete/i })).not.toBeInTheDocument()
   })
 
   it('shows a safe initial error and retries into the empty state', async () => {
@@ -115,7 +122,7 @@ describe('ProductsPage', () => {
     expect(screen.queryByText('unsafe backend stack detail')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /try again/i }))
     expect(await screen.findByText('No products yet')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /create product/i })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Create Product' })).toHaveLength(2)
   })
 
   it('renders the localized empty state in Arabic', async () => {
@@ -150,5 +157,17 @@ describe('ProductsPage', () => {
     expect(await screen.findAllByText('Product 16')).toHaveLength(2)
     await waitFor(() => expect(list).toHaveBeenCalledTimes(3))
     expect(list.mock.calls.map(([page]) => page)).toEqual([1, 2, 2])
+  })
+
+  it('navigates from the Index Create action without adding Edit or Delete actions', async () => {
+    seedProductsMock([rawProduct(1)])
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findAllByText('Product 1')
+
+    await user.click(screen.getByRole('link', { name: 'Create Product' }))
+
+    expect(await screen.findByText('Product Create destination')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /edit|delete/i })).not.toBeInTheDocument()
   })
 })

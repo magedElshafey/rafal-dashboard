@@ -76,4 +76,45 @@ describe('products mock transport', () => {
 
     await expect(productsMockTransport.list(1, controller.signal)).rejects.toBe(controller.signal.reason)
   })
+
+  it('consumes Create FormData and persists a backend-shaped Product into Index', async () => {
+    seedProductsMock([])
+    const body = new FormData()
+    body.set('category_id', '7')
+    body.set('sku', 'RFL-MOCK-1')
+    body.set('name[ar]', 'منتج تجريبي')
+    body.set('name[en]', 'Mock Product')
+    body.set('base_price', '99.50')
+    body.set('discount_percentage', '12')
+    body.set('is_personalizable', '0')
+    body.set('hide_price_on_packaging', '1')
+    body.set('is_new_arrival', '1')
+    body.set('is_active', '1')
+    body.set('sort_order', '-3')
+    body.append('images[]', new File(['image'], 'product.png', { type: 'image/png' }))
+
+    const created = await productsMockTransport.create(body)
+    const index = await productsMockTransport.list(1)
+
+    expect(created).toMatchObject({ success: true, message: 'Product created successfully', data: { id: 1 } })
+    expect(index.meta.total).toBe(1)
+    expect(index.data[0]).toMatchObject({
+      id: 1,
+      category_id: 7,
+      sku: 'RFL-MOCK-1',
+      name: { ar: 'منتج تجريبي', en: 'Mock Product' },
+      slug: 'rfl-mock-1',
+      base_price: '99.50',
+      discount_percentage: '12',
+      is_personalizable: false,
+      is_new_arrival: true,
+      is_active: true,
+      sort_order: -3,
+      simulated_viewers_count: 0,
+      simulated_orders_count: 0,
+      variants: [],
+      images: ['mock://products/1/images/1'],
+    })
+    expect(typeof index.data[0].base_price).toBe('string')
+  })
 })

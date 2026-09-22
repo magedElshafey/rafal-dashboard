@@ -1,5 +1,6 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 import type { LocalizedName } from '@/types/localized-name.types'
+import type { ImageUploadValue } from '@/components/form/image-upload'
 
 export type ProductListItem = {
   id: number
@@ -44,3 +45,47 @@ export type RawProductListItem = {
 }
 
 export type ProductsIndexResponse = PaginatedDashboardResponse<RawProductListItem>
+
+export type ProductCreateFormValues = {
+  categoryId: number | null
+  sku: string
+  name: LocalizedName
+  description: LocalizedName
+  basePrice: number | null
+  discountPercentage: number | null
+  discountEndAt: string
+  isPersonalizable: boolean
+  personalizationMaxLength: number | null
+  personalizationFee: number | null
+  hidePriceOnPackaging: boolean
+  isNewArrival: boolean
+  isActive: boolean
+  sortOrder: number | null
+  images: ImageUploadValue
+}
+
+export type ProductCreatePayload = {
+  categoryId: number
+  sku: string
+  name: LocalizedName
+  description: LocalizedName
+  basePrice: number
+  discountPercentage: number | null
+  discountEndAt: string | null
+  isPersonalizable: boolean
+  personalizationMaxLength: number | null
+  personalizationFee: number | null
+  hidePriceOnPackaging: boolean
+  isNewArrival: boolean
+  isActive: boolean
+  sortOrder: number
+  images: File[]
+}
+
+export type ProductCreateResult = { id: number }
+
+export type ProductCreateResponse = {
+  success: boolean
+  message: string
+  data: ProductCreateResult
+}
