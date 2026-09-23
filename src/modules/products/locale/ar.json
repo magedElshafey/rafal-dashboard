@@ -20,11 +20,29 @@
     "actions": {
       "create": "إنشاء منتج",
       "creating": "جارٍ إنشاء المنتج",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ حفظ التغييرات",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف",
+      "label": "الإجراءات",
+      "forProduct": "إجراءات {{name}}",
+      "editNamed": "تعديل {{name}}",
+      "deleteNamed": "حذف {{name}}",
+      "deleteImage": "حذف الصورة",
+      "deletingImage": "جارٍ حذف الصورة",
+      "deleteImageNamed": "حذف صورة المنتج الحالية {{id}}",
       "cancel": "إلغاء"
     },
     "feedback": {
       "created": "تم إنشاء المنتج بنجاح.",
-      "createError": "تعذر إنشاء المنتج. تم الاحتفاظ بالتغييرات المدخلة."
+      "createError": "تعذر إنشاء المنتج. تم الاحتفاظ بالتغييرات المدخلة.",
+      "updated": "تم تحديث المنتج بنجاح.",
+      "updateError": "تعذر تحديث المنتج. تم الاحتفاظ بالتغييرات المدخلة.",
+      "deleted": "تم حذف المنتج بنجاح.",
+      "deleteError": "تعذر حذف المنتج.",
+      "imageDeleted": "تم حذف صورة المنتج بنجاح.",
+      "imageDeleteError": "تعذر حذف صورة المنتج."
     },
     "validation": {
       "required": "هذا الحقل مطلوب.",
@@ -94,6 +112,111 @@
           "description": "تحكم في عرض المنتج وترتيبه في المتجر."
         }
       }
+    },
+    "edit": {
+      "title": "تعديل المنتج",
+      "description": "حدّث بيانات المنتج وأضف صورًا جديدة.",
+      "existingImages": "صور المنتج الحالية",
+      "existingImageAlt": "صورة المنتج الحالية {{id}}"
+    },
+    "variants": {
+      "title": "خيارات المنتج",
+      "description": "أدر الخيارات المتاحة للشراء لهذا المنتج.",
+      "empty": "لم تتم إضافة خيارات بعد.",
+      "createTitle": "إضافة خيار",
+      "createDescription": "أنشئ خيارًا للمنتج مع سمات وسعر مخصص وصور اختيارية.",
+      "usesBasePrice": "يستخدم السعر الأساسي للمنتج",
+      "priceHelp": "اترك السعر المخصص فارغًا لاستخدام السعر الأساسي للمنتج.",
+      "noAttributes": "لا توجد سمات",
+      "complexAttributes": "سمات مركبة",
+      "existingImages": "صور الخيار الحالية",
+      "imageAlt": "الصورة {{id}} للخيار {{sku}}",
+      "fields": {
+        "sku": "رمز الخيار",
+        "attributes": "السمات",
+        "attributeKey": "مفتاح السمة",
+        "attributeValue": "قيمة السمة",
+        "priceOverride": "السعر المخصص",
+        "active": "نشط",
+        "images": "صور الخيار"
+      },
+      "actions": {
+        "add": "إضافة خيار",
+        "create": "إنشاء الخيار",
+        "delete": "حذف الخيار",
+        "deleting": "جارٍ حذف الخيار",
+        "close": "إغلاق نموذج الخيار",
+        "forVariant": "إجراءات الخيار {{sku}}",
+        "deleteNamed": "حذف الخيار {{sku}}",
+        "addAttribute": "إضافة سمة",
+        "removeAttribute": "إزالة صف السمة {{index}}",
+        "deleteImageNamed": "حذف الصورة {{id}} من الخيار {{sku}}"
+      },
+      "validation": {
+        "attributeIncomplete": "أدخل مفتاح السمة وقيمتها معًا.",
+        "attributeDuplicate": "يجب أن تكون مفاتيح السمات فريدة."
+      },
+      "feedback": {
+        "created": "تم إنشاء الخيار بنجاح.",
+        "createError": "تعذر إنشاء الخيار. تم الاحتفاظ بالتغييرات المدخلة.",
+        "deleted": "تم حذف الخيار بنجاح.",
+        "deleteError": "تعذر حذف الخيار.",
+        "imageDeleted": "تم حذف صورة الخيار بنجاح.",
+        "imageDeleteError": "تعذر حذف صورة الخيار."
+      },
+      "delete": {
+        "title": "حذف الخيار؟",
+        "description": "سيتم حذف هذا الخيار نهائيًا. لا يمكن التراجع عن هذا الإجراء."
+      },
+      "imageDelete": {
+        "title": "حذف صورة الخيار؟",
+        "description": "سيتم حذف صورة الخيار الحالية نهائيًا."
+      },
+      "stock": {
+        "title": "المخزون",
+        "empty": "لا يوجد مخزون مخصص.",
+        "addTitle": "إضافة مخزون",
+        "editTitle": "تعديل الكمية",
+        "addDescription": "اربط هذا الخيار بمستودع وحدد كميته.",
+        "editDescription": "حدّث كمية هذا المستودع.",
+        "selectWarehouse": "اختر مستودعًا",
+        "noWarehouses": "لا توجد مستودعات غير مخصصة",
+        "loadingWarehouses": "جارٍ تحميل المستودعات",
+        "loadMoreWarehouses": "مرر لتحميل المزيد من المستودعات",
+        "warehouseError": "تعذر تحميل المستودعات.",
+        "warehouseFallback": "المستودع رقم {{id}}",
+        "fields": {
+          "warehouse": "المستودع",
+          "quantity": "الكمية"
+        },
+        "actions": {
+          "add": "إضافة مخزون",
+          "save": "حفظ المخزون",
+          "close": "إغلاق نموذج المخزون",
+          "editNamed": "تعديل كمية {{warehouse}}",
+          "remove": "إزالة المخزون",
+          "removing": "جارٍ إزالة المخزون",
+          "removeNamed": "إزالة المخزون من {{warehouse}}"
+        },
+        "delete": {
+          "title": "إزالة المخزون؟",
+          "description": "هل تريد إزالة مخزون هذا الخيار من {{warehouse}}؟"
+        },
+        "feedback": {
+          "saved": "تم حفظ مخزون الخيار بنجاح.",
+          "saveError": "تعذر حفظ مخزون الخيار. تم الاحتفاظ بالتغييرات المدخلة.",
+          "deleted": "تمت إزالة مخزون الخيار بنجاح.",
+          "deleteError": "تعذر إزالة مخزون الخيار."
+        }
+      }
+    },
+    "delete": {
+      "title": "حذف المنتج؟",
+      "description": "هل تريد حذف {{name}} نهائيًا؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "imageDelete": {
+      "title": "حذف صورة المنتج؟",
+      "description": "سيتم حذف هذه الصورة الحالية نهائيًا. لا يمكن التراجع عن هذا الإجراء."
     },
     "fields": {
       "product": "المنتج",

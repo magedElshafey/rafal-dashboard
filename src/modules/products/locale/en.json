@@ -12,11 +12,29 @@
     "actions": {
       "create": "Create Product",
       "creating": "Creating Product",
+      "save": "Save Changes",
+      "saving": "Saving Changes",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleting": "Deleting",
+      "label": "Actions",
+      "forProduct": "Actions for {{name}}",
+      "editNamed": "Edit {{name}}",
+      "deleteNamed": "Delete {{name}}",
+      "deleteImage": "Delete image",
+      "deletingImage": "Deleting image",
+      "deleteImageNamed": "Delete existing product image {{id}}",
       "cancel": "Cancel"
     },
     "feedback": {
       "created": "Product created successfully.",
-      "createError": "Product could not be created. Your changes have been preserved."
+      "createError": "Product could not be created. Your changes have been preserved.",
+      "updated": "Product updated successfully.",
+      "updateError": "Product could not be updated. Your changes have been preserved.",
+      "deleted": "Product deleted successfully.",
+      "deleteError": "Product could not be deleted.",
+      "imageDeleted": "Product image deleted successfully.",
+      "imageDeleteError": "Product image could not be deleted."
     },
     "validation": {
       "required": "This field is required.",
@@ -86,6 +104,111 @@
           "description": "Control storefront presentation and display order."
         }
       }
+    },
+    "edit": {
+      "title": "Edit Product",
+      "description": "Update the product information and append new images.",
+      "existingImages": "Existing product images",
+      "existingImageAlt": "Existing product image {{id}}"
+    },
+    "variants": {
+      "title": "Variants",
+      "description": "Manage the purchasable options for this product.",
+      "empty": "No variants have been added.",
+      "createTitle": "Add Variant",
+      "createDescription": "Create a product variant with optional attributes, price override, and images.",
+      "usesBasePrice": "Uses Product Base Price",
+      "priceHelp": "Leave the override empty to use the Product Base Price.",
+      "noAttributes": "No attributes",
+      "complexAttributes": "Complex attributes",
+      "existingImages": "Existing variant images",
+      "imageAlt": "Image {{id}} for variant {{sku}}",
+      "fields": {
+        "sku": "SKU",
+        "attributes": "Attributes",
+        "attributeKey": "Attribute Key",
+        "attributeValue": "Attribute Value",
+        "priceOverride": "Price Override",
+        "active": "Active",
+        "images": "Variant Images"
+      },
+      "actions": {
+        "add": "Add Variant",
+        "create": "Create Variant",
+        "delete": "Delete Variant",
+        "deleting": "Deleting Variant",
+        "close": "Close Variant form",
+        "forVariant": "Actions for variant {{sku}}",
+        "deleteNamed": "Delete variant {{sku}}",
+        "addAttribute": "Add Attribute",
+        "removeAttribute": "Remove attribute row {{index}}",
+        "deleteImageNamed": "Delete image {{id}} from variant {{sku}}"
+      },
+      "validation": {
+        "attributeIncomplete": "Enter both an attribute key and value.",
+        "attributeDuplicate": "Attribute keys must be unique."
+      },
+      "feedback": {
+        "created": "Variant created successfully.",
+        "createError": "Variant could not be created. Your changes have been preserved.",
+        "deleted": "Variant deleted successfully.",
+        "deleteError": "Variant could not be deleted.",
+        "imageDeleted": "Variant image deleted successfully.",
+        "imageDeleteError": "Variant image could not be deleted."
+      },
+      "delete": {
+        "title": "Delete Variant?",
+        "description": "This variant will be permanently deleted. This action cannot be undone."
+      },
+      "imageDelete": {
+        "title": "Delete Variant Image?",
+        "description": "This existing variant image will be permanently deleted."
+      },
+      "stock": {
+        "title": "Stock",
+        "empty": "No stock assigned.",
+        "addTitle": "Add Stock",
+        "editTitle": "Edit Quantity",
+        "addDescription": "Assign this variant to a warehouse and set its quantity.",
+        "editDescription": "Update the quantity for this warehouse.",
+        "selectWarehouse": "Select a warehouse",
+        "noWarehouses": "No unassigned warehouses available",
+        "loadingWarehouses": "Loading warehouses",
+        "loadMoreWarehouses": "Scroll to load more warehouses",
+        "warehouseError": "Warehouses could not be loaded.",
+        "warehouseFallback": "Warehouse #{{id}}",
+        "fields": {
+          "warehouse": "Warehouse",
+          "quantity": "Quantity"
+        },
+        "actions": {
+          "add": "Add Stock",
+          "save": "Save Stock",
+          "close": "Close Stock form",
+          "editNamed": "Edit quantity for {{warehouse}}",
+          "remove": "Remove Stock",
+          "removing": "Removing Stock",
+          "removeNamed": "Remove stock from {{warehouse}}"
+        },
+        "delete": {
+          "title": "Remove Stock?",
+          "description": "Remove this variant's stock assignment from {{warehouse}}?"
+        },
+        "feedback": {
+          "saved": "Variant stock saved successfully.",
+          "saveError": "Variant stock could not be saved. Your changes have been preserved.",
+          "deleted": "Variant stock removed successfully.",
+          "deleteError": "Variant stock could not be removed."
+        }
+      }
+    },
+    "delete": {
+      "title": "Delete Product?",
+      "description": "Delete {{name}} permanently? This action cannot be undone."
+    },
+    "imageDelete": {
+      "title": "Delete Product Image?",
+      "description": "This existing image will be permanently deleted. This action cannot be undone."
     },
     "fields": {
       "product": "Product",

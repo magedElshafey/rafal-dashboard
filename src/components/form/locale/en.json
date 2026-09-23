@@ -1,4 +1,18 @@
 {
+  "formEditor": {
+    "toolbar": {
+      "label": "Text formatting",
+      "paragraph": "Paragraph",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "bulletList": "Bullet list",
+      "orderedList": "Numbered list",
+      "undo": "Undo",
+      "redo": "Redo"
+    }
+  },
   "imageUploader": {
     "label": "Images",
     "drag": "Drag images here or choose from your device",

@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
+const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
 
 vi.mock('@/config/env', () => ({ default: { PRODUCTS_USE_MOCK: false } }))
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
-import { productsHttpTransport, productsService, serializeProductCreate } from './products.service'
-import type { ProductCreatePayload, RawProductListItem } from '../types/product.types'
+import {
+  productsHttpTransport,
+  productsService,
+  serializeProductCreate,
+  serializeProductUpdate,
+} from './products.service'
+import type { ProductCreatePayload, RawProductDetail, RawProductListItem } from '../types/product.types'
 
 const rawProduct = (overrides: Partial<RawProductListItem> = {}): RawProductListItem => ({
   id: 1,
@@ -40,7 +45,7 @@ const createPayload = (overrides: Partial<ProductCreatePayload> = {}): ProductCr
   categoryId: 4,
   sku: ' RFL-CREATE-001 ',
   name: { ar: ' منتج جديد ', en: ' New Product ' },
-  description: { ar: ' وصف ', en: ' Description ' },
+  description: { ar: ' <p>وصف <strong>المنتج</strong></p> ', en: ' <ul><li>Description</li></ul> ' },
   basePrice: 50.25,
   discountPercentage: 10,
   discountEndAt: '2026-10-03T14:05',
@@ -52,6 +57,17 @@ const createPayload = (overrides: Partial<ProductCreatePayload> = {}): ProductCr
   isActive: true,
   sortOrder: -2,
   images: [],
+  ...overrides,
+})
+
+const rawDetail = (overrides: Partial<RawProductDetail> = {}): RawProductDetail => ({
+  ...rawProduct(),
+  description: [],
+  personalization_max_length: null,
+  personalization_fee: null,
+  hide_price_on_packaging: false,
+  variants: [],
+  images: [{ id: 12, url: 'https://example.com/product.jpg' }],
   ...overrides,
 })
 
@@ -164,8 +180,8 @@ describe('products service', () => {
       ['sku', 'RFL-CREATE-001'],
       ['name[ar]', 'منتج جديد'],
       ['name[en]', 'New Product'],
-      ['description[ar]', 'وصف'],
-      ['description[en]', 'Description'],
+      ['description[ar]', '<p>وصف <strong>المنتج</strong></p>'],
+      ['description[en]', '<ul><li>Description</li></ul>'],
       ['base_price', '50.25'],
       ['discount_percentage', '10'],
       ['discount_end_at', '2026-10-03 14:05:00'],
@@ -220,4 +236,118 @@ describe('products service', () => {
       )
     }
   )
+
+  it('GETs the exact Product Show endpoint and normalizes detail without losing HTML', async () => {
+    const controller = new AbortController()
+    httpMocks.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        message: 'ok',
+        data: rawDetail({
+          description: { ar: '<p><strong>فضة</strong></p>', en: '<ul><li>Silver</li></ul>' },
+          base_price: '50.25',
+          personalization_fee: '3.5',
+        }),
+      },
+    })
+
+    const product = await productsService.show(7, controller.signal)
+
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/products/7',
+      signal: controller.signal,
+      suppressErrorNotification: true,
+    })
+    expect(product).toMatchObject({
+      basePrice: 50.25,
+      personalizationFee: 3.5,
+      description: { ar: '<p><strong>فضة</strong></p>', en: '<ul><li>Silver</li></ul>' },
+      images: [{ id: 12, url: 'https://example.com/product.jpg' }],
+    })
+  })
+
+  it('normalizes [] descriptions to empty localized strings and rejects malformed numeric detail', async () => {
+    httpMocks.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: rawDetail() } })
+    await expect(productsService.show(1)).resolves.toMatchObject({ description: { ar: '', en: '' } })
+    httpMocks.get.mockResolvedValueOnce({
+      data: { success: true, message: 'ok', data: rawDetail({ base_price: 'invalid' }) },
+    })
+    await expect(productsService.show(1)).rejects.toThrow('Product base price is unavailable')
+  })
+
+  it('serializes true partial Update clears, booleans, HTML, and repeated new images without slug', () => {
+    const image = new File(['new'], 'new.png', { type: 'image/png' })
+    const body = serializeProductUpdate({
+      description: { en: '<p><strong>Hello</strong></p>', ar: null },
+      discountPercentage: null,
+      discountEndAt: '2026-10-03T14:05',
+      isPersonalizable: false,
+      personalizationMaxLength: null,
+      personalizationFee: null,
+      isActive: true,
+      images: [image],
+    })
+    expect([...body.entries()]).toEqual([
+      ['description[ar]', 'null'],
+      ['description[en]', '<p><strong>Hello</strong></p>'],
+      ['discount_percentage', 'null'],
+      ['discount_end_at', '2026-10-03 14:05:00'],
+      ['is_personalizable', '0'],
+      ['personalization_max_length', 'null'],
+      ['personalization_fee', 'null'],
+      ['is_active', '1'],
+      ['images[]', image],
+    ])
+    expect(body.has('slug')).toBe(false)
+    expect(body.has('sku')).toBe(false)
+  })
+
+  it('serializes every nullable clear as textual null while keeping localized fields granular', () => {
+    const body = serializeProductUpdate({
+      name: { en: null },
+      description: { en: null },
+      discountEndAt: null,
+      personalizationMaxLength: null,
+      personalizationFee: null,
+    })
+    expect([...body.entries()]).toEqual([
+      ['name[en]', 'null'],
+      ['description[en]', 'null'],
+      ['discount_end_at', 'null'],
+      ['personalization_max_length', 'null'],
+      ['personalization_fee', 'null'],
+    ])
+    expect(body.has('name[ar]')).toBe(false)
+    expect(body.has('description[ar]')).toBe(false)
+  })
+
+  it('PUTs multipart and normalizes the complete authoritative response', async () => {
+    httpMocks.put.mockResolvedValueOnce({
+      data: { success: true, message: 'updated', data: rawDetail({ sku: 'UPDATED' }) },
+    })
+    await expect(productsService.update(9, { sku: ' UPDATED ' })).resolves.toMatchObject({ id: 1, sku: 'UPDATED' })
+    expect(httpMocks.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/dashboard/products/9',
+        isFormData: true,
+        suppressSuccessNotification: true,
+        suppressErrorNotification: true,
+      })
+    )
+    expect([...httpMocks.put.mock.calls[0][0].data.entries()]).toEqual([['sku', 'UPDATED']])
+    expect(httpMocks.put.mock.calls[0][0].data.has('variants')).toBe(false)
+    expect(httpMocks.put.mock.calls[0][0].data.has('warehouse_stocks')).toBe(false)
+  })
+
+  it('DELETEs the exact Product endpoint without a request body', async () => {
+    httpMocks.delete.mockResolvedValueOnce({ data: { success: true, message: 'deleted' } })
+
+    await expect(productsService.delete(19)).resolves.toEqual({ success: true, message: 'deleted' })
+
+    expect(httpMocks.delete).toHaveBeenCalledWith({
+      url: '/dashboard/products/19',
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+  })
 })

@@ -1,15 +1,23 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { LoaderCircle, Trash2 } from 'lucide-react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { FormCheckbox, FormImageUploader, FormInput, FormSelect, FormSortOrder, FormTextArea } from '@/components/form'
+import { FormCheckbox, FormEditor, FormImageUploader, FormInput, FormSelect, FormSortOrder } from '@/components/form'
 import { FormSwitch } from '@/components/form/FormSwitch'
 import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
+import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
+import { Button } from '@/components/ui/button'
 import { useCategories } from '@/modules/categories/hooks/useCategories'
 import { PRODUCT_IMAGE_MAX_SIZE } from '@/modules/products/schemas/product-create.schema'
-import type { ProductCreateFormValues } from '@/modules/products/types/product.types'
+import type { ProductFormValues } from '@/modules/products/types/product.types'
 
-type ProductCreateSectionsProps = { isSubmitting: boolean }
+type ProductFormSectionsProps = {
+  isSubmitting: boolean
+  existingImages?: Array<{ id: number; url: string }>
+  onDeleteExistingImage?: (imageId: number) => Promise<unknown>
+  deletingExistingImageId?: number | null
+}
 
 function ProductFormSection({
   title,
@@ -31,9 +39,14 @@ function ProductFormSection({
   )
 }
 
-export function ProductCreateSections({ isSubmitting }: ProductCreateSectionsProps) {
+export function ProductFormSections({
+  isSubmitting,
+  existingImages = [],
+  onDeleteExistingImage,
+  deletingExistingImageId = null,
+}: ProductFormSectionsProps) {
   const { t, i18n } = useTranslation()
-  const { control, setValue } = useFormContext<ProductCreateFormValues>()
+  const { control, setValue } = useFormContext<ProductFormValues>()
   const isPersonalizable = useWatch({ control, name: 'isPersonalizable' })
   const categoriesQuery = useCategories()
   const categories = useMemo(
@@ -117,13 +130,13 @@ export function ProductCreateSections({ isSubmitting }: ProductCreateSectionsPro
         description={t('products.create.sections.description.description')}
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormTextArea
+          <FormEditor
             name="description.ar"
             label={t('products.create.fields.descriptionAr')}
             dir="rtl"
             disabled={isSubmitting}
           />
-          <FormTextArea
+          <FormEditor
             name="description.en"
             label={t('products.create.fields.descriptionEn')}
             dir="ltr"
@@ -210,7 +223,14 @@ export function ProductCreateSections({ isSubmitting }: ProductCreateSectionsPro
         title={t('products.create.sections.images.title')}
         description={t('products.create.sections.images.description')}
       >
-        <FormImageUploader<ProductCreateFormValues>
+        {existingImages.length > 0 ? (
+          <ProductExistingImages
+            images={existingImages}
+            onDelete={onDeleteExistingImage}
+            deletingImageId={deletingExistingImageId}
+          />
+        ) : null}
+        <FormImageUploader<ProductFormValues>
           name="images"
           label={t('products.create.fields.images')}
           mode="multiple"
@@ -242,5 +262,85 @@ export function ProductCreateSections({ isSubmitting }: ProductCreateSectionsPro
         </div>
       </ProductFormSection>
     </div>
+  )
+}
+
+function ProductExistingImages({
+  images,
+  onDelete,
+  deletingImageId,
+}: {
+  images: Array<{ id: number; url: string }>
+  onDelete?: (imageId: number) => Promise<unknown>
+  deletingImageId: number | null
+}) {
+  const { t } = useTranslation()
+  const alertRef = useRef<DeleteAlertRef>(null)
+  const deleteLockRef = useRef(false)
+  const [imageToDelete, setImageToDelete] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (imageToDelete !== null) alertRef.current?.handleOpen(true)
+  }, [imageToDelete])
+
+  const handleDelete = async () => {
+    if (imageToDelete === null || !onDelete || deletingImageId === imageToDelete || deleteLockRef.current) return
+    deleteLockRef.current = true
+    try {
+      await onDelete(imageToDelete)
+      alertRef.current?.close()
+      setImageToDelete(null)
+    } catch {
+      // Localized mutation feedback owns the error; keep the confirmation open for retry.
+    } finally {
+      deleteLockRef.current = false
+    }
+  }
+
+  return (
+    <>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label={t('products.edit.existingImages')}>
+        {images.map((image) => {
+          const label = t('products.edit.existingImageAlt', { id: image.id })
+          const isDeleting = deletingImageId === image.id
+          return (
+            <li key={image.id} className="overflow-hidden rounded-xl border border-border bg-surface">
+              <img src={image.url} alt={label} className="aspect-video size-full object-contain" />
+              {onDelete ? (
+                <div className="flex justify-end border-t border-border p-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={isDeleting}
+                    aria-label={t('products.actions.deleteImageNamed', { id: image.id })}
+                    onClick={() => setImageToDelete(image.id)}
+                  >
+                    {isDeleting ? (
+                      <LoaderCircle aria-hidden="true" className="animate-spin" />
+                    ) : (
+                      <Trash2 aria-hidden="true" />
+                    )}
+                    {t('products.actions.deleteImage')}
+                  </Button>
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+      <DeleteAlert
+        ref={alertRef}
+        title={t('products.imageDelete.title')}
+        body={t('products.imageDelete.description')}
+        confirmLabel={t('products.actions.deleteImage')}
+        cancelLabel={t('products.actions.cancel')}
+        pendingLabel={t('products.actions.deletingImage')}
+        isPending={deletingImageId === imageToDelete}
+        onDelete={handleDelete}
+        onCancel={() => setImageToDelete(null)}
+      />
+    </>
   )
 }

@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Package, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -16,10 +16,19 @@ import { ProductsList } from '@/modules/products/components/ProductsList'
 import { ProductsListSkeleton } from '@/modules/products/components/ProductsListSkeleton'
 import { useProducts } from '@/modules/products/hooks/useProducts'
 import { Routes } from '@/routes/routes'
+import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
+import { useDeleteProduct } from '@/modules/products/hooks/useDeleteProduct'
+import type { ProductListItem } from '@/modules/products/types/product.types'
+import { getLocalizedProductName } from '@/modules/products/utils/product-list.utils'
 
 function ProductsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const query = useProducts()
+  const deleteProduct = useDeleteProduct()
+  const deleteAlertRef = useRef<DeleteAlertRef>(null)
+  const deleteLockRef = useRef(false)
+  const [productToDelete, setProductToDelete] = useState<ProductListItem | null>(null)
   const products = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? products.length
   const loadMoreRef = useInfiniteScroll({
@@ -47,6 +56,25 @@ function ProductsPage() {
     </ResponsiveDataLayout>
   )
 
+  useEffect(() => {
+    if (productToDelete) deleteAlertRef.current?.handleOpen(true)
+  }, [productToDelete])
+
+  const handleDelete = async () => {
+    if (!productToDelete || deleteProduct.isPending || deleteLockRef.current) return
+    deleteLockRef.current = true
+    try {
+      await deleteProduct.mutateAsync(productToDelete.id)
+      deleteAlertRef.current?.close()
+      setProductToDelete(null)
+    } catch {
+      // Localized mutation feedback owns the error; keep the confirmation open for retry.
+    } finally {
+      deleteLockRef.current = false
+    }
+  }
+  const deleteName = productToDelete ? getLocalizedProductName(productToDelete.name, i18n.language) : ''
+
   return (
     <main className="min-w-0">
       <DashboardPageHeader title={t('products.title')} actions={createAction} />
@@ -73,7 +101,12 @@ function ProductsPage() {
               />
             }
           >
-            <ProductsList products={products} />
+            <ProductsList
+              products={products}
+              onEdit={(product) => navigate(Routes.productEditPath(product.id))}
+              onDelete={setProductToDelete}
+              actionsDisabled={deleteProduct.isPending}
+            />
             {query.isFetchNextPageError ? (
               <div className="p-4">
                 <QueryStateNotice
@@ -94,6 +127,17 @@ function ProductsPage() {
           </ResponsiveDataLayout>
         </TableProvider>
       </QueryStateBoundary>
+      <DeleteAlert
+        ref={deleteAlertRef}
+        title={t('products.delete.title')}
+        body={t('products.delete.description', { name: deleteName })}
+        confirmLabel={t('products.actions.delete')}
+        cancelLabel={t('products.actions.cancel')}
+        pendingLabel={t('products.actions.deleting')}
+        isPending={deleteProduct.isPending}
+        onDelete={handleDelete}
+        onCancel={() => setProductToDelete(null)}
+      />
     </main>
   )
 }

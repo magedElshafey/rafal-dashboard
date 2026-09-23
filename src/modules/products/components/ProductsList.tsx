@@ -12,14 +12,18 @@ import {
 } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { Badge } from '@/components/ui/badge'
 import { ProductImage } from '@/modules/products/components/ProductImage'
+import { ProductActions } from '@/modules/products/components/ProductActions'
 import type { ProductListItem } from '@/modules/products/types/product.types'
 import { getLocalizedProductName } from '@/modules/products/utils/product-list.utils'
 
 type Props = {
   products: readonly ProductListItem[]
+  onEdit: (product: ProductListItem) => void
+  onDelete: (product: ProductListItem) => void
+  actionsDisabled?: boolean
 }
 
-export function ProductsList({ products }: Props) {
+export function ProductsList({ products, onEdit, onDelete, actionsDisabled = false }: Props) {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith('ar') ? 'ar' : 'en'
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale, { maximumFractionDigits: 20 }), [locale])
@@ -36,6 +40,7 @@ export function ProductsList({ products }: Props) {
     { id: 'newArrival', header: t('products.fields.newArrival'), className: 'w-28' },
     { id: 'status', header: t('products.fields.status'), className: 'w-24' },
     { id: 'sortOrder', header: t('products.fields.sortOrder'), className: 'w-24' },
+    { id: 'actions', header: t('products.actions.label'), className: 'w-20' },
   ]
 
   const discount = (product: ProductListItem) =>
@@ -77,6 +82,15 @@ export function ProductsList({ products }: Props) {
                 <ResponsiveDataTableCell>{newArrival(product)}</ResponsiveDataTableCell>
                 <ResponsiveDataTableCell>{status(product)}</ResponsiveDataTableCell>
                 <ResponsiveDataTableCell>{numberFormatter.format(product.sortOrder)}</ResponsiveDataTableCell>
+                <ResponsiveDataTableCell>
+                  <ProductActions
+                    product={product}
+                    displayName={name}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    disabled={actionsDisabled}
+                  />
+                </ResponsiveDataTableCell>
               </ResponsiveDataTableRow>
             )
           })}
@@ -91,6 +105,15 @@ export function ProductsList({ products }: Props) {
               key={product.id}
               title={<bdi dir="auto">{name}</bdi>}
               subtitle={<bdi dir="ltr">{product.sku}</bdi>}
+              actions={
+                <ProductActions
+                  product={product}
+                  displayName={name}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  disabled={actionsDisabled}
+                />
+              }
               facts={
                 <>
                   <ResponsiveDataFact label={t('products.fields.basePrice')}>

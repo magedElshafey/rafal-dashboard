@@ -14,6 +14,8 @@ export const Routes = {
   shippingMethods: '/dashboard/shipping-methods',
   products: '/dashboard/products',
   productNew: '/dashboard/products/new',
+  productEdit: '/dashboard/products/:id/edit',
+  productEditPath: (id: number) => `/dashboard/products/${id}/edit`,
   errors: {
     unAuthorized: '/401',
     forbidden: '/403',

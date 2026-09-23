@@ -17,8 +17,8 @@ function ProductCreatePage() {
       <ProductCreateForm
         isSubmitting={create.isPending}
         onSubmit={async (payload) => {
-          await create.mutateAsync(payload)
-          navigate(Routes.products)
+          const created = await create.mutateAsync(payload)
+          navigate(Routes.productEditPath(created.id))
         }}
       />
     </main>

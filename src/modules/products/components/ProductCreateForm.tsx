@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 import { FormWrapper } from '@/components/core/FormWrapper'
 import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
 import { Button } from '@/components/ui/button'
-import { ProductCreateSections } from '@/modules/products/components/ProductCreateSections'
+import { ProductFormSections } from '@/modules/products/components/ProductFormSections'
 import { createProductCreateSchema } from '@/modules/products/schemas/product-create.schema'
 import type { ProductCreateFormValues, ProductCreatePayload } from '@/modules/products/types/product.types'
 import { buildProductCreatePayload } from '@/modules/products/utils/product-create.utils'
@@ -98,7 +98,7 @@ export function ProductCreateForm({ isSubmitting, onSubmit }: ProductCreateFormP
       onSubmit={handleSubmit}
       className="space-y-5"
     >
-      <ProductCreateSections isSubmitting={isSubmitting} />
+      <ProductFormSections isSubmitting={isSubmitting} />
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
         <Button asChild variant="outline" size="lg">
           <Link to={Routes.products}>{t('products.actions.cancel')}</Link>

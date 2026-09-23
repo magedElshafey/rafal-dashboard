@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -42,6 +42,7 @@ function renderPage() {
         <Routes>
           <Route path="/dashboard/products" element={<ProductsPage />} />
           <Route path="/dashboard/products/new" element={<p>Product Create destination</p>} />
+          <Route path="/dashboard/products/:id/edit" element={<p>Product Edit destination</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -104,8 +105,7 @@ describe('ProductsPage', () => {
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Create Product' })).toHaveAttribute('href', '/dashboard/products/new')
-    expect(screen.queryByRole('button', { name: /edit|delete/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /edit|delete/i })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Actions for Discounted Product' })).toHaveLength(2)
   })
 
   it('shows a safe initial error and retries into the empty state', async () => {
@@ -159,7 +159,7 @@ describe('ProductsPage', () => {
     expect(list.mock.calls.map(([page]) => page)).toEqual([1, 2, 2])
   })
 
-  it('navigates from the Index Create action without adding Edit or Delete actions', async () => {
+  it('navigates from Create and responsive Edit actions', async () => {
     seedProductsMock([rawProduct(1)])
     const user = userEvent.setup()
     renderPage()
@@ -168,6 +168,42 @@ describe('ProductsPage', () => {
     await user.click(screen.getByRole('link', { name: 'Create Product' }))
 
     expect(await screen.findByText('Product Create destination')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /edit|delete/i })).not.toBeInTheDocument()
+  })
+
+  it('navigates Edit to the selected dynamic route', async () => {
+    seedProductsMock([rawProduct(4)])
+    const user = userEvent.setup()
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Actions for Product 4' }))[0])
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit Product 4' }))
+    expect(await screen.findByText('Product Edit destination')).toBeInTheDocument()
+  })
+
+  it('requires confirmation, protects duplicate Product deletion, and removes on success', async () => {
+    seedProductsMock([rawProduct(8)])
+    const remove = vi.spyOn(productsService, 'delete')
+    const user = userEvent.setup()
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Actions for Product 8' }))[0])
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete Product 8' }))
+    expect(remove).not.toHaveBeenCalled()
+    const dialog = await screen.findByRole('alertdialog')
+    await user.dblClick(within(dialog).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    expect(screen.queryByText('Product 8')).not.toBeInTheDocument()
+  })
+
+  it('keeps the Product and confirmation available after a safe Delete failure', async () => {
+    seedProductsMock([rawProduct(9)])
+    vi.spyOn(productsService, 'delete').mockRejectedValueOnce(new Error('unsafe delete detail'))
+    const user = userEvent.setup()
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Actions for Product 9' }))[0])
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete Product 9' }))
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }))
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument()
+    expect(screen.getAllByText('Product 9')).toHaveLength(2)
+    expect(screen.queryByText('unsafe delete detail')).not.toBeInTheDocument()
   })
 })

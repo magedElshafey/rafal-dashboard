@@ -36,6 +36,7 @@ function renderPage() {
         <Routes>
           <Route path="/dashboard/products/new" element={<ProductCreatePage />} />
           <Route path="/dashboard/products" element={<p>Products Index destination</p>} />
+          <Route path="/dashboard/products/:id/edit" element={<p>Product Edit destination</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -149,7 +150,7 @@ describe('ProductCreatePage', () => {
     expect(screen.getByRole('textbox', { name: 'Arabic Name' })).toHaveValue(' منتج جديد ')
   })
 
-  it('invalidates Product lists and temporarily navigates to Index after successful Create', async () => {
+  it('invalidates Product lists and navigates to the created Product Edit page', async () => {
     const create = vi.spyOn(productsService, 'create').mockResolvedValueOnce({ id: 88 })
     const user = userEvent.setup()
     const { invalidate } = renderPage()
@@ -157,7 +158,7 @@ describe('ProductCreatePage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create Product' }))
 
-    expect(await screen.findByText('Products Index destination')).toBeInTheDocument()
+    expect(await screen.findByText('Product Edit destination')).toBeInTheDocument()
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         categoryId: 1,

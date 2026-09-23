@@ -23,14 +23,18 @@ describe('core routes', () => {
     useAuth.setState({ token: null, role: null, user: null, isAuthenticated: false })
   })
 
-  it('defines Product Index and Create routes without the future Edit route', () => {
+  it('defines Product Index, Create, and Edit routes without future child-resource routes', () => {
     const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
 
     expect(AppRoutes.products).toBe('/dashboard/products')
     expect(AppRoutes.productNew).toBe('/dashboard/products/new')
     expect(privatePaths).toContain('/dashboard/products')
     expect(privatePaths).toContain('/dashboard/products/new')
-    expect(privatePaths).not.toContain('/dashboard/products/:id/edit')
+    expect(AppRoutes.productEdit).toBe('/dashboard/products/:id/edit')
+    expect(AppRoutes.productEditPath(17)).toBe('/dashboard/products/17/edit')
+    expect(privatePaths).toContain('/dashboard/products/:id/edit')
+    expect(privatePaths).not.toContain('/dashboard/products/:id/variants')
+    expect(privatePaths).not.toContain('/dashboard/products/:id/stocks')
   })
 
   it('redirects unauthenticated dashboard access to /login', () => {

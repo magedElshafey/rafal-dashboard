@@ -1,4 +1,18 @@
 {
+  "formEditor": {
+    "toolbar": {
+      "label": "تنسيق النص",
+      "paragraph": "فقرة",
+      "heading2": "عنوان 2",
+      "heading3": "عنوان 3",
+      "bold": "عريض",
+      "italic": "مائل",
+      "bulletList": "قائمة نقطية",
+      "orderedList": "قائمة مرقمة",
+      "undo": "تراجع",
+      "redo": "إعادة"
+    }
+  },
   "imageUploader": {
     "label": "الصور",
     "drag": "اسحب الصور هنا أو اخترها من جهازك",
