@@ -6,8 +6,7 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command, isPreview }) => ({
-  base: command === 'build' || isPreview ? '/dist/' : '/',
+export default defineConfig(() => ({
   resolve: {
     dedupe: ['react', 'react-dom', 'react-i18next'],
     alias: {
