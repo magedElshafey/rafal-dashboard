@@ -19,7 +19,6 @@ export type Category = {
 export type CategoryPayload = {
   parent_id: number | null
   name: LocalizedText
-  slug: string
   description: LocalizedText | null
   is_active: boolean
   sort_order: number
@@ -28,7 +27,7 @@ export type CategoryPayload = {
 export type CategoryFormValues = {
   parent_id: number | null
   name: LocalizedText
-  slug: string
+
   description: LocalizedText
   is_active: boolean
   sort_order: number

@@ -1,38 +1,22 @@
-export type AppRole = string
-
-export interface IUserCountry {
-  id: string
+export interface AuthAdmin {
+  id: number
   name: string
-  iso2: string
-  phone_code: string
-}
-
-export interface IUser {
-  id: string
-  name: string
-  email?: string | null
-  phone: string | null
-  role?: AppRole | null
-  type?: AppRole | null
-  country?: IUserCountry | null
-  country_code?: string | null
-  image?: string | null
+  email: string
+  roles: string[]
 }
 
 export type LoginPayload = {
-  phone: string
+  email: string
   password: string
-  rememberMe?: boolean
-  countryCode: string
 }
 
 export type LoginResponseData = {
+  admin: AuthAdmin
   token: string
-  user: IUser
+  roles: string[]
 }
 
 export type AuthSession = {
+  admin: AuthAdmin
   token: string
-  role: AppRole | null
-  user: IUser
 }

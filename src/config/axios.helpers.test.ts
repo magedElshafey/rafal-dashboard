@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import { AxiosHeaders, type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 
 const mocks = vi.hoisted(() => ({
   fire: vi.fn(),
+  getAuthState: vi.fn(),
 }))
 
 vi.mock('@/utils/observer', () => ({
   observer: { fire: mocks.fire },
 }))
+vi.mock('react-i18next', () => ({ getI18n: () => ({ language: 'en' }) }))
+vi.mock('@/store/auth', () => ({ useAuth: { getState: mocks.getAuthState } }))
 
-import { notifyErrorResponse, notifySuccessResponse } from './axios.helpers'
+import { applyCommonHeaders, notifyErrorResponse, notifySuccessResponse } from './axios.helpers'
 
 function createResponse(suppressSuccessNotification = false): AxiosResponse {
   return {
@@ -26,6 +29,27 @@ function createResponse(suppressSuccessNotification = false): AxiosResponse {
 
 beforeEach(() => {
   mocks.fire.mockReset()
+  mocks.getAuthState.mockReset()
+})
+
+describe('applyCommonHeaders', () => {
+  it('adds the current session Bearer token', () => {
+    mocks.getAuthState.mockReturnValue({ token: 'auth-token' })
+    const config = { headers: new AxiosHeaders() } as InternalAxiosRequestConfig
+
+    applyCommonHeaders(config)
+
+    expect(config.headers.get('Authorization')).toBe('Bearer auth-token')
+  })
+
+  it('does not add Authorization without a session token', () => {
+    mocks.getAuthState.mockReturnValue({ token: null })
+    const config = { headers: new AxiosHeaders() } as InternalAxiosRequestConfig
+
+    applyCommonHeaders(config)
+
+    expect(config.headers.has('Authorization')).toBe(false)
+  })
 })
 
 describe('notifySuccessResponse', () => {

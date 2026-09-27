@@ -1,19 +1,15 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 
 import type { LoginFormValues } from '@/modules/auth/login/types/login.types'
 import { Routes } from '@/routes/routes'
 import { useAuth } from '@/store/auth'
-import { handleErrorFields } from '@/utils/error/errorHandler'
 
 const LOGIN_DEFAULT_VALUES: LoginFormValues = {
-  phone: '',
+  email: '',
   password: '',
-  rememberMe: false,
-  countryCode: '+20',
 }
 
 const useLoginActions = () => {
@@ -21,22 +17,23 @@ const useLoginActions = () => {
   const navigate = useNavigate()
   const login = useAuth((state) => state.login)
   const defaultValues = useMemo<LoginFormValues>(() => LOGIN_DEFAULT_VALUES, [])
+  const loginPending = useRef(false)
 
   const onSubmit = useCallback(
     async (values: LoginFormValues) => {
+      if (loginPending.current) return
+      loginPending.current = true
+
       try {
         await login({
-          phone: values.phone,
+          email: values.email,
           password: values.password,
-          rememberMe: values.rememberMe,
-          countryCode: values.countryCode,
         })
         navigate(Routes.dashboard, { replace: true })
-      } catch (error) {
-        const errorMessage = isAxiosError(error)
-          ? handleErrorFields((error.response?.data as { errors?: Record<string, unknown> })?.errors ?? {})
-          : null
-        toast.error(errorMessage || t('auth.login.server_error'))
+      } catch {
+        toast.error(t('auth.login.server_error'))
+      } finally {
+        loginPending.current = false
       }
     },
     [login, navigate, t]

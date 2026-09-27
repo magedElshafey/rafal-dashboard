@@ -1,88 +1,57 @@
 import { create } from 'zustand'
 
 import { loginRequest } from '@/modules/auth/service/login.service'
-import type { AppRole, AuthSession, IUser, LoginPayload } from '@/modules/auth/types/auth.types'
-
-type AuthPersistence = 'session' | 'persistent'
-
-interface StoredAuthSession extends AuthSession {
-  persistence: AuthPersistence
-}
+import type { AuthAdmin, AuthSession, LoginPayload } from '@/modules/auth/types/auth.types'
 
 interface Actions {
   login: (data: LoginPayload) => Promise<AuthSession>
   logout: () => void
-  updateUserData: (userData: Partial<IUser>) => void
   syncFromStorage: () => void
 }
 
 interface State {
   token: string | null
-  role: AppRole | null
-  user: IUser | null
+  admin: AuthAdmin | null
   isAuthenticated: boolean
 }
 
 export const AUTH_STORAGE_KEY = 'rafal_auth_session'
 const LEGACY_AUTH_STORAGE_KEY = 'auth_session'
-const SESSION_MARKER_COOKIE = 'rafal_auth_browser_session'
 
 const emptyAuthState: State = {
   token: null,
-  role: null,
-  user: null,
+  admin: null,
   isAuthenticated: false,
-}
-
-function getCookie(name: string): string | null {
-  const prefix = `${encodeURIComponent(name)}=`
-  const cookie = document.cookie.split('; ').find((item) => item.startsWith(prefix))
-  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null
-}
-
-function hasBrowserSessionMarker(): boolean {
-  return getCookie(SESSION_MARKER_COOKIE) === '1'
-}
-
-function createBrowserSessionMarker(): void {
-  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-  document.cookie = `${SESSION_MARKER_COOKIE}=1; Path=/; SameSite=Lax${secure}`
-}
-
-function removeBrowserSessionMarker(): void {
-  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-  document.cookie = `${SESSION_MARKER_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`
 }
 
 function clearStoredAuth(): void {
   localStorage.removeItem(AUTH_STORAGE_KEY)
   localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY)
-  removeBrowserSessionMarker()
 }
 
-function isStoredSession(value: unknown): value is StoredAuthSession {
+function isStoredSession(value: unknown): value is AuthSession {
   if (typeof value !== 'object' || value === null) return false
 
-  const session = value as Partial<StoredAuthSession>
+  const session = value as Partial<AuthSession>
   const hasValidToken = typeof session.token === 'string' && session.token.trim().length > 0
-  const hasValidPersistence = session.persistence === 'session' || session.persistence === 'persistent'
-  const hasValidUser = typeof session.user === 'object' && session.user !== null
-  const hasValidRole = session.role === null || typeof session.role === 'string'
+  const admin = session.admin as Partial<AuthAdmin> | undefined
+  const hasValidAdmin =
+    typeof admin?.id === 'number' &&
+    typeof admin.name === 'string' &&
+    typeof admin.email === 'string' &&
+    Array.isArray(admin.roles) &&
+    admin.roles.every((role) => typeof role === 'string')
 
-  return hasValidToken && hasValidPersistence && hasValidUser && hasValidRole
+  return hasValidToken && hasValidAdmin
 }
 
-function readStoredAuth(): StoredAuthSession | null {
+function readStoredAuth(): AuthSession | null {
   const rawValue = localStorage.getItem(AUTH_STORAGE_KEY)
   if (!rawValue) return null
 
   try {
     const parsedValue: unknown = JSON.parse(rawValue)
     if (!isStoredSession(parsedValue)) {
-      clearStoredAuth()
-      return null
-    }
-    if (parsedValue.persistence === 'session' && !hasBrowserSessionMarker()) {
       clearStoredAuth()
       return null
     }
@@ -93,15 +62,13 @@ function readStoredAuth(): StoredAuthSession | null {
   }
 }
 
-function toAuthState(session: StoredAuthSession | null): State {
+function toAuthState(session: AuthSession | null): State {
   if (!session) return emptyAuthState
-  return { token: session.token, role: session.role, user: session.user, isAuthenticated: true }
+  return { token: session.token, admin: session.admin, isAuthenticated: true }
 }
 
-function persistAuthSession(session: AuthSession, persistence: AuthPersistence): void {
-  if (persistence === 'session') createBrowserSessionMarker()
-  else removeBrowserSessionMarker()
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ ...session, persistence }))
+function persistAuthSession(session: AuthSession): void {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session))
 }
 
 function getInitialAuthState(): State {
@@ -122,14 +89,16 @@ export const useAuth = create<State & Actions>((set, get) => ({
       throw new Error('Invalid login response')
     }
 
-    const rawRole = responseData.user?.role ?? responseData.user?.type
-    const role = typeof rawRole === 'string' ? rawRole : null
     const session: AuthSession = {
       token: responseData.token,
-      role,
-      user: role ? { ...responseData.user, role, type: role } : responseData.user,
+      admin: {
+        id: responseData.admin.id,
+        name: responseData.admin.name,
+        email: responseData.admin.email,
+        roles: responseData.admin.roles,
+      },
     }
-    persistAuthSession(session, data.rememberMe ? 'persistent' : 'session')
+    persistAuthSession(session)
     set({ ...session, isAuthenticated: true })
     return session
   },
@@ -137,17 +106,6 @@ export const useAuth = create<State & Actions>((set, get) => ({
   logout() {
     clearStoredAuth()
     set(emptyAuthState)
-  },
-
-  updateUserData(userData) {
-    const storedSession = readStoredAuth()
-    if (!storedSession) {
-      set(emptyAuthState)
-      return
-    }
-    const user = { ...storedSession.user, ...userData }
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ ...storedSession, user }))
-    set({ user })
   },
 
   syncFromStorage() {

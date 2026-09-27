@@ -8,9 +8,15 @@ import { AUTH_STORAGE_KEY, useAuth } from './auth'
 
 const emptyState = {
   token: null,
-  role: null,
-  user: null,
+  admin: null,
   isAuthenticated: false,
+}
+
+const admin = {
+  id: 1,
+  name: 'Super Admin',
+  email: 'admin@example.com',
+  roles: ['Super Admin'],
 }
 
 describe('auth store', () => {
@@ -20,43 +26,52 @@ describe('auth store', () => {
     useAuth.setState(emptyState)
   })
 
-  it('logs in through the neutral endpoint and stores no portal state', async () => {
+  it('normalizes and persists the minimum dashboard session on login', async () => {
     mocks.loginRequest.mockResolvedValue({
       token: 'auth-token',
-      user: { id: '1', name: 'Admin', phone: null, role: 'backend-role' },
+      admin,
+      roles: ['Super Admin'],
     })
 
-    await useAuth.getState().login({
-      phone: '1000000000',
-      password: 'password',
-      rememberMe: true,
-      countryCode: '+20',
-    })
+    await useAuth.getState().login({ email: 'admin@example.com', password: 'password' })
 
     expect(mocks.loginRequest).toHaveBeenCalledWith({
-      phone: '1000000000',
+      email: 'admin@example.com',
       password: 'password',
-      rememberMe: true,
-      countryCode: '+20',
     })
     expect(useAuth.getState()).toMatchObject({
       token: 'auth-token',
-      role: 'backend-role',
-      user: { id: '1', name: 'Admin' },
+      admin,
       isAuthenticated: true,
     })
-
-    const stored = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? '{}') as Record<string, unknown>
-    expect(stored).not.toHaveProperty('portal')
+    expect(JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? '{}')).toEqual({
+      token: 'auth-token',
+      admin,
+    })
   })
 
-  it('clears both current and legacy session keys on logout', () => {
-    localStorage.setItem(AUTH_STORAGE_KEY, '{}')
+  it('restores a persisted session without a me request', () => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token: 'auth-token', admin }))
+
+    useAuth.getState().syncFromStorage()
+
+    expect(useAuth.getState()).toMatchObject({
+      token: 'auth-token',
+      admin,
+      isAuthenticated: true,
+    })
+    expect(mocks.loginRequest).not.toHaveBeenCalled()
+  })
+
+  it('clears current and legacy session keys on logout', () => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token: 'auth-token', admin }))
     localStorage.setItem('auth_session', '{}')
+    useAuth.setState({ token: 'auth-token', admin, isAuthenticated: true })
 
     useAuth.getState().logout()
 
     expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
     expect(localStorage.getItem('auth_session')).toBeNull()
+    expect(useAuth.getState()).toMatchObject(emptyState)
   })
 })

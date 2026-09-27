@@ -2,15 +2,15 @@ import type { LoginPayload, LoginResponseData } from '@/modules/auth/types/auth.
 import { $http } from '@/utils/http'
 
 export async function loginRequest(data: LoginPayload) {
+  const formData = new FormData()
+  formData.append('email', data.email)
+  formData.append('password', data.password)
+
   const response = await $http.post<{ data: LoginResponseData }>({
-    url: '/auth/login',
-    data: {
-      phone: data.phone,
-      password: data.password,
-      remember_me: data.rememberMe ? 1 : 0,
-      country_code: data.countryCode,
-    },
-    isFormData: false,
+    url: '/dashboard/auth/login',
+    data: formData,
+    isFormData: true,
+    suppressErrorNotification: true,
   })
 
   return response.data.data

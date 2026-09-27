@@ -1,10 +1,9 @@
 import { useFormContext } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { FormCheckbox } from '@/components/form/FormCheckbox'
+import { FormInput } from '@/components/form/FormInput'
 import { FormPasswordInput } from '@/components/form/FormPasswordInput'
 import { AuthSubmitButton } from '@/modules/auth/components/AuthSubmitButton'
-import { FormPhoneInput } from '@/components/form/FormPhoneInput'
 import type { LoginFormValues } from '@/modules/auth/login/types/login.types'
 
 export const LoginForm = () => {
@@ -15,30 +14,28 @@ export const LoginForm = () => {
   } = useFormContext<LoginFormValues>()
 
   return (
-    <div className="space-y-3">
-      <FormPhoneInput
-        phoneName="phone"
-        countryName="countryCode"
-        label={t('auth.fields.phone')}
-        placeholder={t('auth.fields.phone_placeholder')}
+    <div className={'space-y-3'}>
+      <FormInput
+        name={'email'}
+        type={'email'}
+        autoComplete={'username'}
+        required
+        label={t('label.email')}
+        placeholder={t('label.enter_email')}
       />
 
       <FormPasswordInput
-        name="password"
-        autoComplete="current-password"
-        aria-required="true"
+        name={'password'}
+        autoComplete={'current-password'}
+        aria-required={'true'}
         label={t('auth.fields.password')}
         placeholder={t('auth.fields.password_placeholder')}
       />
 
-      <div className="mt-5 mb-10">
-        <FormCheckbox name="rememberMe" label={t('auth.login.remember_me')} />
-      </div>
-
       <AuthSubmitButton
-        className="w-full py-2 px-4 min-h-13 rounded-[10px]"
+        className={'mt-7 w-full py-2 px-4 min-h-13 rounded-[10px]'}
         isLoading={isSubmitting}
-        disabled={!isValid}
+        disabled={!isValid || isSubmitting}
       >
         {t('auth.login.submit')}
       </AuthSubmitButton>

@@ -1,6 +1,4 @@
 export interface LoginFormValues {
-  countryCode: string
-  phone: string
+  email: string
   password: string
-  rememberMe: boolean
 }

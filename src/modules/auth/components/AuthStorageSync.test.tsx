@@ -10,14 +10,18 @@ describe('AuthStorageSync', () => {
   beforeEach(() => {
     localStorage.clear()
     queryClient.clear()
-    useAuth.setState({ token: null, role: null, user: null, isAuthenticated: false })
+    useAuth.setState({ token: null, admin: null, isAuthenticated: false })
   })
 
   it('clears private queries when another tab logs out', () => {
     useAuth.setState({
       token: 'token',
-      role: null,
-      user: { id: '1', name: 'Admin', phone: null },
+      admin: {
+        id: 1,
+        name: 'Admin',
+        email: 'admin@example.com',
+        roles: ['Super Admin'],
+      },
       isAuthenticated: true,
     })
     queryClient.setQueryData(['private-data'], { id: 1 })

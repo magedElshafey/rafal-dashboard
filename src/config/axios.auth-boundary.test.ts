@@ -82,6 +82,8 @@ describe('shared axios auth boundary', () => {
     await expect(responseErrorHandler(error)).rejects.toBe(error)
 
     expect(mocks.notifyErrorResponse).toHaveBeenCalledWith(error)
+    expect(mocks.clearQueryClientAtAuthBoundary).not.toHaveBeenCalled()
+    expect(mocks.logout).not.toHaveBeenCalled()
     expect(window.location.pathname).toBe('/')
   })
 })

@@ -1,6 +1,5 @@
-import env from '@/config/env'
 import { normalizeCategory } from '@/modules/categories/api/category.mapper'
-import { categoriesMockTransport } from '@/modules/categories/mocks/categories.mock'
+
 import type {
   Category,
   CategoryPayload,
@@ -19,7 +18,7 @@ export function serializeCategory(payload: CategoryPayload) {
   const body = new FormData()
   body.set('name[ar]', payload.name.ar)
   body.set('name[en]', payload.name.en)
-  body.set('slug', payload.slug)
+
   body.set('is_active', payload.is_active ? '1' : '0')
   body.set('sort_order', String(payload.sort_order))
   body.set('parent_id', payload.parent_id === null ? '' : String(payload.parent_id))
@@ -78,7 +77,7 @@ const categoriesHttpTransport = {
   },
 }
 
-const transport = env.CATEGORIES_USE_MOCK ? categoriesMockTransport : categoriesHttpTransport
+const transport = categoriesHttpTransport
 
 export const categoriesService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Category>> {

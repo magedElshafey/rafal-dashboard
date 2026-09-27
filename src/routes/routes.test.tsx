@@ -1,26 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
 import { PrivateRoutes } from '@/routes/privateRoutes'
 import { Routes as AppRoutes } from '@/routes/routes'
 import { useAuth } from '@/store/auth'
 
-const environment = vi.hoisted(() => ({ authBypass: false }))
-
-vi.mock('@/config/env', () => ({
-  default: {
-    get AUTH_BYPASS() {
-      return environment.authBypass
-    },
-  },
-}))
-
 describe('core routes', () => {
   beforeEach(() => {
-    environment.authBypass = false
-    useAuth.setState({ token: null, role: null, user: null, isAuthenticated: false })
+    useAuth.setState({ token: null, admin: null, isAuthenticated: false })
   })
 
   it('defines Product Index, Create, and Edit routes without future child-resource routes', () => {
@@ -37,13 +26,13 @@ describe('core routes', () => {
     expect(privatePaths).not.toContain('/dashboard/products/:id/stocks')
   })
 
-  it('redirects unauthenticated dashboard access to /login', () => {
+  it('redirects unauthenticated dashboard access to login', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
-          <Route path="/login" element={<p>Login page</p>} />
+          <Route path={'/login'} element={<p>Login page</p>} />
           <Route
-            path="/dashboard"
+            path={'/dashboard'}
             element={
               <RequireAuth>
                 <p>Private dashboard</p>
@@ -58,11 +47,15 @@ describe('core routes', () => {
     expect(screen.getByText('Login page')).toBeInTheDocument()
   })
 
-  it('renders the dashboard for an authenticated session', () => {
+  it('renders the dashboard for an authenticated persisted session', () => {
     useAuth.setState({
       token: 'token',
-      role: null,
-      user: { id: '1', name: 'Admin', phone: null },
+      admin: {
+        id: 1,
+        name: 'Admin',
+        email: 'admin@example.com',
+        roles: ['Super Admin'],
+      },
       isAuthenticated: true,
     })
 
@@ -70,28 +63,7 @@ describe('core routes', () => {
       <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
           <Route
-            path="/dashboard"
-            element={
-              <RequireAuth>
-                <p>Private dashboard</p>
-              </RequireAuth>
-            }
-          />
-        </Routes>
-      </MemoryRouter>
-    )
-
-    expect(screen.getByText('Private dashboard')).toBeInTheDocument()
-  })
-
-  it('renders the dashboard without a session when the development bypass is enabled', () => {
-    environment.authBypass = true
-
-    render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <Routes>
-          <Route
-            path="/dashboard"
+            path={'/dashboard'}
             element={
               <RequireAuth>
                 <p>Private dashboard</p>

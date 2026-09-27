@@ -1,16 +1,11 @@
-import { boolean, object, string } from 'yup'
+import { object, string } from 'yup'
 import { t } from '@/modules/auth/schema'
-import { GENERIC_PHONE_PATTERN } from '@/utils/phone/phone.helpers'
 
 export const LoginSchema = object({
-  countryCode: string().trim().default('+20'),
-
-  phone: string()
+  email: string()
     .trim()
-    .required(() => t('auth.validation.phone_required'))
-    .matches(GENERIC_PHONE_PATTERN, () => t('auth.validation.phone_invalid')),
+    .email(() => t('auth.validation.email_invalid'))
+    .required(() => t('auth.validation.email_required')),
 
   password: string().required(() => t('auth.validation.password_required')),
-
-  rememberMe: boolean().required().default(true),
 })

@@ -29,11 +29,11 @@ function WarehousesPage() {
   const deleteLockRef = useRef(false)
   const [warehouseToDelete, setWarehouseToDelete] = useState<Warehouse | null>(null)
   const warehouses = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
-  const total = query.data?.pages.at(-1)?.paginate.total ?? warehouses.length
+  const total = query.data?.pages.at(-1)?.paginate.total ?? warehouses?.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: query.data?.pages?.length,
   })
 
   useEffect(() => {

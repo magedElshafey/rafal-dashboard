@@ -29,7 +29,7 @@ type CategoryFormProps = {
 export const EMPTY_CATEGORY_FORM_VALUES: CategoryFormValues = {
   parent_id: null,
   name: { ar: '', en: '' },
-  slug: '',
+
   description: { ar: '', en: '' },
   is_active: true,
   sort_order: 0,
@@ -57,7 +57,7 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
       createCategorySchema({
         nameArRequired: t('categories.validation.nameArRequired'),
         nameEnRequired: t('categories.validation.nameEnRequired'),
-        slugRequired: t('categories.validation.slugRequired'),
+
         sortRequired: t('categories.validation.sortRequired'),
         sortInteger: t('categories.validation.sortInteger'),
         sortNonNegative: t('categories.validation.sortNonNegative'),
@@ -70,7 +70,7 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         ? {
             parent_id: category.parent_id,
             name: { ...category.name },
-            slug: category.slug,
+
             description: category.description ? { ...category.description } : { ar: '', en: '' },
             is_active: category.is_active,
             sort_order: category.sort_order,
@@ -90,7 +90,7 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
     const normalized: CategoryFormValues = {
       ...values,
       name: { ar: values.name.ar.trim(), en: values.name.en.trim() },
-      slug: values.slug.trim(),
+
       description: { ar: values.description.ar.trim(), en: values.description.en.trim() },
     }
     try {
@@ -130,7 +130,7 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         <FormInput name="name.ar" label={t('categories.fields.nameAr')} dir="rtl" required autoFocus />
         <FormInput name="name.en" label={t('categories.fields.nameEn')} dir="ltr" required />
       </div>
-      <FormInput name="slug" label={t('categories.fields.slug')} dir="ltr" required />
+
       <div className="grid gap-5 sm:grid-cols-2">
         <FormTextArea name="description.ar" label={t('categories.fields.descriptionAr')} dir="rtl" />
         <FormTextArea name="description.en" label={t('categories.fields.descriptionEn')} dir="ltr" />

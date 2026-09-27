@@ -12,12 +12,6 @@ The core routes are `/login` and the authenticated `/dashboard`. API calls use t
 
 The shared dashboard shell owns the responsive sidebar, top navigation, and main content region. Theme preferences are persisted under `VITE_REACT_APP_THEME_KEY`; dark is the default. Arabic is the default locale, and switching languages updates the document language and RTL/LTR direction through the existing i18next instance.
 
-### Temporary authentication bypass
-
-`VITE_AUTH_BYPASS=true` allows unauthenticated access to `/dashboard` during local development while the Laravel authentication contract is unavailable. The bypass is centralized in `RequireAuth`; the auth store, login/logout flow, session handling, and HTTP authentication remain active and unchanged.
-
-Set `VITE_AUTH_BYPASS=false` (or remove the variable) to restore normal route protection. Production builds always ignore the bypass, even if the variable is accidentally set.
-
 ## Validation
 
 ```sh

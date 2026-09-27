@@ -5,7 +5,7 @@ import type { CategoryFormValues } from '@/modules/categories/types/category.typ
 type Messages = {
   nameArRequired: string
   nameEnRequired: string
-  slugRequired: string
+
   sortRequired: string
   sortInteger: string
   sortNonNegative: string
@@ -18,7 +18,7 @@ export function createCategorySchema(messages: Messages) {
       ar: yup.string().trim().required(messages.nameArRequired),
       en: yup.string().trim().required(messages.nameEnRequired),
     }),
-    slug: yup.string().trim().required(messages.slugRequired),
+
     description: yup.object({
       ar: yup.string().trim().defined(),
       en: yup.string().trim().defined(),
