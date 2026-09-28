@@ -14,6 +14,7 @@ export const Routes = {
   shippingMethods: '/dashboard/shipping-methods',
   products: '/dashboard/products',
   coupons: '/dashboard/coupons',
+  aboutUs: '/dashboard/about-us',
   productNew: '/dashboard/products/new',
   productEdit: '/dashboard/products/:id/edit',
   productEditPath: (id: number) => `/dashboard/products/${id}/edit`,

@@ -30,6 +30,8 @@ import * as productsAr from '@/modules/products/locale/ar.json'
 import * as productsEn from '@/modules/products/locale/en.json'
 import * as couponsAr from '@/modules/coupons/locale/ar.json'
 import * as couponsEn from '@/modules/coupons/locale/en.json'
+import * as aboutUsAr from '@/modules/about-us/locale/ar.json'
+import * as aboutUsEn from '@/modules/about-us/locale/en.json'
 
 export const resources = {
   en: {
@@ -50,6 +52,7 @@ export const resources = {
       ...shippingMethodsEn,
       ...productsEn,
       ...couponsEn,
+      ...aboutUsEn,
     },
   },
   ar: {
@@ -70,6 +73,7 @@ export const resources = {
       ...shippingMethodsAr,
       ...productsAr,
       ...couponsAr,
+      ...aboutUsAr,
     },
   },
 } as const

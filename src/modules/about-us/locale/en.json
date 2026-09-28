@@ -1,0 +1,71 @@
+{
+  "aboutUs": {
+    "title": "About Us",
+    "description": "Manage the storefront story, mission, vision, hero, and feature highlights.",
+    "sections": {
+      "hero": {
+        "title": "Hero",
+        "description": "Set the localized headline, supporting text, and hero image."
+      },
+      "story": {
+        "title": "Story",
+        "description": "Describe the company story in Arabic and English."
+      },
+      "vision": {
+        "title": "Vision",
+        "description": "Explain the long-term vision in both languages."
+      },
+      "mission": {
+        "title": "Mission",
+        "description": "Explain the company mission in both languages."
+      },
+      "features": {
+        "title": "Features",
+        "description": "Add, edit, remove, and reorder the storefront feature highlights."
+      }
+    },
+    "fields": {
+      "heroTitleAr": "Hero Title — Arabic",
+      "heroTitleEn": "Hero Title — English",
+      "heroSubtitleAr": "Hero Subtitle — Arabic",
+      "heroSubtitleEn": "Hero Subtitle — English",
+      "heroImage": "Hero Image",
+      "storyAr": "Story — Arabic",
+      "storyEn": "Story — English",
+      "visionAr": "Vision — Arabic",
+      "visionEn": "Vision — English",
+      "missionAr": "Mission — Arabic",
+      "missionEn": "Mission — English",
+      "featureTitleAr": "Feature Title — Arabic",
+      "featureTitleEn": "Feature Title — English",
+      "featureSubtitleAr": "Feature Subtitle — Arabic",
+      "featureSubtitleEn": "Feature Subtitle — English",
+      "featureIcon": "Feature Icon"
+    },
+    "features": {
+      "item": "Feature {{number}}",
+      "empty": "No features are currently configured.",
+      "finalRemovalUnavailable": "The final Feature cannot be removed until the backend supports saving an empty Feature collection."
+    },
+    "media": {
+      "heroAlt": "Current About Us hero",
+      "featureIconAlt": "Current feature icon",
+      "deleteUnavailable": "Existing media can be replaced, but permanent removal is unavailable because the backend does not provide a media ID."
+    },
+    "actions": {
+      "save": "Save Changes",
+      "saving": "Saving",
+      "addFeature": "Add Feature",
+      "removeFeature": "Remove feature {{number}}",
+      "moveUp": "Move feature {{number}} up",
+      "moveDown": "Move feature {{number}} down"
+    },
+    "validation": {
+      "required": "This field is required."
+    },
+    "feedback": {
+      "updated": "About Us updated successfully.",
+      "updateError": "About Us could not be updated. Your changes have been preserved."
+    }
+  }
+}

@@ -11,6 +11,7 @@ import {
   Warehouse,
   Truck,
   TicketPercent,
+  Info,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -93,6 +94,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.coupons,
     labelKey: 'dashboard.sidebar.coupons',
     icon: TicketPercent,
+    match: 'prefix',
+  },
+  {
+    to: Routes.aboutUs,
+    labelKey: 'dashboard.sidebar.aboutUs',
+    icon: Info,
     match: 'prefix',
   },
 ]

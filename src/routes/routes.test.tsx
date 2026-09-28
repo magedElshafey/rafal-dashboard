@@ -33,6 +33,13 @@ describe('core routes', () => {
     expect(privatePaths).toContain('/dashboard/coupons')
   })
 
+  it('defines the About Us singleton route', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.aboutUs).toBe('/dashboard/about-us')
+    expect(privatePaths).toContain('/dashboard/about-us')
+  })
+
   it('redirects unauthenticated dashboard access to login', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
