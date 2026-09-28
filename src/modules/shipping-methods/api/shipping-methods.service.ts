@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { shippingMethodsMockTransport } from '@/modules/shipping-methods/mocks/shipping-methods.mock'
 import type {
   DeleteShippingMethodResponse,
   RawShippingMethod,
@@ -70,7 +68,7 @@ function normalizeResponse(response: RawShippingMethodResponse): ShippingMethodR
   return { ...response, data: normalizeShippingMethod(response.data) }
 }
 
-export const shippingMethodsHttpTransport = {
+const shippingMethodsHttpTransport = {
   async list(page: number, signal?: AbortSignal) {
     return (
       await $http.get<ShippingMethodsIndexResponse>({
@@ -114,11 +112,9 @@ export const shippingMethodsHttpTransport = {
   },
 }
 
-const transport = env.SHIPPING_METHODS_USE_MOCK ? shippingMethodsMockTransport : shippingMethodsHttpTransport
-
 export const shippingMethodsService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ShippingMethod>> {
-    const response = await transport.list(page, signal)
+    const response = await shippingMethodsHttpTransport.list(page, signal)
     const items = response.data.map(normalizeShippingMethod)
     return {
       items,
@@ -136,10 +132,10 @@ export const shippingMethodsService = {
     }
   },
   async create(payload: ShippingMethodCreatePayload) {
-    return normalizeResponse(await transport.create(serializeShippingMethodCreate(payload)))
+    return normalizeResponse(await shippingMethodsHttpTransport.create(serializeShippingMethodCreate(payload)))
   },
   async update(id: number, payload: ShippingMethodUpdatePayload) {
-    return normalizeResponse(await transport.update(id, serializeShippingMethodUpdate(payload)))
+    return normalizeResponse(await shippingMethodsHttpTransport.update(id, serializeShippingMethodUpdate(payload)))
   },
-  delete: (id: number) => transport.delete(id),
+  delete: (id: number) => shippingMethodsHttpTransport.delete(id),
 }

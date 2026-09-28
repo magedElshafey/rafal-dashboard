@@ -6,11 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { shippingMethodsService } from '@/modules/shipping-methods/api/shipping-methods.service'
-import {
-  resetShippingMethodsMock,
-  seedShippingMethodsMock,
-} from '@/modules/shipping-methods/mocks/shipping-methods.mock'
-import type { RawShippingMethod } from '@/modules/shipping-methods/types/shipping-method.types'
+import type {
+  RawShippingMethod,
+  ShippingMethod,
+  ShippingMethodCreatePayload,
+  ShippingMethodUpdatePayload,
+} from '@/modules/shipping-methods/types/shipping-method.types'
 import ShippingMethodsPage from './ShippingMethodsPage'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -41,6 +42,95 @@ const rawMethod = (id: number, overrides: Partial<RawShippingMethod> = {}): RawS
   ...overrides,
 })
 
+let shippingMethods: ShippingMethod[] = []
+
+function toShippingMethod(raw: RawShippingMethod): ShippingMethod {
+  return {
+    id: raw.id,
+    code: raw.code,
+    name: { ...raw.name },
+    etaLabel: { ...raw.eta_label },
+    price: Number(raw.price),
+    isPickup: raw.is_pickup,
+    isActive: raw.is_active,
+    sortOrder: raw.sort_order,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+  }
+}
+
+function seedShippingMethods(methods: RawShippingMethod[]) {
+  shippingMethods = methods.map(toShippingMethod)
+}
+
+function paginated(items: ShippingMethod[], page: number) {
+  const perPage = 15
+  const start = (page - 1) * perPage
+  const pageItems = items.slice(start, start + perPage)
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage))
+  return {
+    items: pageItems,
+    paginate: {
+      current_page: page,
+      total_pages: totalPages,
+      per_page: perPage,
+      total: items.length,
+      count: pageItems.length,
+      next_page_url: page < totalPages ? String(page + 1) : null,
+      prev_page_url: page > 1 ? String(page - 1) : null,
+    },
+    extra: null,
+  }
+}
+
+function installServiceFixtures() {
+  vi.spyOn(shippingMethodsService, 'list').mockImplementation(async (page) => paginated(shippingMethods, page))
+  vi.spyOn(shippingMethodsService, 'create').mockImplementation(async (payload: ShippingMethodCreatePayload) => {
+    const now = '2026-09-28T00:00:00Z'
+    const created: ShippingMethod = {
+      id: Math.max(0, ...shippingMethods.map((method) => method.id)) + 1,
+      code: payload.code,
+      name: { ...payload.name },
+      etaLabel: { ...payload.etaLabel },
+      price: payload.price,
+      isPickup: payload.isPickup,
+      isActive: payload.isActive,
+      sortOrder: payload.sortOrder ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    }
+    shippingMethods.unshift(created)
+    return { success: true, message: 'created', data: created }
+  })
+  vi.spyOn(shippingMethodsService, 'update').mockImplementation(async (id, payload: ShippingMethodUpdatePayload) => {
+    const index = shippingMethods.findIndex((method) => method.id === id)
+    if (index < 0) throw new Error('Shipping method not found')
+    const current = shippingMethods[index]
+    const updated: ShippingMethod = {
+      ...current,
+      code: payload.code ?? current.code,
+      name: {
+        ar: payload.nameAr ?? current.name.ar,
+        en: payload.nameEn ?? current.name.en,
+      },
+      etaLabel: {
+        ar: payload.etaLabelAr ?? current.etaLabel.ar,
+        en: payload.etaLabelEn ?? current.etaLabel.en,
+      },
+      price: payload.price ?? current.price,
+      isPickup: payload.isPickup ?? current.isPickup,
+      isActive: payload.isActive ?? current.isActive,
+      sortOrder: payload.sortOrder ?? current.sortOrder,
+    }
+    shippingMethods[index] = updated
+    return { success: true, message: 'updated', data: updated }
+  })
+  vi.spyOn(shippingMethodsService, 'delete').mockImplementation(async (id) => {
+    shippingMethods = shippingMethods.filter((method) => method.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+}
+
 function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
@@ -68,14 +158,15 @@ async function fillRequiredCreateFields(user: ReturnType<typeof userEvent.setup>
 describe('ShippingMethodsPage', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
-    resetShippingMethodsMock()
+    shippingMethods = []
+    installServiceFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
   })
 
   it('renders structural loading, infinite pagination, localized data, both responsive views, and no search/filter', async () => {
-    seedShippingMethodsMock([
+    seedShippingMethods([
       rawMethod(16, {
         name: { ar: 'طريقة بلا ترجمة', en: '' },
         eta_label: { ar: 'غداً', en: '' },
@@ -99,11 +190,10 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('shows safe Retry and the established empty state', async () => {
-    seedShippingMethodsMock([])
-    const original = shippingMethodsService.list
-    vi.spyOn(shippingMethodsService, 'list')
-      .mockRejectedValueOnce(new Error('unsafe database message'))
-      .mockImplementation(original)
+    seedShippingMethods([])
+    const list = vi.mocked(shippingMethodsService.list)
+    const implementation = list.getMockImplementation()
+    list.mockRejectedValueOnce(new Error('unsafe database message')).mockImplementation(implementation!)
     const user = userEvent.setup()
     renderPage()
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
@@ -113,7 +203,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('creates paid shipping once and Create Another resets every field', async () => {
-    seedShippingMethodsMock([])
+    seedShippingMethods([])
     const create = vi.spyOn(shippingMethodsService, 'create')
     const user = userEvent.setup()
     renderPage()
@@ -149,7 +239,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('creates Pickup with a visible disabled zero price', async () => {
-    seedShippingMethodsMock([])
+    seedShippingMethods([])
     const create = vi.spyOn(shippingMethodsService, 'create')
     const user = userEvent.setup()
     renderPage()
@@ -170,7 +260,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('hydrates row-backed Edit and submits only one dirty nested field', async () => {
-    seedShippingMethodsMock([rawMethod(1)])
+    seedShippingMethods([rawMethod(1)])
     const update = vi.spyOn(shippingMethodsService, 'update')
     const user = userEvent.setup()
     renderPage()
@@ -188,7 +278,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('prevents Edit from clearing an existing Sort Order', async () => {
-    seedShippingMethodsMock([rawMethod(1, { sort_order: 3 })])
+    seedShippingMethods([rawMethod(1, { sort_order: 3 })])
     const update = vi.spyOn(shippingMethodsService, 'update')
     const user = userEvent.setup()
     renderPage()
@@ -203,7 +293,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it.each([0, -2])('submits a valid dirty Edit Sort Order of %s', async (nextSortOrder) => {
-    seedShippingMethodsMock([rawMethod(1, { sort_order: 3 })])
+    seedShippingMethods([rawMethod(1, { sort_order: 3 })])
     const update = vi.spyOn(shippingMethodsService, 'update')
     const user = userEvent.setup()
     renderPage()
@@ -218,7 +308,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('keeps zero when Pickup is turned off and enforces both dirty fields when turned on', async () => {
-    seedShippingMethodsMock([
+    seedShippingMethods([
       rawMethod(1, { price: '0', is_pickup: true }),
       rawMethod(2, { price: '25', is_pickup: false }),
     ])
@@ -243,7 +333,7 @@ describe('ShippingMethodsPage', () => {
   })
 
   it('preserves edits on safe update failure and confirms exact Delete behavior', async () => {
-    seedShippingMethodsMock([rawMethod(7)])
+    seedShippingMethods([rawMethod(7)])
     vi.spyOn(shippingMethodsService, 'update').mockRejectedValueOnce(new Error('raw SQL detail'))
     const remove = vi.spyOn(shippingMethodsService, 'delete')
     const user = userEvent.setup()

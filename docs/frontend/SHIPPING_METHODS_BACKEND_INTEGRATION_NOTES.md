@@ -2,6 +2,8 @@
 
 Shipping Methods is a paginated CRUD resource. The dashboard uses `GET /dashboard/shipping-methods`, `POST /dashboard/shipping-methods`, `PUT /dashboard/shipping-methods/:id`, and `DELETE /dashboard/shipping-methods/:id`. Create and Update use `multipart/form-data`; Delete has no request body.
 
+Shipping Methods use the real backend exclusively through the shared HTTP client. The former frontend mock mode and its environment flag have been removed.
+
 Update is partial for every documented writable field. Omitted fields remain unchanged, so the frontend maps React Hook Form dirty fields to a dedicated partial domain payload before the service converts them to wire keys.
 
 Omitting `sort_order` on Update keeps its existing value, and no clearing syntax is confirmed. Edit therefore prevents clearing an existing Sort Order as unsupported frontend behavior; `0` and negative integers remain valid. Create continues to allow Sort Order to be omitted.

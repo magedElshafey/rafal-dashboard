@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
 
-vi.mock('@/config/env', () => ({ default: { SHIPPING_METHODS_USE_MOCK: false } }))
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import {
@@ -28,6 +27,7 @@ describe('shippingMethodsService', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('normalizes paginated API data into domain values', async () => {
+    const signal = new AbortController().signal
     httpMocks.get.mockResolvedValue({
       data: {
         success: true,
@@ -36,7 +36,13 @@ describe('shippingMethodsService', () => {
         meta: { current_page: 1, last_page: 2, per_page: 15, total: 16 },
       },
     })
-    const result = await shippingMethodsService.list(1)
+    const result = await shippingMethodsService.list(1, signal)
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/shipping-methods',
+      query: { page: 1 },
+      signal,
+      suppressErrorNotification: true,
+    })
     expect(result.items[0]).toEqual({
       id: 1,
       code: 'standard',
@@ -73,6 +79,7 @@ describe('shippingMethodsService', () => {
       ['sort_order', '0'],
       ['is_active', '1'],
     ])
+    expect(body.has('slug')).toBe(false)
   })
 
   it.each([
@@ -90,10 +97,12 @@ describe('shippingMethodsService', () => {
   })
 
   it('serializes Pickup ON with exactly its required zero price', () => {
-    expect([...serializeShippingMethodUpdate({ isPickup: true, price: 0 }).entries()]).toEqual([
+    const body = serializeShippingMethodUpdate({ isPickup: true, price: 0 })
+    expect([...body.entries()]).toEqual([
       ['is_pickup', '1'],
       ['price', '0'],
     ])
+    expect(body.has('slug')).toBe(false)
     expect(() => serializeShippingMethodUpdate({ isPickup: true })).toThrow()
     expect(() =>
       serializeShippingMethodCreate({
@@ -125,6 +134,10 @@ describe('shippingMethodsService', () => {
     await shippingMethodsService.delete(1)
     expect(httpMocks.post.mock.calls[0][0]).toMatchObject({
       url: '/dashboard/shipping-methods',
+      isFormData: true,
+    })
+    expect(httpMocks.put.mock.calls[0][0]).toMatchObject({
+      url: '/dashboard/shipping-methods/1',
       isFormData: true,
     })
     expect([...httpMocks.put.mock.calls[0][0].data.entries()]).toEqual([['eta_label[en]', '4 days']])
