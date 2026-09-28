@@ -114,12 +114,12 @@ describe('ProductVariantsSection', () => {
     await i18n.changeLanguage('en')
   })
 
-  it('renders flat attributes, complex fallback, price semantics, and no Edit action', () => {
+  it('renders flat attributes, complex fallback, effective price, and Edit actions', () => {
     renderSection()
     expect(screen.getByText('color: silver')).toBeInTheDocument()
     expect(screen.getByText('Complex attributes')).toBeInTheDocument()
-    expect(screen.getByText('Uses Product Base Price')).toBeInTheDocument()
-    expect(screen.queryByText('Edit Variant')).not.toBeInTheDocument()
+    expect(screen.getByText(/Uses Product Base Price/)).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Actions for variant/ })).toHaveLength(2)
   })
 
   it('creates a Variant from the isolated Drawer form and appends the response', async () => {
@@ -153,6 +153,25 @@ describe('ProductVariantsSection', () => {
     })
     await waitFor(() => expect(screen.getByText('VAR-C')).toBeInTheDocument())
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('edits a Variant independently with a partial payload', async () => {
+    const update = vi.spyOn(productVariantsService, 'update').mockResolvedValue({
+      ...product.variants[0],
+      sku: 'VAR-A2',
+    })
+    const user = userEvent.setup()
+    renderSection()
+    await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-A' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit variant VAR-A' }))
+    const drawer = await screen.findByRole('dialog')
+    const sku = within(drawer).getByRole('textbox', { name: 'SKU' })
+    await user.clear(sku)
+    await user.type(sku, 'VAR-A2')
+    await user.click(within(drawer).getByRole('button', { name: 'Update Variant' }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, 12, { sku: 'VAR-A2' }))
+    expect(await screen.findByText('VAR-A2')).toBeInTheDocument()
   })
 
   it('confirms Variant Delete, prevents duplicates, and removes only the target', async () => {

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
 
-vi.mock('@/config/env', () => ({ default: { PRODUCTS_USE_MOCK: false } }))
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import {
@@ -175,7 +174,7 @@ describe('products service', () => {
       suppressSuccessNotification: true,
       suppressErrorNotification: true,
     })
-    expect([...request.data.entries()]).toEqual([
+    expect([...(request.data as FormData).entries()]).toEqual([
       ['category_id', '4'],
       ['sku', 'RFL-CREATE-001'],
       ['name[ar]', 'منتج جديد'],
@@ -195,11 +194,22 @@ describe('products service', () => {
       ['images[]', firstImage],
       ['images[]', secondImage],
     ])
-    expect(request.data.has('slug')).toBe(false)
-    expect(request.data.has('variants')).toBe(false)
-    expect(request.data.has('stocks')).toBe(false)
-    expect(request.data.has('simulated_viewers_count')).toBe(false)
-    expect(request.data.has('simulated_orders_count')).toBe(false)
+    expect((request.data as FormData).has('slug')).toBe(false)
+    expect((request.data as FormData).has('variants')).toBe(false)
+    expect((request.data as FormData).has('stocks')).toBe(false)
+    expect((request.data as FormData).has('simulated_viewers_count')).toBe(false)
+    expect((request.data as FormData).has('simulated_orders_count')).toBe(false)
+  })
+
+  it('POSTs JSON when Product Create has no media', async () => {
+    httpMocks.post.mockResolvedValue({ data: { success: true, message: 'created', data: { id: 82 } } })
+    await productsService.create(createPayload({ images: [] }))
+    const request = httpMocks.post.mock.calls[0][0]
+    expect(request).not.toHaveProperty('isFormData')
+    expect(request.data).toMatchObject({ sku: 'RFL-CREATE-001', is_active: 1 })
+    expect(request.data).not.toHaveProperty('slug')
+    expect(request.data).not.toHaveProperty('variants')
+    expect(request.data).not.toHaveProperty('warehouse_stocks')
   })
 
   it('omits nullable Create fields and disabled personalization values', () => {
@@ -215,17 +225,17 @@ describe('products service', () => {
       })
     )
 
-    expect([...body.keys()]).toEqual([
-      'category_id',
-      'sku',
-      'name[ar]',
-      'base_price',
-      'is_personalizable',
-      'hide_price_on_packaging',
-      'is_new_arrival',
-      'is_active',
-      'sort_order',
-    ])
+    expect(body).toEqual({
+      category_id: 4,
+      sku: 'RFL-CREATE-001',
+      name: { ar: 'منتج' },
+      base_price: 50.25,
+      is_personalizable: 0,
+      hide_price_on_packaging: 1,
+      is_new_arrival: 0,
+      is_active: 1,
+      sort_order: -2,
+    })
   })
 
   it.each([{ basePrice: Number.NaN }, { discountPercentage: Number.POSITIVE_INFINITY }, { sortOrder: Number.NaN }])(
@@ -246,7 +256,10 @@ describe('products service', () => {
         data: rawDetail({
           description: { ar: '<p><strong>فضة</strong></p>', en: '<ul><li>Silver</li></ul>' },
           base_price: '50.25',
+          base_price_incl_vat: '57.79',
           personalization_fee: '3.5',
+          personalization_languages: ['ar', 'en'],
+          category: { id: '4', name: { ar: 'فئة', en: 'Category' }, slug: 'read-only-category' },
         }),
       },
     })
@@ -260,7 +273,10 @@ describe('products service', () => {
     })
     expect(product).toMatchObject({
       basePrice: 50.25,
+      basePriceInclVat: 57.79,
       personalizationFee: 3.5,
+      personalizationLanguages: ['ar', 'en'],
+      category: { id: 4, name: { ar: 'فئة', en: 'Category' }, slug: 'read-only-category' },
       description: { ar: '<p><strong>فضة</strong></p>', en: '<ul><li>Silver</li></ul>' },
       images: [{ id: 12, url: 'https://example.com/product.jpg' }],
     })
@@ -287,7 +303,7 @@ describe('products service', () => {
       isActive: true,
       images: [image],
     })
-    expect([...body.entries()]).toEqual([
+    expect([...(body as FormData).entries()]).toEqual([
       ['description[ar]', 'null'],
       ['description[en]', '<p><strong>Hello</strong></p>'],
       ['discount_percentage', 'null'],
@@ -298,11 +314,11 @@ describe('products service', () => {
       ['is_active', '1'],
       ['images[]', image],
     ])
-    expect(body.has('slug')).toBe(false)
-    expect(body.has('sku')).toBe(false)
+    expect((body as FormData).has('slug')).toBe(false)
+    expect((body as FormData).has('sku')).toBe(false)
   })
 
-  it('serializes every nullable clear as textual null while keeping localized fields granular', () => {
+  it('uses JSON null clears and keeps localized fields granular when no media is added', () => {
     const body = serializeProductUpdate({
       name: { en: null },
       description: { en: null },
@@ -310,33 +326,29 @@ describe('products service', () => {
       personalizationMaxLength: null,
       personalizationFee: null,
     })
-    expect([...body.entries()]).toEqual([
-      ['name[en]', 'null'],
-      ['description[en]', 'null'],
-      ['discount_end_at', 'null'],
-      ['personalization_max_length', 'null'],
-      ['personalization_fee', 'null'],
-    ])
-    expect(body.has('name[ar]')).toBe(false)
-    expect(body.has('description[ar]')).toBe(false)
+    expect(body).toEqual({
+      name: { en: null },
+      description: { en: null },
+      discount_end_at: null,
+      personalization_max_length: null,
+      personalization_fee: null,
+    })
   })
 
-  it('PUTs multipart and normalizes the complete authoritative response', async () => {
+  it('PUTs partial JSON without Product children and normalizes the complete authoritative response', async () => {
     httpMocks.put.mockResolvedValueOnce({
       data: { success: true, message: 'updated', data: rawDetail({ sku: 'UPDATED' }) },
     })
     await expect(productsService.update(9, { sku: ' UPDATED ' })).resolves.toMatchObject({ id: 1, sku: 'UPDATED' })
-    expect(httpMocks.put).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: '/dashboard/products/9',
-        isFormData: true,
-        suppressSuccessNotification: true,
-        suppressErrorNotification: true,
-      })
-    )
-    expect([...httpMocks.put.mock.calls[0][0].data.entries()]).toEqual([['sku', 'UPDATED']])
-    expect(httpMocks.put.mock.calls[0][0].data.has('variants')).toBe(false)
-    expect(httpMocks.put.mock.calls[0][0].data.has('warehouse_stocks')).toBe(false)
+    expect(httpMocks.put).toHaveBeenCalledWith({
+      url: '/dashboard/products/9',
+      data: { sku: 'UPDATED' },
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+    expect(httpMocks.put.mock.calls[0][0].data).not.toHaveProperty('variants')
+    expect(httpMocks.put.mock.calls[0][0].data).not.toHaveProperty('warehouse_stocks')
+    expect(httpMocks.put.mock.calls[0][0].data).not.toHaveProperty('slug')
   })
 
   it('DELETEs the exact Product endpoint without a request body', async () => {

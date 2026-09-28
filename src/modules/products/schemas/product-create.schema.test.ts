@@ -39,8 +39,8 @@ const validValues = (overrides: Partial<ProductCreateFormValues> = {}): ProductC
 
 const schema = createProductCreateSchema(messages)
 
-describe('Product Create validation', () => {
-  it('requires Category and trims required Arabic identity fields with 255-character limits', async () => {
+describe('shared Product Create/Edit validation', () => {
+  it('requires Category for both Dashboard write flows and trims required identity fields', async () => {
     await expect(schema.validateAt('categoryId', validValues({ categoryId: null }))).rejects.toThrow('required')
     await expect(schema.validateAt('sku', validValues({ sku: ' '.repeat(2) }))).rejects.toThrow('required')
     await expect(schema.validateAt('sku', validValues({ sku: 'x'.repeat(256) }))).rejects.toThrow('max-length')

@@ -6,9 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
-import { productsService } from '@/modules/products/api/products.service'
-import { resetProductsMock, seedProductsMock } from '@/modules/products/mocks/products.mock'
-import type { RawProductListItem } from '@/modules/products/types/product.types'
+import { normalizeProductListItem, productsService } from '@/modules/products/api/products.service'
+import type { ProductListItem, RawProductListItem } from '@/modules/products/types/product.types'
 
 import ProductsPage from './ProductsPage'
 
@@ -34,6 +33,39 @@ const rawProduct = (id: number, overrides: Partial<RawProductListItem> = {}): Ra
   ...overrides,
 })
 
+let productItems: ProductListItem[] = []
+
+function seedProducts(items: RawProductListItem[]) {
+  productItems = items.map(normalizeProductListItem)
+}
+
+async function listFixture(page: number) {
+  const perPage = 15
+  const pageItems = productItems.slice((page - 1) * perPage, page * perPage)
+  const totalPages = Math.max(1, Math.ceil(productItems.length / perPage))
+  return {
+    items: pageItems,
+    paginate: {
+      current_page: page,
+      total_pages: totalPages,
+      per_page: perPage,
+      total: productItems.length,
+      count: pageItems.length,
+      next_page_url: page < totalPages ? String(page + 1) : null,
+      prev_page_url: page > 1 ? String(page - 1) : null,
+    },
+    extra: null,
+  }
+}
+
+function installServiceFixtures() {
+  vi.spyOn(productsService, 'list').mockImplementation(listFixture)
+  vi.spyOn(productsService, 'delete').mockImplementation(async (id) => {
+    productItems = productItems.filter((product) => product.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+}
+
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   return render(
@@ -51,14 +83,16 @@ function renderPage() {
 
 describe('ProductsPage', () => {
   beforeEach(async () => {
-    resetProductsMock()
+    vi.restoreAllMocks()
+    seedProducts([])
+    installServiceFixtures()
     await i18n.changeLanguage('en')
   })
 
   afterEach(() => vi.restoreAllMocks())
 
   it('renders the complete localized Index in desktop and mobile representations', async () => {
-    seedProductsMock([
+    seedProducts([
       rawProduct(1, {
         sku: 'RFL-DISCOUNTED',
         name: { ar: 'منتج مخفض', en: 'Discounted Product' },
@@ -109,8 +143,8 @@ describe('ProductsPage', () => {
   })
 
   it('shows a safe initial error and retries into the empty state', async () => {
-    seedProductsMock([])
-    const originalList = productsService.list
+    seedProducts([])
+    const originalList = listFixture
     vi.spyOn(productsService, 'list')
       .mockRejectedValueOnce(new Error('unsafe backend stack detail'))
       .mockImplementation(originalList)
@@ -127,7 +161,7 @@ describe('ProductsPage', () => {
 
   it('renders the localized empty state in Arabic', async () => {
     await i18n.changeLanguage('ar')
-    seedProductsMock([])
+    seedProducts([])
 
     renderPage()
 
@@ -136,8 +170,8 @@ describe('ProductsPage', () => {
   })
 
   it('keeps loaded products visible when a later page fails and retries that page', async () => {
-    seedProductsMock(Array.from({ length: 16 }, (_, index) => rawProduct(index + 1)))
-    const originalList = productsService.list
+    seedProducts(Array.from({ length: 16 }, (_, index) => rawProduct(index + 1)))
+    const originalList = listFixture
     const list = vi
       .spyOn(productsService, 'list')
       .mockImplementationOnce(originalList)
@@ -160,7 +194,7 @@ describe('ProductsPage', () => {
   })
 
   it('navigates from Create and responsive Edit actions', async () => {
-    seedProductsMock([rawProduct(1)])
+    seedProducts([rawProduct(1)])
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Product 1')
@@ -171,7 +205,7 @@ describe('ProductsPage', () => {
   })
 
   it('navigates Edit to the selected dynamic route', async () => {
-    seedProductsMock([rawProduct(4)])
+    seedProducts([rawProduct(4)])
     const user = userEvent.setup()
     renderPage()
     await user.click((await screen.findAllByRole('button', { name: 'Actions for Product 4' }))[0])
@@ -180,7 +214,7 @@ describe('ProductsPage', () => {
   })
 
   it('requires confirmation, protects duplicate Product deletion, and removes on success', async () => {
-    seedProductsMock([rawProduct(8)])
+    seedProducts([rawProduct(8)])
     const remove = vi.spyOn(productsService, 'delete')
     const user = userEvent.setup()
     renderPage()
@@ -195,7 +229,7 @@ describe('ProductsPage', () => {
   })
 
   it('keeps the Product and confirmation available after a safe Delete failure', async () => {
-    seedProductsMock([rawProduct(9)])
+    seedProducts([rawProduct(9)])
     vi.spyOn(productsService, 'delete').mockRejectedValueOnce(new Error('unsafe delete detail'))
     const user = userEvent.setup()
     renderPage()

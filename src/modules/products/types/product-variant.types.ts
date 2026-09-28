@@ -3,11 +3,13 @@ import type { ImageUploadValue } from '@/components/form/image-upload'
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
 export type RawVariantWarehouseStock = {
+  id?: number | string
   warehouse_id: number | string
   quantity: number | string
 }
 
 export type VariantWarehouseStock = {
+  id?: number | null
   warehouseId: number
   quantity: number
 }
@@ -18,6 +20,7 @@ export type RawProductVariant = {
   attributes: JsonValue
   price_override: number | string | null
   is_active: boolean | 0 | 1 | '0' | '1'
+  is_default?: boolean | 0 | 1 | '0' | '1'
   images: Array<{ id: number | string; url: string }>
   warehouse_stocks: RawVariantWarehouseStock[]
 }
@@ -28,6 +31,7 @@ export type ProductVariant = {
   attributes: JsonValue
   priceOverride: number | null
   isActive: boolean
+  isDefault?: boolean
   images: Array<{ id: number; url: string }>
   warehouseStocks: VariantWarehouseStock[]
 }
@@ -50,13 +54,30 @@ export type ProductVariantCreatePayload = {
   images: File[]
 }
 
+export type ProductVariantUpdatePayload = Partial<Omit<ProductVariantCreatePayload, 'images'>> & {
+  images?: File[]
+}
+
+export type VariantOptionPresentation = 'color_swatch' | 'text_swatch' | 'dropdown' | 'image_swatch'
+export type VariantOptionValue = {
+  code: string
+  label: { ar: string; en: string }
+  visual?: { type: 'color' | 'image'; value: string }
+}
+export type ProductVariantAttributeDefinition = {
+  key: string
+  label: { ar: string; en: string }
+  presentation: VariantOptionPresentation
+  values: VariantOptionValue[]
+}
+
 export type ProductVariantResponse = { success: boolean; message: string; data: RawProductVariant }
 export type ProductVariantDeleteResponse = { success: boolean; message: string }
 
 export type VariantWarehouseStockResponse = {
   success: boolean
   message: string
-  data: RawVariantWarehouseStock
+  data?: RawVariantWarehouseStock
 }
 
 export type VariantWarehouseStockDeleteResponse = { success: boolean; message: string }

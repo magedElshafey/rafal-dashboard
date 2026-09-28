@@ -1,8 +1,7 @@
-import env from '@/config/env'
-import { productsMockTransport } from '@/modules/products/mocks/products.mock'
 import type {
   ProductVariant,
   ProductVariantCreatePayload,
+  ProductVariantUpdatePayload,
   ProductVariantDeleteResponse,
   ProductVariantResponse,
   JsonValue,
@@ -24,7 +23,7 @@ export function normalizeVariantWarehouseStock(raw: RawVariantWarehouseStock): V
   if (!Number.isInteger(warehouseId) || warehouseId <= 0 || !Number.isInteger(quantity) || quantity < 0) {
     throw new Error('Product Variant warehouse stock is unavailable')
   }
-  return { warehouseId, quantity }
+  return { id: raw.id === undefined ? null : finiteNumber(raw.id, 'stock id'), warehouseId, quantity }
 }
 
 function apiBoolean(value: RawProductVariant['is_active']) {
@@ -53,8 +52,29 @@ export function normalizeProductVariant(raw: RawProductVariant): ProductVariant 
     attributes: normalizeJsonValue(raw.attributes),
     priceOverride: raw.price_override === null ? null : finiteNumber(raw.price_override, 'price override'),
     isActive: apiBoolean(raw.is_active),
+    isDefault: raw.is_default === undefined ? false : apiBoolean(raw.is_default),
     images: raw.images.map((image) => ({ id: finiteNumber(image.id, 'image id'), url: image.url })),
     warehouseStocks: raw.warehouse_stocks.map(normalizeVariantWarehouseStock),
+  }
+}
+
+function serializeVariantFormData(payload: ProductVariantUpdatePayload) {
+  const body = new FormData()
+  if (payload.sku !== undefined) body.set('sku', payload.sku.trim())
+  Object.entries(payload.attributes ?? {}).forEach(([key, value]) => body.set(`attributes[${key}]`, value))
+  if (payload.priceOverride !== undefined)
+    body.set('price_override', payload.priceOverride === null ? 'null' : String(payload.priceOverride))
+  if (payload.isActive !== undefined) body.set('is_active', payload.isActive ? '1' : '0')
+  payload.images?.forEach((image) => body.append('images[]', image))
+  return body
+}
+
+function serializeVariantJson(payload: ProductVariantUpdatePayload) {
+  return {
+    ...(payload.sku !== undefined ? { sku: payload.sku.trim() } : {}),
+    ...(payload.attributes !== undefined ? { attributes: payload.attributes } : {}),
+    ...(payload.priceOverride !== undefined ? { price_override: payload.priceOverride } : {}),
+    ...(payload.isActive !== undefined ? { is_active: payload.isActive ? 1 : 0 } : {}),
   }
 }
 
@@ -62,22 +82,45 @@ export function serializeProductVariantCreate(payload: ProductVariantCreatePaylo
   if (payload.priceOverride !== null && !Number.isFinite(payload.priceOverride)) {
     throw new Error('Product Variant price override is invalid')
   }
-  const body = new FormData()
-  body.set('sku', payload.sku.trim())
-  Object.entries(payload.attributes).forEach(([key, value]) => body.set(`attributes[${key}]`, value))
-  if (payload.priceOverride !== null) body.set('price_override', String(payload.priceOverride))
-  body.set('is_active', payload.isActive ? '1' : '0')
-  payload.images.forEach((image) => body.append('images[]', image))
-  return body
+  return payload.images.length > 0
+    ? serializeVariantFormData(payload)
+    : serializeVariantJson({
+        ...payload,
+        priceOverride: payload.priceOverride === null ? undefined : payload.priceOverride,
+      })
+}
+
+export function serializeProductVariantUpdate(payload: ProductVariantUpdatePayload) {
+  if (
+    payload.priceOverride !== undefined &&
+    payload.priceOverride !== null &&
+    !Number.isFinite(payload.priceOverride)
+  ) {
+    throw new Error('Product Variant price override is invalid')
+  }
+  return payload.images && payload.images.length > 0 ? serializeVariantFormData(payload) : serializeVariantJson(payload)
 }
 
 export const productVariantsHttpTransport = {
-  async createVariant(productId: number, body: FormData) {
+  async createVariant(productId: number, body: FormData | Record<string, unknown>) {
+    const isFormData = body instanceof FormData
     return (
       await $http.post<ProductVariantResponse>({
         url: `/dashboard/products/${productId}/variants`,
         data: body,
-        isFormData: true,
+        ...(isFormData ? { isFormData: true } : {}),
+        suppressSuccessNotification: true,
+        suppressErrorNotification: true,
+      })
+    ).data
+  },
+  async updateVariant(productId: number, variantId: number, body: FormData | Record<string, unknown>) {
+    const isFormData = body instanceof FormData
+    return (
+      await $http.put<ProductVariantResponse>({
+        url: `/dashboard/products/${productId}/variants/${variantId}`,
+        data: body,
+        ...(isFormData ? { isFormData: true } : {}),
         suppressSuccessNotification: true,
         suppressErrorNotification: true,
       })
@@ -94,13 +137,17 @@ export const productVariantsHttpTransport = {
   },
 }
 
-const transport = env.PRODUCTS_USE_MOCK ? productsMockTransport : productVariantsHttpTransport
-
 export const productVariantsService = {
   async create(productId: number, payload: ProductVariantCreatePayload) {
     return normalizeProductVariant(
-      (await transport.createVariant(productId, serializeProductVariantCreate(payload))).data
+      (await productVariantsHttpTransport.createVariant(productId, serializeProductVariantCreate(payload))).data
     )
   },
-  delete: (productId: number, variantId: number) => transport.deleteVariant(productId, variantId),
+  async update(productId: number, variantId: number, payload: ProductVariantUpdatePayload) {
+    return normalizeProductVariant(
+      (await productVariantsHttpTransport.updateVariant(productId, variantId, serializeProductVariantUpdate(payload)))
+        .data
+    )
+  },
+  delete: (productId: number, variantId: number) => productVariantsHttpTransport.deleteVariant(productId, variantId),
 }

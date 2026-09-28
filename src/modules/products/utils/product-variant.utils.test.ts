@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { createProductVariantSchema } from '@/modules/products/schemas/product-variant.schema'
+import type { ProductVariantAttributeDefinition } from '@/modules/products/types/product-variant.types'
 import {
   buildProductVariantCreatePayload,
+  buildProductVariantUpdatePayload,
   getVariantAttributesPresentation,
   normalizeVariantAttributeRows,
 } from '@/modules/products/utils/product-variant.utils'
@@ -49,6 +51,32 @@ describe('Product Variant form mapping', () => {
         images: { files: [image], removedExistingIds: [99] },
       })
     ).toEqual({ sku: 'VAR', attributes: { size: 'large' }, priceOverride: null, isActive: true, images: [image] })
+  })
+
+  it('builds Variant Update as changed keys only and preserves machine codes', () => {
+    expect(
+      buildProductVariantUpdatePayload(
+        {
+          sku: 'VAR',
+          attributes: [
+            { key: 'color', value: 'gold' },
+            { key: 'size', value: 'l' },
+          ],
+          priceOverride: null,
+          isActive: true,
+          images: { files: [], removedExistingIds: [] },
+        },
+        {
+          id: 1,
+          sku: 'VAR',
+          attributes: { color: 'silver' },
+          priceOverride: 10,
+          isActive: true,
+          images: [],
+          warehouseStocks: [],
+        }
+      )
+    ).toEqual({ attributes: { color: 'gold', size: 'l' }, priceOverride: null })
   })
 
   it('validates required SKU, nullable nonnegative finite price, attribute rows, and image size', async () => {
@@ -109,5 +137,19 @@ describe('Product Variant form mapping', () => {
     expect(getVariantAttributesPresentation(null)).toEqual({ kind: 'empty' })
     expect(getVariantAttributesPresentation([])).toEqual({ kind: 'empty' })
     expect(getVariantAttributesPresentation({ nested: { value: 1 } })).toEqual({ kind: 'complex' })
+  })
+
+  it('keeps canonical machine codes separate from localized labels and color visuals', () => {
+    const definition: ProductVariantAttributeDefinition = {
+      key: 'color',
+      label: { ar: 'اللون', en: 'Color' },
+      presentation: 'color_swatch',
+      values: [{ code: 'gold', label: { ar: 'ذهبي', en: 'Gold' }, visual: { type: 'color', value: '#D4AF37' } }],
+    }
+    expect(definition.values[0]).toMatchObject({
+      code: 'gold',
+      label: { ar: 'ذهبي', en: 'Gold' },
+      visual: { value: '#D4AF37' },
+    })
   })
 })

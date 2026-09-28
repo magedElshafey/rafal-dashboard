@@ -1,4 +1,4 @@
-import { LoaderCircle, Plus, Trash2 } from 'lucide-react'
+import { LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,7 +22,7 @@ type Props = { product: ProductDetail }
 
 export function ProductVariantsSection({ product }: Props) {
   const { t, i18n } = useTranslation()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [variantToEdit, setVariantToEdit] = useState<ProductDetail['variants'][number] | 'create' | null>(null)
   const [variantToDelete, setVariantToDelete] = useState<number | null>(null)
   const [mediaToDelete, setMediaToDelete] = useState<ProductVariantMediaTarget | null>(null)
   const variantAlertRef = useRef<DeleteAlertRef>(null)
@@ -83,7 +83,7 @@ export function ProductVariantsSection({ product }: Props) {
           </h2>
           <p className="text-sm text-muted-foreground">{t('products.variants.description')}</p>
         </div>
-        <Button type="button" onClick={() => setDrawerOpen(true)}>
+        <Button type="button" onClick={() => setVariantToEdit('create')}>
           <Plus aria-hidden="true" />
           {t('products.variants.actions.add')}
         </Button>
@@ -107,12 +107,20 @@ export function ProductVariantsSection({ product }: Props) {
                     <Badge variant={variant.isActive ? 'success' : 'outline'}>
                       {t(variant.isActive ? 'products.status.active' : 'products.status.inactive')}
                     </Badge>
+                    {variant.isDefault ? <Badge variant="outline">{t('products.variants.default')}</Badge> : null}
                   </div>
                   <DashboardCardActions
                     triggerMode="menu"
                     disabled={deleteVariant.isPending && deleteVariant.variables === variant.id}
                     triggerLabel={t('products.variants.actions.forVariant', { sku: variant.sku })}
                     actions={[
+                      {
+                        id: 'edit',
+                        label: t('products.variants.actions.edit'),
+                        accessibleLabel: t('products.variants.actions.editNamed', { sku: variant.sku }),
+                        icon: Pencil,
+                        onClick: () => setVariantToEdit(variant),
+                      },
                       {
                         id: 'delete',
                         label: t('products.variants.actions.delete'),
@@ -141,9 +149,8 @@ export function ProductVariantsSection({ product }: Props) {
                   <div>
                     <dt className="text-muted-foreground">{t('products.variants.fields.priceOverride')}</dt>
                     <dd className="text-foreground">
-                      {variant.priceOverride === null
-                        ? t('products.variants.usesBasePrice')
-                        : numberFormatter.format(variant.priceOverride)}
+                      {numberFormatter.format(variant.priceOverride ?? product.basePrice)}
+                      {variant.priceOverride === null ? ` (${t('products.variants.usesBasePrice')})` : null}
                     </dd>
                   </div>
                 </dl>
@@ -206,7 +213,14 @@ export function ProductVariantsSection({ product }: Props) {
         </div>
       )}
 
-      <ProductVariantDrawer productId={product.id} open={drawerOpen} onOpenChange={setDrawerOpen} />
+      <ProductVariantDrawer
+        productId={product.id}
+        open={variantToEdit !== null}
+        variant={variantToEdit === 'create' ? null : variantToEdit}
+        onOpenChange={(open) => {
+          if (!open) setVariantToEdit(null)
+        }}
+      />
       <DeleteAlert
         ref={variantAlertRef}
         title={t('products.variants.delete.title')}

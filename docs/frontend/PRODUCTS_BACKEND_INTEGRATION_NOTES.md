@@ -1,51 +1,29 @@
 # Products backend integration notes
 
-## Implemented
+Products are real-API-only. The module uses the shared HTTP client for paginated Index, Show-before-edit, Create, partial Update, Delete, child Variant CRUD, global media deletion, and Variant Warehouse Stock writes. Categories and Warehouses reuse their existing paginated queries; no per-row requests are introduced.
 
-Products Index is paginated through `GET /dashboard/products` and exposes per-product Edit and Delete actions. No search or filter query contract is confirmed, so the frontend sends only `page`.
+Product Create and Update use JSON when no files are present and `multipart/form-data` only when appending new images. Update sends only dirty Product fields. Existing remote images are omitted and remain untouched; only newly added `File` objects are repeated as `images[]`. Remote media uses `DELETE /dashboard/media/:id`, while removal of an unsaved local image is client-only.
 
-The Index response exposes images as `string[]`. The service uses the first URL as `primaryImageUrl` and uses `null` when the array is empty; it does not derive media IDs from URLs. `base_price` is a string and is normalized to a finite frontend number. Invalid values fail safely instead of becoming zero. Index exposes `category_id` only, so the UI does not fabricate a category name. Index variants are intentionally opaque and currently used only to derive `variantCount`.
+The backend may technically tolerate `category_id: null`, and Product read models defensively accept null for legacy records. The Rafal Dashboard business flow does not: Category is required in both Product Create and Edit, validation requires a valid backend Category ID, and write payloads never intentionally create or save an uncategorized Product.
 
-`ProductListItem` is the dedicated Index domain model. It is intentionally separate from the richer `ProductDetail` contract.
+Slug is backend-owned. Frontend must never send slug in Create/Update requests. The frontend also never writes `base_price_incl_vat`, simulated counters, Category slug, Variants, or Stocks through Product Save. Product, Variant, Stock, and media lifecycles remain independent transactions.
 
-Product Create is implemented through `POST /dashboard/products` using `multipart/form-data`. The frontend writes `category_id`, `sku`, `name[ar]`, optional `name[en]`, optional `description[ar]`, optional `description[en]`, `base_price`, optional `discount_percentage`, optional `discount_end_at`, `is_personalizable`, conditional `personalization_max_length`, conditional `personalization_fee`, `hide_price_on_packaging`, `is_new_arrival`, `is_active`, `sort_order`, and repeated `images[]` entries. A successful Create invalidates Product list queries and navigates to `/dashboard/products/:id/edit` using the returned Product ID.
+Product Detail defensively normalizes numeric strings, boolean representations, empty-array descriptions, category data, media, Variants, and Stocks. Product detail cache owns the nested resources. Product Update replaces authoritative detail and invalidates lists; child mutations surgically change the targeted nested resource. Product and Variant Delete invalidate lists only where Index counts can change. Media and Stock mutations avoid unrelated list invalidation.
 
-`category_id` is business-required. New uploads must be image files and may be at most 5 MB each; no maximum image count is currently confirmed. Create intentionally excludes nested Variants and Stocks and omits simulated counters. Slug is backend-owned. Frontend must never send slug in Create/Update requests.
+Variant Create and partial Update use JSON without files and multipart only for new `images[]`. Editable fields are trimmed SKU, dynamic `attributes`, nullable `price_override`, numeric `is_active`, and new images. Stock is never nested. Clearing an override sends JSON `price_override: null` when there are no new files, or multipart `price_override="null"` when new images are appended in the same request. Update omits unchanged fields and sends only changed/additional attribute keys because backend attribute semantics are MERGE. Variant Delete has no body. Existing free-form scalar, array, flat, or nested attribute JSON remains readable without crashing.
 
-Product Edit is implemented as a full page using Show-before-edit through `GET /dashboard/products/:id`. `ProductDetail` is normalized independently from `ProductListItem`; detail descriptions normalize absent, null, or `[]` values to empty localized strings, numeric strings are validated and converted at the service boundary, and detail media uses the confirmed `{ id, url }` shape.
+The exact per-key wire representation for deleting an existing Variant attribute is not documented. Edit therefore locks existing keys, supports value changes and additions, preserves complex legacy JSON, and does not invent null or empty-string deletion behavior.
 
-Descriptions are HTML strings. The shared `FormEditor` emits a restricted editor-generated subset (paragraphs, level 2/3 headings, bold, italic, and ordered/unordered lists) and represents a visually empty editor as `""`. Create omits empty optional descriptions. Edit is a true partial `multipart/form-data` update: unchanged fields are omitted, while a dirty nullable description cleared by the admin is sent as the textual value `"null"`. Stored description HTML must be sanitized at every storefront or admin rendering boundary; trusted admin input is not an XSS control.
+Variant Stock uses quantity-only JSON at `PUT /dashboard/products/:product/variants/:variant/stocks/:warehouse`; zero is valid. If success contains no Stock object, the submitted Warehouse ID and quantity update detail cache. DELETE uses the same resource URL without a body. Duplicate Warehouse assignment is prevented in the UI while the backend remains authoritative.
 
-Product Update uses `PUT /dashboard/products/:id`. Its payload is derived only from granular React Hook Form dirty fields, including independent localized fields. Disabling personalization sends `is_personalizable=0` plus textual `"null"` clears for both dependent values. The authoritative complete Update response replaces the Product detail cache, Product list queries are invalidated narrowly, and the form resets to that response. Background detail changes do not reset a mounted dirty form.
+## Canonical Web/Flutter option model
 
-Product lifecycle deletion uses `DELETE /dashboard/products/:id`. A successful deletion removes the relevant detail cache and invalidates Product lists; failures preserve the current UI and expose only localized feedback.
+The planned Product-level `variant_attributes` model contains dynamic stable keys, localized Arabic/English labels, presentation (`color_swatch`, `text_swatch`, `dropdown`, or `image_swatch`), and values with stable machine codes, localized labels, and optional color/image visuals. Variants store only selected codes in `attributes`. Applications never translate machine codes, and color visuals never replace accessible localized text labels.
 
-Individual existing remote media is deleted independently through `DELETE /dashboard/media/:id`. Product Edit confirms the destructive action, removes only the confirmed media ID from the Product detail cache after success, and invalidates Product lists because the deleted image may have been the Index thumbnail. Product `PUT` only appends new uploads through repeated `images[]` fields and never carries removed media IDs. Removing an unsaved local upload is client-side only and does not call the media endpoint.
+Backend acceptance/return of `variant_attributes` is not documented or implemented in the current repository contract, so the frontend does not send it. Types are isolated for later adoption without coupling current Variant CRUD to hardcoded color, size, or material keys.
 
-Product Edit owns a normalized Variant list in `productsKeys.detail(productId)`. Variant Create uses `POST /dashboard/products/:product/variants` with `multipart/form-data`: trimmed `sku`, flat Dashboard-MVP attributes encoded through the established Laravel bracket convention as `attributes[key]`, optional `price_override`, `is_active` as `"1"`/`"0"`, and repeated `images[]`. Warehouse Stocks are never included. The authoritative response is appended to Product detail, and Product lists are invalidated because Index displays `variantCount`.
+## Remaining backend contracts
 
-Variant Delete uses `DELETE /dashboard/products/:product/variants/:variant` without a body. Success removes only the targeted Variant from Product detail and invalidates Product lists. Existing Variant images reuse `DELETE /dashboard/media/:id`; success removes only that image from its owning Variant and does not invalidate Product lists. Unsaved local Variant images remain client-only.
-
-Backend Variant `attributes` are nullable, free-form JSON. Product Show preserves valid scalar, array, flat, and nested JSON values. The Dashboard Create editor intentionally exposes only flat string key/value rows; blank rows are ignored, populated rows require both values, keys are unique, and values are trimmed. Cards render flat string records as a readable summary, empty/null values as no attributes, and other valid JSON shapes as a neutral complex-attributes label rather than raw JSON.
-
-Variant Warehouse Stock is owned by the Variant and Warehouse IDs and is normalized to `{ warehouseId, quantity }` in Product detail. `PUT /dashboard/products/:product/variants/:variant/stocks/:warehouse` creates or updates one relation using `multipart/form-data` containing only `quantity`. Quantity is a required non-negative integer; `0` is valid stock and is never interpreted as deletion. The authoritative response replaces the matching Warehouse quantity or appends a new relation.
-
-`DELETE /dashboard/products/:product/variants/:variant/stocks/:warehouse` removes that Warehouse relation without a request body. Both Stock mutations update only the targeted Variant inside `productsKeys.detail(productId)` and do not invalidate Product lists because Index does not depend on Stock. Warehouse labels come from the existing paginated Warehouses query, with an ID-based fallback when a loaded page does not contain the Warehouse; the UI does not issue per-row Warehouse requests.
-
-Product `PUT` never manages Variants or Stock, and Variant Create/Update payloads do not manage Stock. Variant mutation responses update only the nested Variant portion of the Product detail cache.
-
-### Variant Update — backend clarification required
-
-Variant Update and its Edit action remain intentionally blocked until the backend confirms:
-
-1. Whether `PUT /dashboard/products/:product/variants/:variant` is partial and whether omission means unchanged.
-2. How `price_override` is explicitly cleared to `null`.
-3. The Update semantics for `attributes`: whether omission means unchanged, whether a sent object replaces the complete value, how all attributes are cleared, and the required multipart representation.
-
-The frontend does not copy Product Update's textual `"null"` convention into Variant Update without confirmation.
-
-Discount datetime values are mapped between backend `YYYY-MM-DD HH:mm:ss` and form `YYYY-MM-DDTHH:mm` formats without timezone conversion. Backend timezone semantics remain unresolved.
-
-## Deferred contracts
-
-- Variant Update remains blocked on the clarification above.
+- Product-level persistence and response shape for `variant_attributes`.
+- Exact per-key Variant attribute deletion representation.
+- Discount datetime timezone semantics.

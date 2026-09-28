@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { productsService } from '@/modules/products/api/products.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
+import { isProductVariantDeleteConflict } from '@/modules/products/utils/product-error.utils'
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient()
@@ -15,6 +16,13 @@ export function useDeleteProduct() {
       await queryClient.invalidateQueries({ queryKey: productsKeys.lists() })
       toast.success(t('products.feedback.deleted'))
     },
-    onError: () => toast.error(t('products.feedback.deleteError')),
+    onError: (error) =>
+      toast.error(
+        t(
+          isProductVariantDeleteConflict(error)
+            ? 'products.feedback.deleteVariantConflict'
+            : 'products.feedback.deleteError'
+        )
+      ),
   })
 }

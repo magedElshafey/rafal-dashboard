@@ -1,7 +1,7 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 import type { LocalizedName } from '@/types/localized-name.types'
 import type { ImageUploadValue } from '@/components/form/image-upload'
-import type { ProductVariant, RawProductVariant } from '@/modules/products/types/product-variant.types'
+import type { JsonValue, ProductVariant, RawProductVariant } from '@/modules/products/types/product-variant.types'
 
 export type ProductListItem = {
   id: number
@@ -25,20 +25,20 @@ export type ProductListItem = {
 }
 
 export type RawProductListItem = {
-  id: number
-  category_id: number | null
+  id: number | string
+  category_id: number | string | null
   sku: string
   name: LocalizedName
   slug: string
   base_price: string
   discount_percentage: string | number | null
   discount_end_at: string | null
-  is_personalizable: boolean
-  is_new_arrival: boolean
-  is_active: boolean
-  sort_order: number
-  simulated_viewers_count: number
-  simulated_orders_count: number
+  is_personalizable: boolean | 0 | 1 | '0' | '1'
+  is_new_arrival: boolean | 0 | 1 | '0' | '1'
+  is_active: boolean | 0 | 1 | '0' | '1'
+  sort_order: number | string
+  simulated_viewers_count: number | string
+  simulated_orders_count: number | string
   variants: unknown[]
   images: string[]
   created_at: string
@@ -75,17 +75,20 @@ export type RawProductDetail = {
   description: { ar?: string | null; en?: string | null } | [] | null
   slug: string
   base_price: number | string
+  base_price_incl_vat?: number | string
   discount_percentage: number | string | null
   discount_end_at: string | null
   is_personalizable: boolean | 0 | 1 | '0' | '1'
   personalization_max_length: number | string | null
   personalization_fee: number | string | null
+  personalization_languages?: JsonValue
   hide_price_on_packaging: boolean | 0 | 1 | '0' | '1'
   is_new_arrival: boolean | 0 | 1 | '0' | '1'
   is_active: boolean | 0 | 1 | '0' | '1'
   sort_order: number | string
   simulated_viewers_count: number | string
   simulated_orders_count: number | string
+  category?: { id: number | string; name: LocalizedName; slug?: string } | null
   variants: RawProductVariant[]
   images: Array<{ id: number | string; url: string }>
   created_at: string
@@ -100,17 +103,20 @@ export type ProductDetail = {
   description: LocalizedName
   slug: string
   basePrice: number
+  basePriceInclVat?: number | null
   discountPercentage: number | null
   discountEndAt: string | null
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
+  personalizationLanguages?: JsonValue | null
   hidePriceOnPackaging: boolean
   isNewArrival: boolean
   isActive: boolean
   sortOrder: number
   simulatedViewersCount: number
   simulatedOrdersCount: number
+  category?: { id: number; name: LocalizedName; slug?: string } | null
   variants: ProductVariant[]
   images: Array<{ id: number; url: string }>
   createdAt: string

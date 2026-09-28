@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
+import i18n from '@/config/i18'
 import { productMediaService } from '@/modules/products/api/product-media.service'
 import { productsService } from '@/modules/products/api/products.service'
 import { useDeleteProduct } from '@/modules/products/hooks/useDeleteProduct'
@@ -52,10 +53,11 @@ function setup() {
 }
 
 describe('Product deletion cache ownership', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
+    await i18n.changeLanguage('en')
   })
 
   it('removes the deleted Product detail and invalidates only Product lists', async () => {
@@ -83,5 +85,23 @@ describe('Product deletion cache ownership', () => {
     expect(client.getQueryData<ProductDetail>(productsKeys.detail(7))?.images).toEqual([{ id: 12, url: 'two' }])
     expect(invalidate).toHaveBeenCalledTimes(1)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: productsKeys.lists() })
+  })
+
+  it('preserves Product state and shows actionable feedback on a Variant conflict', async () => {
+    const error = Object.assign(new Error('conflict'), {
+      isAxiosError: true,
+      response: { data: { message: 'Cannot delete product: it still has variants. Delete its variants first.' } },
+    })
+    vi.spyOn(productsService, 'delete').mockRejectedValue(error)
+    const { client, invalidate, wrapper } = setup()
+    client.setQueryData(productsKeys.detail(7), product)
+    const { result } = renderHook(useDeleteProduct, { wrapper })
+
+    await expect(act(() => result.current.mutateAsync(7))).rejects.toThrow('conflict')
+    expect(client.getQueryData(productsKeys.detail(7))).toEqual(product)
+    expect(invalidate).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(toastMocks.error).toHaveBeenCalledWith("Delete this product's variants before deleting the product.")
+    )
   })
 })

@@ -33,6 +33,7 @@
       "updateError": "Product could not be updated. Your changes have been preserved.",
       "deleted": "Product deleted successfully.",
       "deleteError": "Product could not be deleted.",
+      "deleteVariantConflict": "Delete this product's variants before deleting the product.",
       "imageDeleted": "Product image deleted successfully.",
       "imageDeleteError": "Product image could not be deleted."
     },
@@ -117,10 +118,14 @@
       "empty": "No variants have been added.",
       "createTitle": "Add Variant",
       "createDescription": "Create a product variant with optional attributes, price override, and images.",
+      "editTitle": "Edit Variant",
+      "editDescription": "Update this variant independently from the product.",
+      "default": "Default",
       "usesBasePrice": "Uses Product Base Price",
       "priceHelp": "Leave the override empty to use the Product Base Price.",
       "noAttributes": "No attributes",
       "complexAttributes": "Complex attributes",
+      "complexAttributesEditHelp": "Existing complex attributes are preserved. You may add simple keys, but deletion requires backend support.",
       "existingImages": "Existing variant images",
       "imageAlt": "Image {{id}} for variant {{sku}}",
       "fields": {
@@ -135,11 +140,14 @@
       "actions": {
         "add": "Add Variant",
         "create": "Create Variant",
+        "edit": "Edit Variant",
+        "update": "Update Variant",
         "delete": "Delete Variant",
         "deleting": "Deleting Variant",
         "close": "Close Variant form",
         "forVariant": "Actions for variant {{sku}}",
         "deleteNamed": "Delete variant {{sku}}",
+        "editNamed": "Edit variant {{sku}}",
         "addAttribute": "Add Attribute",
         "removeAttribute": "Remove attribute row {{index}}",
         "deleteImageNamed": "Delete image {{id}} from variant {{sku}}"
@@ -151,6 +159,8 @@
       "feedback": {
         "created": "Variant created successfully.",
         "createError": "Variant could not be created. Your changes have been preserved.",
+        "updated": "Variant updated successfully.",
+        "updateError": "Variant could not be updated. Your changes have been preserved.",
         "deleted": "Variant deleted successfully.",
         "deleteError": "Variant could not be deleted.",
         "imageDeleted": "Variant image deleted successfully.",

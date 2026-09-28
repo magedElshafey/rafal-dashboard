@@ -23,10 +23,13 @@ export const EMPTY_PRODUCT_VARIANT_FORM: ProductVariantFormValues = {
 type Props = {
   formId: string
   isSubmitting: boolean
+  defaultValues?: ProductVariantFormValues
+  lockedAttributeCount?: number
+  hasComplexAttributes?: boolean
   onSubmit: (values: ProductVariantFormValues, methods: UseFormReturn<ProductVariantFormValues>) => Promise<void>
 }
 
-function VariantAttributesEditor({ disabled }: { disabled: boolean }) {
+function VariantAttributesEditor({ disabled, lockedCount }: { disabled: boolean; lockedCount: number }) {
   const { t } = useTranslation()
   const { control } = useFormContext<ProductVariantFormValues>()
   const { fields, append, remove } = useFieldArray({ control, name: 'attributes' })
@@ -41,7 +44,7 @@ function VariantAttributesEditor({ disabled }: { disabled: boolean }) {
           <FormInput
             name={`attributes.${index}.key`}
             label={t('products.variants.fields.attributeKey')}
-            disabled={disabled}
+            disabled={disabled || index < lockedCount}
           />
           <FormInput
             name={`attributes.${index}.value`}
@@ -53,7 +56,7 @@ function VariantAttributesEditor({ disabled }: { disabled: boolean }) {
             size="icon"
             variant="ghost"
             className="mt-7 text-destructive"
-            disabled={disabled}
+            disabled={disabled || index < lockedCount}
             aria-label={t('products.variants.actions.removeAttribute', { index: index + 1 })}
             onClick={() => remove(index)}
           >
@@ -74,7 +77,14 @@ function VariantAttributesEditor({ disabled }: { disabled: boolean }) {
   )
 }
 
-export function ProductVariantForm({ formId, isSubmitting, onSubmit }: Props) {
+export function ProductVariantForm({
+  formId,
+  isSubmitting,
+  defaultValues = EMPTY_PRODUCT_VARIANT_FORM,
+  lockedAttributeCount = 0,
+  hasComplexAttributes = false,
+  onSubmit,
+}: Props) {
   const { t } = useTranslation()
   const schema = useMemo(
     () =>
@@ -108,7 +118,7 @@ export function ProductVariantForm({ formId, isSubmitting, onSubmit }: Props) {
   return (
     <FormWrapper<ProductVariantFormValues>
       schema={schema}
-      defaultValues={EMPTY_PRODUCT_VARIANT_FORM}
+      defaultValues={defaultValues}
       formId={formId}
       submissionDisabled={isSubmitting}
       className="space-y-6"
@@ -123,7 +133,10 @@ export function ProductVariantForm({ formId, isSubmitting, onSubmit }: Props) {
         required
         autoFocus
       />
-      <VariantAttributesEditor disabled={isSubmitting} />
+      {hasComplexAttributes ? (
+        <p className="text-sm text-muted-foreground">{t('products.variants.complexAttributesEditHelp')}</p>
+      ) : null}
+      <VariantAttributesEditor disabled={isSubmitting} lockedCount={lockedAttributeCount} />
       <FormInput
         name="priceOverride"
         label={t('products.variants.fields.priceOverride')}

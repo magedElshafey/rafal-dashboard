@@ -1,6 +1,8 @@
 import type {
+  ProductVariant,
   ProductVariantCreatePayload,
   ProductVariantFormValues,
+  ProductVariantUpdatePayload,
   JsonValue,
   VariantAttributeRow,
 } from '@/modules/products/types/product-variant.types'
@@ -41,4 +43,37 @@ export function buildProductVariantCreatePayload(values: ProductVariantFormValue
     isActive: values.isActive,
     images: values.images.files,
   }
+}
+
+export function productVariantToFormValues(variant: ProductVariant): ProductVariantFormValues {
+  const presentation = getVariantAttributesPresentation(variant.attributes)
+  return {
+    sku: variant.sku,
+    attributes:
+      presentation.kind === 'flat'
+        ? presentation.entries.map(([key, value]) => ({ key, value }))
+        : [{ key: '', value: '' }],
+    priceOverride: variant.priceOverride,
+    isActive: variant.isActive,
+    images: { files: [], removedExistingIds: [] },
+  }
+}
+
+export function buildProductVariantUpdatePayload(
+  values: ProductVariantFormValues,
+  original: ProductVariant
+): ProductVariantUpdatePayload {
+  const payload: ProductVariantUpdatePayload = {}
+  const sku = values.sku.trim()
+  if (sku !== original.sku) payload.sku = sku
+  if (values.priceOverride !== original.priceOverride) payload.priceOverride = values.priceOverride
+  if (values.isActive !== original.isActive) payload.isActive = values.isActive
+  if (values.images.files.length > 0) payload.images = [...values.images.files]
+
+  const next = normalizeVariantAttributeRows(values.attributes)
+  const current = getVariantAttributesPresentation(original.attributes)
+  const currentFlat = current.kind === 'flat' ? Object.fromEntries(current.entries) : {}
+  const changed = Object.fromEntries(Object.entries(next).filter(([key, value]) => currentFlat[key] !== value))
+  if (Object.keys(changed).length > 0) payload.attributes = changed
+  return payload
 }

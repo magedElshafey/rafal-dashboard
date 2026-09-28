@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { productsMockTransport } from '@/modules/products/mocks/products.mock'
 import { normalizeProductVariant } from '@/modules/products/api/product-variants.service'
 import type {
   ProductCreatePayload,
@@ -36,6 +34,38 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
   if (numericValues.some((value) => !Number.isFinite(value))) {
     throw new Error('Product Create contains an invalid numeric value')
   }
+
+  const nameEn = payload.name.en.trim()
+  const descriptionAr = payload.description.ar.trim()
+  const descriptionEn = payload.description.en.trim()
+  const json = {
+    category_id: payload.categoryId,
+    sku: payload.sku.trim(),
+    name: { ar: payload.name.ar.trim(), ...(nameEn ? { en: nameEn } : {}) },
+    ...(descriptionAr || descriptionEn
+      ? {
+          description: {
+            ...(descriptionAr ? { ar: descriptionAr } : {}),
+            ...(descriptionEn ? { en: descriptionEn } : {}),
+          },
+        }
+      : {}),
+    base_price: payload.basePrice,
+    ...(payload.discountPercentage !== null ? { discount_percentage: payload.discountPercentage } : {}),
+    ...(payload.discountEndAt ? { discount_end_at: formatProductDateTime(payload.discountEndAt) } : {}),
+    is_personalizable: toApiBoolean(payload.isPersonalizable),
+    ...(payload.isPersonalizable
+      ? {
+          personalization_max_length: payload.personalizationMaxLength,
+          personalization_fee: payload.personalizationFee,
+        }
+      : {}),
+    hide_price_on_packaging: toApiBoolean(payload.hidePriceOnPackaging),
+    is_new_arrival: toApiBoolean(payload.isNewArrival),
+    is_active: toApiBoolean(payload.isActive),
+    sort_order: payload.sortOrder,
+  }
+  if (payload.images.length === 0) return json
 
   const body = new FormData()
   body.set('category_id', String(payload.categoryId))
@@ -99,17 +129,27 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
     description: { ar: description.ar ?? '', en: description.en ?? '' },
     slug: raw.slug,
     basePrice: finiteNumber(raw.base_price, 'base price'),
+    basePriceInclVat:
+      raw.base_price_incl_vat === undefined ? null : finiteNumber(raw.base_price_incl_vat, 'base price including VAT'),
     discountPercentage: nullableFiniteNumber(raw.discount_percentage, 'discount percentage'),
     discountEndAt: raw.discount_end_at,
     isPersonalizable: apiBoolean(raw.is_personalizable, 'personalizable flag'),
     personalizationMaxLength: nullableFiniteNumber(raw.personalization_max_length, 'personalization max length'),
     personalizationFee: nullableFiniteNumber(raw.personalization_fee, 'personalization fee'),
+    personalizationLanguages: raw.personalization_languages ?? null,
     hidePriceOnPackaging: apiBoolean(raw.hide_price_on_packaging, 'packaging price flag'),
     isNewArrival: apiBoolean(raw.is_new_arrival, 'new arrival flag'),
     isActive: apiBoolean(raw.is_active, 'active flag'),
     sortOrder: finiteNumber(raw.sort_order, 'sort order'),
     simulatedViewersCount: finiteNumber(raw.simulated_viewers_count, 'simulated viewers count'),
     simulatedOrdersCount: finiteNumber(raw.simulated_orders_count, 'simulated orders count'),
+    category: raw.category
+      ? {
+          id: finiteNumber(raw.category.id, 'category id'),
+          name: { ...raw.category.name },
+          ...(raw.category.slug ? { slug: raw.category.slug } : {}),
+        }
+      : null,
     variants: raw.variants.map(normalizeProductVariant),
     images: raw.images.map((image) => ({ id: finiteNumber(image.id, 'image id'), url: image.url })),
     createdAt: raw.created_at,
@@ -118,6 +158,48 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
 }
 
 export function serializeProductUpdate(payload: ProductUpdatePayload) {
+  const json = {
+    ...(payload.categoryId !== undefined ? { category_id: payload.categoryId } : {}),
+    ...(payload.sku !== undefined ? { sku: payload.sku.trim() } : {}),
+    ...(payload.name !== undefined
+      ? {
+          name: {
+            ...(payload.name.ar !== undefined ? { ar: payload.name.ar === null ? null : payload.name.ar.trim() } : {}),
+            ...(payload.name.en !== undefined ? { en: payload.name.en === null ? null : payload.name.en.trim() } : {}),
+          },
+        }
+      : {}),
+    ...(payload.description !== undefined
+      ? {
+          description: {
+            ...(payload.description.ar !== undefined
+              ? { ar: payload.description.ar === null ? null : payload.description.ar.trim() }
+              : {}),
+            ...(payload.description.en !== undefined
+              ? { en: payload.description.en === null ? null : payload.description.en.trim() }
+              : {}),
+          },
+        }
+      : {}),
+    ...(payload.basePrice !== undefined ? { base_price: payload.basePrice } : {}),
+    ...(payload.discountPercentage !== undefined ? { discount_percentage: payload.discountPercentage } : {}),
+    ...(payload.discountEndAt !== undefined
+      ? { discount_end_at: payload.discountEndAt === null ? null : formatProductDateTime(payload.discountEndAt) }
+      : {}),
+    ...(payload.isPersonalizable !== undefined ? { is_personalizable: toApiBoolean(payload.isPersonalizable) } : {}),
+    ...(payload.personalizationMaxLength !== undefined
+      ? { personalization_max_length: payload.personalizationMaxLength }
+      : {}),
+    ...(payload.personalizationFee !== undefined ? { personalization_fee: payload.personalizationFee } : {}),
+    ...(payload.hidePriceOnPackaging !== undefined
+      ? { hide_price_on_packaging: toApiBoolean(payload.hidePriceOnPackaging) }
+      : {}),
+    ...(payload.isNewArrival !== undefined ? { is_new_arrival: toApiBoolean(payload.isNewArrival) } : {}),
+    ...(payload.isActive !== undefined ? { is_active: toApiBoolean(payload.isActive) } : {}),
+    ...(payload.sortOrder !== undefined ? { sort_order: payload.sortOrder } : {}),
+  }
+  if (!payload.images?.length) return json
+
   const body = new FormData()
   appendPartial(body, 'category_id', payload.categoryId)
   appendPartial(body, 'sku', payload.sku?.trim())
@@ -164,20 +246,20 @@ export function normalizeProductListItem(raw: RawProductListItem): ProductListIt
   }
 
   return {
-    id: raw.id,
-    categoryId: raw.category_id,
+    id: finiteNumber(raw.id, 'id'),
+    categoryId: raw.category_id === null ? null : finiteNumber(raw.category_id, 'category'),
     sku: raw.sku,
     name: { ...raw.name },
     slug: raw.slug,
     basePrice,
     discountPercentage,
     discountEndAt: raw.discount_end_at,
-    isPersonalizable: raw.is_personalizable,
-    isNewArrival: raw.is_new_arrival,
-    isActive: raw.is_active,
-    sortOrder: raw.sort_order,
-    simulatedViewersCount: raw.simulated_viewers_count,
-    simulatedOrdersCount: raw.simulated_orders_count,
+    isPersonalizable: apiBoolean(raw.is_personalizable, 'personalizable flag'),
+    isNewArrival: apiBoolean(raw.is_new_arrival, 'new arrival flag'),
+    isActive: apiBoolean(raw.is_active, 'active flag'),
+    sortOrder: finiteNumber(raw.sort_order, 'sort order'),
+    simulatedViewersCount: finiteNumber(raw.simulated_viewers_count, 'simulated viewers count'),
+    simulatedOrdersCount: finiteNumber(raw.simulated_orders_count, 'simulated orders count'),
     variantCount: raw.variants.length,
     primaryImageUrl: raw.images[0] ?? null,
     createdAt: raw.created_at,
@@ -196,12 +278,13 @@ export const productsHttpTransport = {
       })
     ).data
   },
-  async create(body: FormData) {
+  async create(body: FormData | Record<string, unknown>) {
+    const isFormData = body instanceof FormData
     return (
       await $http.post<ProductCreateResponse>({
         url: '/dashboard/products',
         data: body,
-        isFormData: true,
+        ...(isFormData ? { isFormData: true } : {}),
         suppressSuccessNotification: true,
         suppressErrorNotification: true,
       })
@@ -216,12 +299,13 @@ export const productsHttpTransport = {
       })
     ).data
   },
-  async update(id: number, body: FormData) {
+  async update(id: number, body: FormData | Record<string, unknown>) {
+    const isFormData = body instanceof FormData
     return (
       await $http.put<RawProductDetailResponse>({
         url: `/dashboard/products/${id}`,
         data: body,
-        isFormData: true,
+        ...(isFormData ? { isFormData: true } : {}),
         suppressSuccessNotification: true,
         suppressErrorNotification: true,
       })
@@ -238,11 +322,9 @@ export const productsHttpTransport = {
   },
 }
 
-const transport = env.PRODUCTS_USE_MOCK ? productsMockTransport : productsHttpTransport
-
 export const productsService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ProductListItem>> {
-    const response = await transport.list(page, signal)
+    const response = await productsHttpTransport.list(page, signal)
     const items = response.data.map(normalizeProductListItem)
 
     return {
@@ -261,14 +343,14 @@ export const productsService = {
     }
   },
   async create(payload: ProductCreatePayload) {
-    const response = await transport.create(serializeProductCreate(payload))
+    const response = await productsHttpTransport.create(serializeProductCreate(payload))
     return response.data
   },
   async show(id: number, signal?: AbortSignal) {
-    return normalizeProductDetail((await transport.show(id, signal)).data)
+    return normalizeProductDetail((await productsHttpTransport.show(id, signal)).data)
   },
   async update(id: number, payload: ProductUpdatePayload) {
-    return normalizeProductDetail((await transport.update(id, serializeProductUpdate(payload))).data)
+    return normalizeProductDetail((await productsHttpTransport.update(id, serializeProductUpdate(payload))).data)
   },
-  delete: (id: number) => transport.delete(id),
+  delete: (id: number) => productsHttpTransport.delete(id),
 }

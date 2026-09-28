@@ -12,6 +12,7 @@ import { useDeleteProductVariant } from '@/modules/products/hooks/useDeleteProdu
 import { useDeleteProductVariantMedia } from '@/modules/products/hooks/useDeleteProductVariantMedia'
 import { useDeleteProductVariantStock } from '@/modules/products/hooks/useDeleteProductVariantStock'
 import { usePutProductVariantStock } from '@/modules/products/hooks/usePutProductVariantStock'
+import { useUpdateProductVariant } from '@/modules/products/hooks/useUpdateProductVariant'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductVariant } from '@/modules/products/types/product-variant.types'
 import type { ProductDetail } from '@/modules/products/types/product.types'
@@ -105,6 +106,18 @@ describe('Product Variant mutation cache ownership', () => {
     expect(client.getQueryData<ProductDetail>(productsKeys.detail(7))?.variants).toEqual([variant(2)])
     expect(invalidate).toHaveBeenCalledTimes(1)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: productsKeys.lists() })
+  })
+
+  it('replaces only the authoritative updated Variant without invalidating lists', async () => {
+    const updated = { ...variant(1), sku: 'UPDATED' }
+    vi.spyOn(productVariantsService, 'update').mockResolvedValue(updated)
+    const { client, invalidate, wrapper } = setup()
+    const { result } = renderHook(() => useUpdateProductVariant(7, 1), { wrapper })
+
+    await act(() => result.current.mutateAsync({ sku: 'UPDATED' }))
+
+    expect(client.getQueryData<ProductDetail>(productsKeys.detail(7))?.variants).toEqual([updated, variant(2)])
+    expect(invalidate).not.toHaveBeenCalled()
   })
 
   it('preserves all Variants when Delete fails', async () => {
