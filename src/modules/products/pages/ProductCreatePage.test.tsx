@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
-import { resetCategoriesMock } from '@/modules/categories/mocks/categories.mock'
+import { categoriesService } from '@/modules/categories/api/categories.service'
 import { productsService } from '@/modules/products/api/products.service'
 import ProductCreatePage from '@/modules/products/pages/ProductCreatePage'
 import { productsKeys } from '@/modules/products/queries/products.keys'
@@ -54,7 +54,33 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
 
 describe('ProductCreatePage', () => {
   beforeEach(async () => {
-    resetCategoriesMock()
+    vi.spyOn(categoriesService, 'list').mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          parent_id: null,
+          name: { ar: 'مجوهرات', en: 'Jewelry' },
+          slug: 'jewelry',
+          description: null,
+          is_active: true,
+          sort_order: 1,
+          image_url: 'https://example.test/jewelry.jpg',
+          children_count: 0,
+          created_at: '2026-09-06T20:01:03+00:00',
+          updated_at: '2026-09-06T20:01:03+00:00',
+        },
+      ],
+      paginate: {
+        current_page: 1,
+        total_pages: 1,
+        per_page: 15,
+        total: 1,
+        count: 1,
+        next_page_url: null,
+        prev_page_url: null,
+      },
+      extra: null,
+    })
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')

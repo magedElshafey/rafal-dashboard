@@ -12,12 +12,14 @@ type FormImageUploaderProps<TValues extends FieldValues> = Omit<
 > & {
   name: Path<TValues>
   label?: string
+  allowExistingRemoval?: boolean
 }
 
 export function FormImageUploader<TValues extends FieldValues>({
   name,
   label,
   required,
+  allowExistingRemoval = true,
   ...props
 }: FormImageUploaderProps<TValues>) {
   const { control } = useFormContext<TValues>()
@@ -51,13 +53,17 @@ export function FormImageUploader<TValues extends FieldValues>({
                 field.onChange({ ...value, files })
                 field.onBlur()
               }}
-              onExistingRemove={(image) => {
-                field.onChange({
-                  ...value,
-                  removedExistingIds: [...value.removedExistingIds, image.id],
-                })
-                field.onBlur()
-              }}
+              onExistingRemove={
+                allowExistingRemoval
+                  ? (image) => {
+                      field.onChange({
+                        ...value,
+                        removedExistingIds: [...value.removedExistingIds, image.id],
+                      })
+                      field.onBlur()
+                    }
+                  : undefined
+              }
             />
           </FormItem>
         )

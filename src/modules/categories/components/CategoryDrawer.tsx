@@ -26,17 +26,25 @@ const FORM_ID = 'category-form'
 
 function toPayload(values: CategoryFormValues): CategoryPayload {
   const description = values.description.ar || values.description.en ? values.description : null
-  return { ...values, description }
+  const image = values.image.files[0]
+  return {
+    parent_id: values.parent_id,
+    name: values.name,
+    description,
+    is_active: values.is_active,
+    sort_order: values.sort_order,
+    ...(image ? { image } : {}),
+  }
 }
 
 function toFormValues(category: Category): CategoryFormValues {
   return {
     parent_id: category.parent_id,
     name: { ...category.name },
-    slug: category.slug,
     description: category.description ? { ...category.description } : { ar: '', en: '' },
     is_active: category.is_active,
     sort_order: category.sort_order,
+    image: { files: [], removedExistingIds: [] },
   }
 }
 

@@ -6,9 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { categoriesService } from '@/modules/categories/api/categories.service'
-import { resetCategoriesMock, seedCategoriesMock } from '@/modules/categories/mocks/categories.mock'
 import CategoriesPage from '@/modules/categories/pages/CategoriesPage'
-import type { Category } from '@/modules/categories/types/category.types'
+import type { Category, CategoryPayload } from '@/modules/categories/types/category.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -38,6 +37,80 @@ const category = (id: number, parentId: number | null = null): Category => ({
   updated_at: '2026-09-06T20:01:03+00:00',
 })
 
+let categoryStore: Category[] = []
+
+function initialCategories() {
+  return Array.from({ length: 12 }, (_, index) => category(index + 1, index === 1 ? 1 : null)).map((item) => {
+    if (item.id === 1) return { ...item, name: { ar: 'مجوهرات', en: 'Jewelry' }, slug: 'jewelry' }
+    if (item.id === 2) return { ...item, name: { ar: 'خواتم', en: 'Rings' }, slug: 'rings' }
+    return item
+  })
+}
+
+function installCategoryServiceFixtures() {
+  const pageSize = 15
+  vi.spyOn(categoriesService, 'list').mockImplementation(async (page) => {
+    const start = (page - 1) * pageSize
+    const items = categoryStore.slice(start, start + pageSize)
+    const totalPages = Math.max(1, Math.ceil(categoryStore.length / pageSize))
+    return {
+      items,
+      paginate: {
+        current_page: page,
+        total_pages: totalPages,
+        per_page: pageSize,
+        total: categoryStore.length,
+        count: items.length,
+        next_page_url: page < totalPages ? String(page + 1) : null,
+        prev_page_url: page > 1 ? String(page - 1) : null,
+      },
+      extra: null,
+    }
+  })
+  vi.spyOn(categoriesService, 'show').mockImplementation(async (id) => {
+    const item = categoryStore.find((candidate) => candidate.id === id)
+    if (!item) throw new Error('Category not found')
+    return { success: true, message: 'ok', data: item }
+  })
+  vi.spyOn(categoriesService, 'create').mockImplementation(async (payload: CategoryPayload) => {
+    const id = Math.max(0, ...categoryStore.map((item) => item.id)) + 1
+    const created: Category = {
+      id,
+      parent_id: payload.parent_id,
+      name: payload.name,
+      slug: 'backend-owned',
+      description: payload.description,
+      is_active: payload.is_active,
+      sort_order: payload.sort_order,
+      image_url: `https://example.test/category-${id}.jpg`,
+      children_count: 0,
+      created_at: '2026-09-28T00:00:00+00:00',
+      updated_at: '2026-09-28T00:00:00+00:00',
+    }
+    categoryStore.unshift(created)
+    return { success: true, message: 'created', data: created }
+  })
+  vi.spyOn(categoriesService, 'update').mockImplementation(async (id, payload) => {
+    const index = categoryStore.findIndex((item) => item.id === id)
+    if (index < 0) throw new Error('Category not found')
+    const updated: Category = {
+      ...categoryStore[index],
+      parent_id: payload.parent_id,
+      name: payload.name,
+      description: payload.description,
+      is_active: payload.is_active,
+      sort_order: payload.sort_order,
+      image_url: payload.image ? `https://example.test/category-${id}-replacement.jpg` : categoryStore[index].image_url,
+    }
+    categoryStore[index] = updated
+    return { success: true, message: 'updated', data: updated }
+  })
+  vi.spyOn(categoriesService, 'delete').mockImplementation(async (id) => {
+    categoryStore = categoryStore.filter((item) => item.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
@@ -57,12 +130,19 @@ async function openAction(user: ReturnType<typeof userEvent.setup>, name: string
 async function fillRequired(user: ReturnType<typeof userEvent.setup>, suffix = '') {
   await user.type(screen.getByRole('textbox', { name: /^Arabic Name/ }), `قسم جديد${suffix}`)
   await user.type(screen.getByRole('textbox', { name: /^English Name/ }), `New Category${suffix}`)
-  await user.type(screen.getByRole('textbox', { name: /^Slug/ }), `new-category${suffix}`)
+  await user.upload(
+    screen.getByLabelText('Browse images'),
+    new File(['category-image'], `category${suffix || '-new'}.png`, { type: 'image/png' })
+  )
 }
 
 describe('CategoriesPage', () => {
   beforeEach(async () => {
-    resetCategoriesMock()
+    categoryStore = initialCategories()
+    installCategoryServiceFixtures()
+    let objectUrl = 0
+    URL.createObjectURL = vi.fn(() => `blob:category-${++objectUrl}`)
+    URL.revokeObjectURL = vi.fn()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
@@ -70,8 +150,8 @@ describe('CategoriesPage', () => {
   afterEach(() => vi.restoreAllMocks())
 
   it('renders mirrored paginated hierarchy with image fallbacks and no search/filter controls', async () => {
-    seedCategoriesMock(Array.from({ length: 16 }, (_, index) => category(index + 1, index === 1 ? 1 : null)))
-    const list = vi.spyOn(categoriesService, 'list')
+    categoryStore = Array.from({ length: 16 }, (_, index) => category(index + 1, index === 1 ? 1 : null))
+    const list = vi.mocked(categoriesService.list)
     renderPage()
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(8)
@@ -86,10 +166,8 @@ describe('CategoriesPage', () => {
   })
 
   it('uses standard empty and safe retry states', async () => {
-    seedCategoriesMock([])
-    const originalList = categoriesService.list
-    const list = vi.spyOn(categoriesService, 'list').mockRejectedValueOnce(new Error('unsafe database detail'))
-    list.mockImplementation(originalList)
+    categoryStore = []
+    vi.mocked(categoriesService.list).mockRejectedValueOnce(new Error('unsafe database detail'))
     const user = userEvent.setup()
     renderPage()
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
@@ -98,8 +176,8 @@ describe('CategoriesPage', () => {
     expect(await screen.findByText('No categories yet')).toBeInTheDocument()
   })
 
-  it('validates bilingual names, explicit slug, and non-negative integer sort order', async () => {
-    const create = vi.spyOn(categoriesService, 'create')
+  it('validates bilingual names, image, and non-negative integer sort order without a slug field', async () => {
+    const create = vi.mocked(categoriesService.create)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Jewelry')
@@ -110,13 +188,14 @@ describe('CategoriesPage', () => {
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
     expect(await screen.findByText('Arabic name is required.')).toBeInTheDocument()
     expect(screen.getByText('English name is required.')).toBeInTheDocument()
-    expect(screen.getByText('Slug is required.')).toBeInTheDocument()
     expect(screen.getByText('Sort order cannot be negative.')).toBeInTheDocument()
+    expect(screen.getByText('An image is required.')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /slug/i })).not.toBeInTheDocument()
     expect(create).not.toHaveBeenCalled()
   })
 
   it('creates a root category with optional empty descriptions', async () => {
-    const create = vi.spyOn(categoriesService, 'create')
+    const create = vi.mocked(categoriesService.create)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Jewelry')
@@ -125,12 +204,39 @@ describe('CategoriesPage', () => {
     expect(screen.getByRole('combobox', { name: 'Parent Category' })).toHaveTextContent('No parent / Root category')
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ parent_id: null, description: null, sort_order: 0 }))
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parent_id: null,
+        description: null,
+        sort_order: 0,
+        image: expect.any(File),
+      })
+    )
+    expect(create.mock.calls[0][0]).not.toHaveProperty('slug')
     expect(await screen.findAllByText('New Category')).toHaveLength(2)
   })
 
+  it('keeps exactly one selected image in single-image mode', async () => {
+    const create = vi.mocked(categoriesService.create)
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findAllByText('Jewelry')
+    await user.click(screen.getByRole('button', { name: 'Create Category' }))
+    await fillRequired(user)
+    const input = screen.getByLabelText('Browse images')
+    const replacement = new File(['replacement'], 'replacement.webp', { type: 'image/webp' })
+    expect(input).not.toHaveAttribute('multiple')
+    await user.upload(input, replacement)
+    expect(screen.getByText('1 image selected')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'category-new.png' })).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'replacement.webp' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Create$/ }))
+    await waitFor(() => expect(create).toHaveBeenCalled())
+    expect(create.mock.calls[0][0].image).toBe(replacement)
+  })
+
   it('creates a child using a remote localized parent option stored as a numeric id', async () => {
-    const create = vi.spyOn(categoriesService, 'create')
+    const create = vi.mocked(categoriesService.create)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Jewelry')
@@ -163,51 +269,91 @@ describe('CategoriesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create & Create Another' }))
     await waitFor(() => expect(screen.getByRole('textbox', { name: /^Arabic Name/ })).toHaveValue(''))
     expect(screen.getByRole('textbox', { name: /^English Name/ })).toHaveValue('')
-    expect(screen.getByRole('textbox', { name: /^Slug/ })).toHaveValue('')
     expect(screen.getByRole('spinbutton', { name: /^Sort Order/ })).toHaveValue(0)
     expect(screen.getByRole('combobox', { name: 'Parent Category' })).toHaveTextContent('No parent / Root category')
+    expect(screen.getByText('0 images selected')).toBeInTheDocument()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('loads show data, current parent, nullable media/description, and excludes direct self-parenting', async () => {
-    const show = vi.spyOn(categoriesService, 'show')
-    const update = vi.spyOn(categoriesService, 'update')
+    const show = vi.mocked(categoriesService.show)
+    const update = vi.mocked(categoriesService.update)
     const user = userEvent.setup()
     renderPage()
     await openAction(user, 'Rings', 'Edit')
-    expect(screen.getByRole('dialog').querySelector('[aria-busy="true"]')).toBeInTheDocument()
     expect(await screen.findByRole('textbox', { name: /^English Name/ })).toHaveValue('Rings')
     expect(show).toHaveBeenCalledWith(2, expect.any(AbortSignal))
     expect(screen.getByRole('combobox', { name: 'Parent Category' })).toHaveTextContent('Jewelry')
     await user.click(screen.getByRole('combobox', { name: 'Parent Category' }))
     expect(screen.queryByRole('option', { name: 'Rings' })).not.toBeInTheDocument()
     await user.keyboard('{Escape}')
-    expect(screen.getByRole('img', { name: 'No image' })).toBeInTheDocument()
+    expect(screen.getByText('0 images selected')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled()
     expect(update).not.toHaveBeenCalled()
   })
 
   it('enables a dirty update and submits normalized hierarchy values', async () => {
-    const update = vi.spyOn(categoriesService, 'update')
+    const update = vi.mocked(categoriesService.update)
     const user = userEvent.setup()
     renderPage()
-    await openAction(user, 'Rings', 'Edit')
+    await openAction(user, 'Jewelry', 'Edit')
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('img', { name: 'Jewelry' })).toHaveAttribute(
+      'src',
+      'https://example.test/category-1.jpg'
+    )
+    expect(within(dialog).queryByRole('button', { name: 'Remove Jewelry' })).not.toBeInTheDocument()
+    expect(within(dialog).getByText('1 image selected')).toBeInTheDocument()
     const name = await screen.findByRole('textbox', { name: /^English Name/ })
     await user.clear(name)
-    await user.type(name, 'Fine Rings')
+    await user.type(name, 'Fine Jewelry')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled())
     await user.click(screen.getByRole('button', { name: 'Update' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(update).toHaveBeenCalledWith(
-      2,
-      expect.objectContaining({ parent_id: 1, name: expect.objectContaining({ en: 'Fine Rings' }) })
-    )
+    expect(update).toHaveBeenCalledWith(1, {
+      parent_id: null,
+      name: { ar: 'مجوهرات', en: 'Fine Jewelry' },
+      description: expect.any(Object),
+      is_active: true,
+      sort_order: 1,
+    })
+    expect(update.mock.calls[0][1]).not.toHaveProperty('image')
+    expect(update.mock.calls[0][1]).not.toHaveProperty('slug')
+  })
+
+  it('submits one local replacement for the existing remote image', async () => {
+    const update = vi.mocked(categoriesService.update)
+    const user = userEvent.setup()
+    renderPage()
+    await openAction(user, 'Jewelry', 'Edit')
+    const dialog = await screen.findByRole('dialog')
+    const replacement = new File(['replacement'], 'replacement.png', { type: 'image/png' })
+    await user.click(within(dialog).getByRole('button', { name: 'Replace Jewelry' }))
+    await user.upload(within(dialog).getByLabelText('Choose a replacement image'), replacement)
+    expect(within(dialog).getByText('1 image selected')).toBeInTheDocument()
+    expect(within(dialog).getByRole('img', { name: 'replacement.png' })).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Update' }))
+    await waitFor(() => expect(update).toHaveBeenCalled())
+    expect(update.mock.calls[0][1].image).toBe(replacement)
+  })
+
+  it('preserves edit values when update fails', async () => {
+    vi.mocked(categoriesService.update).mockRejectedValueOnce(new Error('unsafe update detail'))
+    const user = userEvent.setup()
+    renderPage()
+    await openAction(user, 'Jewelry', 'Edit')
+    const name = await screen.findByRole('textbox', { name: /^English Name/ })
+    await user.clear(name)
+    await user.type(name, 'Preserved Jewelry')
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('Category could not be updated.'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(name).toHaveValue('Preserved Jewelry')
+    expect(screen.queryByText('unsafe update detail')).not.toBeInTheDocument()
   })
 
   it('shows a safe detail retry state', async () => {
-    const originalShow = categoriesService.show
-    const show = vi.spyOn(categoriesService, 'show').mockRejectedValueOnce(new Error('unsafe detail'))
-    show.mockImplementation(originalShow)
+    vi.mocked(categoriesService.show).mockRejectedValueOnce(new Error('unsafe detail'))
     const user = userEvent.setup()
     renderPage()
     await openAction(user, 'Jewelry', 'Edit')
@@ -218,8 +364,8 @@ describe('CategoriesPage', () => {
   })
 
   it('requires delete confirmation and prevents duplicate deletion', async () => {
-    seedCategoriesMock([category(20)])
-    const remove = vi.spyOn(categoriesService, 'delete')
+    categoryStore = [category(20)]
+    const remove = vi.mocked(categoriesService.delete)
     const user = userEvent.setup()
     renderPage()
     await openAction(user, 'Category 20', 'Delete')

@@ -18,7 +18,6 @@ export function serializeCategory(payload: CategoryPayload) {
   const body = new FormData()
   body.set('name[ar]', payload.name.ar)
   body.set('name[en]', payload.name.en)
-
   body.set('is_active', payload.is_active ? '1' : '0')
   body.set('sort_order', String(payload.sort_order))
   body.set('parent_id', payload.parent_id === null ? '' : String(payload.parent_id))
@@ -26,6 +25,7 @@ export function serializeCategory(payload: CategoryPayload) {
     body.set('description[ar]', payload.description.ar)
     body.set('description[en]', payload.description.en)
   }
+  if (payload.image) body.set('image', payload.image)
   return body
 }
 
@@ -77,11 +77,9 @@ const categoriesHttpTransport = {
   },
 }
 
-const transport = categoriesHttpTransport
-
 export const categoriesService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Category>> {
-    const response = await transport.list(page, signal)
+    const response = await categoriesHttpTransport.list(page, signal)
     const items = response.data.map(normalizeCategory)
     return {
       items,
@@ -99,13 +97,13 @@ export const categoriesService = {
     }
   },
   async show(id: number, signal?: AbortSignal) {
-    return normalizeResponse(await transport.show(id, signal))
+    return normalizeResponse(await categoriesHttpTransport.show(id, signal))
   },
   async create(payload: CategoryPayload) {
-    return normalizeResponse(await transport.create(payload))
+    return normalizeResponse(await categoriesHttpTransport.create(payload))
   },
   async update(id: number, payload: CategoryPayload) {
-    return normalizeResponse(await transport.update(id, payload))
+    return normalizeResponse(await categoriesHttpTransport.update(id, payload))
   },
-  delete: (id: number) => transport.delete(id),
+  delete: (id: number) => categoriesHttpTransport.delete(id),
 }

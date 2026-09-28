@@ -2,9 +2,6 @@ import { resolveMapStyleUrl } from './map'
 
 const env = {
   API_BASE: import.meta.env.VITE_API_BASE_URL,
-  // Temporary feature transport until the Laravel Categories API is available locally.
-  CATEGORIES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_CATEGORIES_USE_MOCK !== 'false',
-
   // Temporary feature transport until the Laravel Warehouses API is available locally.
   WAREHOUSES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_WAREHOUSES_USE_MOCK !== 'false',
 

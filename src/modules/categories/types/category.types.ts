@@ -1,3 +1,4 @@
+import type { ImageUploadValue } from '@/components/form/image-upload'
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 
 export type LocalizedText = { ar: string; en: string }
@@ -22,15 +23,16 @@ export type CategoryPayload = {
   description: LocalizedText | null
   is_active: boolean
   sort_order: number
+  image?: File
 }
 
 export type CategoryFormValues = {
   parent_id: number | null
   name: LocalizedText
-
   description: LocalizedText
   is_active: boolean
   sort_order: number
+  image: ImageUploadValue
 }
 
 export type RawCategory = Omit<Category, 'parent_id' | 'sort_order' | 'description' | 'children_count'> & {

@@ -247,11 +247,7 @@ export const productsMockTransport = {
       sku,
       name: { ar: requiredText(body, 'name[ar]'), en: nullableText(body, 'name[en]') ?? '' },
       description: { ar: nullableText(body, 'description[ar]') ?? '', en: nullableText(body, 'description[en]') ?? '' },
-      slug:
-        sku
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '') || `product-${id}`,
+      slug: 'backend-owned',
       base_price: requiredText(body, 'base_price'),
       discount_percentage: nullableText(body, 'discount_percentage'),
       discount_end_at: nullableText(body, 'discount_end_at'),

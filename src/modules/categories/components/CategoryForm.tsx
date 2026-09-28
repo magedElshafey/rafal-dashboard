@@ -4,8 +4,13 @@ import type { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { FormWrapper } from '@/components/core/FormWrapper'
-import { FormCheckbox, FormInput, FormSelect, FormSortOrder, FormTextArea } from '@/components/form'
-import { CategoryImage } from '@/modules/categories/components/CategoryImage'
+import { FormCheckbox } from '@/components/form/FormCheckbox'
+import { FormInput } from '@/components/form/FormInput'
+import { FormSelect } from '@/components/form/FormSelect'
+import { FormSortOrder } from '@/components/form/FormSortOrder'
+import { FormTextArea } from '@/components/form/FormTextArea'
+import { FormImageUploader } from '@/components/form/image-upload'
+import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
 import { useCategories } from '@/modules/categories/hooks/useCategories'
 import { createCategorySchema } from '@/modules/categories/schemas/category.schema'
 import type { Category, CategoryFormValues } from '@/modules/categories/types/category.types'
@@ -29,10 +34,10 @@ type CategoryFormProps = {
 export const EMPTY_CATEGORY_FORM_VALUES: CategoryFormValues = {
   parent_id: null,
   name: { ar: '', en: '' },
-
   description: { ar: '', en: '' },
   is_active: true,
   sort_order: 0,
+  image: EMPTY_IMAGE_UPLOAD_VALUE,
 }
 
 export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChange, onSubmit }: CategoryFormProps) {
@@ -54,15 +59,15 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
   ]
   const schema = useMemo(
     () =>
-      createCategorySchema({
+      createCategorySchema(mode, Boolean(category?.image_url), {
         nameArRequired: t('categories.validation.nameArRequired'),
         nameEnRequired: t('categories.validation.nameEnRequired'),
-
         sortRequired: t('categories.validation.sortRequired'),
         sortInteger: t('categories.validation.sortInteger'),
         sortNonNegative: t('categories.validation.sortNonNegative'),
+        imageRequired: t('categories.validation.imageRequired'),
       }),
-    [t]
+    [category?.image_url, mode, t]
   )
   const resetValues = useMemo<CategoryFormValues>(
     () =>
@@ -70,10 +75,10 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         ? {
             parent_id: category.parent_id,
             name: { ...category.name },
-
             description: category.description ? { ...category.description } : { ar: '', en: '' },
             is_active: category.is_active,
             sort_order: category.sort_order,
+            image: { files: [], removedExistingIds: [] },
           }
         : EMPTY_CATEGORY_FORM_VALUES,
     [category]
@@ -90,7 +95,6 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
     const normalized: CategoryFormValues = {
       ...values,
       name: { ar: values.name.ar.trim(), en: values.name.en.trim() },
-
       description: { ar: values.description.ar.trim(), en: values.description.en.trim() },
     }
     try {
@@ -103,6 +107,7 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         'description[en]': 'description.en',
         parent_id: 'parent_id',
         sort_order: 'sort_order',
+        image: 'image',
       })
     }
   }
@@ -119,13 +124,19 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
       onFormStateChange={({ isDirty }) => onDirtyChange(isDirty)}
       onSubmit={handleSubmit}
     >
-      {mode === 'edit' && category ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-content-primary">{t('categories.fields.currentImage')}</p>
-          <CategoryImage url={category.image_url} alt={category.name[language]} className="size-24" />
-          <p className="text-xs text-content-secondary">{t('categories.form.imageReadOnly')}</p>
-        </div>
-      ) : null}
+      <FormImageUploader<CategoryFormValues>
+        name="image"
+        label={t('categories.fields.image')}
+        mode="single"
+        accept="image/*"
+        existingImages={
+          category?.image_url ? [{ id: category.id, url: category.image_url, alt: category.name[language] }] : []
+        }
+        allowExistingRemoval={false}
+        previewFit="contain"
+        disabled={isSubmitting}
+        required
+      />
       <div className="grid gap-5 sm:grid-cols-2">
         <FormInput name="name.ar" label={t('categories.fields.nameAr')} dir="rtl" required autoFocus />
         <FormInput name="name.en" label={t('categories.fields.nameEn')} dir="ltr" required />

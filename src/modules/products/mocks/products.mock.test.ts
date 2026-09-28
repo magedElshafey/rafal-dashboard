@@ -104,7 +104,7 @@ describe('products mock transport', () => {
       category_id: 7,
       sku: 'RFL-MOCK-1',
       name: { ar: 'منتج تجريبي', en: 'Mock Product' },
-      slug: 'rfl-mock-1',
+      slug: 'backend-owned',
       base_price: '99.50',
       discount_percentage: '12',
       is_personalizable: false,

@@ -14,7 +14,6 @@
       "name": "Name",
       "nameAr": "Arabic Name",
       "nameEn": "English Name",
-      "slug": "Slug",
       "descriptionAr": "Arabic Description",
       "descriptionEn": "English Description",
       "parent": "Parent Category",
@@ -40,8 +39,7 @@
     "status": { "active": "Active", "inactive": "Inactive" },
     "form": {
       "createDescription": "Add bilingual category details and hierarchy settings.",
-      "editDescription": "Update category details and hierarchy settings.",
-      "imageReadOnly": "Image editing is unavailable until the backend upload contract is confirmed."
+      "editDescription": "Update category details, image, and hierarchy settings."
     },
     "actions": {
       "label": "Actions",
@@ -76,10 +74,10 @@
     "validation": {
       "nameArRequired": "Arabic name is required.",
       "nameEnRequired": "English name is required.",
-      "slugRequired": "Slug is required.",
       "sortRequired": "Sort order is required.",
       "sortInteger": "Sort order must be an integer.",
-      "sortNonNegative": "Sort order cannot be negative."
+      "sortNonNegative": "Sort order cannot be negative.",
+      "imageRequired": "An image is required."
     }
   }
 }
