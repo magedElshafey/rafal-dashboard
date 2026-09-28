@@ -34,6 +34,8 @@ import * as aboutUsAr from '@/modules/about-us/locale/ar.json'
 import * as aboutUsEn from '@/modules/about-us/locale/en.json'
 import * as customersAr from '@/modules/customers/locale/ar.json'
 import * as customersEn from '@/modules/customers/locale/en.json'
+import * as reviewsAr from '@/modules/reviews/locale/ar.json'
+import * as reviewsEn from '@/modules/reviews/locale/en.json'
 
 export const resources = {
   en: {
@@ -56,6 +58,7 @@ export const resources = {
       ...couponsEn,
       ...aboutUsEn,
       ...customersEn,
+      ...reviewsEn,
     },
   },
   ar: {
@@ -78,6 +81,7 @@ export const resources = {
       ...couponsAr,
       ...aboutUsAr,
       ...customersAr,
+      ...reviewsAr,
     },
   },
 } as const

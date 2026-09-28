@@ -50,6 +50,14 @@ describe('core routes', () => {
     expect(privatePaths).toContain('/dashboard/customers/:id')
   })
 
+  it('defines only the Product Reviews Index route', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.reviews).toBe('/dashboard/reviews')
+    expect(privatePaths).toContain('/dashboard/reviews')
+    expect(privatePaths).not.toContain('/dashboard/reviews/:id')
+  })
+
   it('redirects unauthenticated dashboard access to login', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>

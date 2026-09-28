@@ -1,0 +1,67 @@
+{
+  "reviews": {
+    "title": "Product Reviews",
+    "description": "Moderate customer feedback submitted for products.",
+    "listTitle": "Review moderation",
+    "total_one": "{{count}} review",
+    "total_other": "{{count}} reviews",
+    "loadingMore": "Loading more reviews",
+    "reviewerFallback": "User #{{id}}",
+    "ratingOutOfFive": "{{rating}} / 5",
+    "empty": {
+      "title": "No reviews yet",
+      "description": "Product reviews will appear here when customers submit them."
+    },
+    "fields": {
+      "reviewer": "Reviewer",
+      "product": "Product",
+      "rating": "Rating",
+      "comment": "Comment",
+      "status": "Status",
+      "engagement": "Engagement",
+      "createdAt": "Created at"
+    },
+    "engagement": {
+      "helpful": "Helpful: {{value}}",
+      "reports": "Reports: {{value}}"
+    },
+    "comments": {
+      "showFull": "Show full comment",
+      "collapse": "Collapse comment",
+      "showFullForReview": "Show full comment for review #{{id}}",
+      "collapseForReview": "Collapse comment for review #{{id}}"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "actions": {
+      "label": "Actions",
+      "forReview": "Moderation actions for {{name}} — {{product}} — Review #{{id}}",
+      "approve": "Approve",
+      "approveNamed": "Approve review by {{name}} for {{product}}, review #{{id}}",
+      "approvePending": "Approving…",
+      "reject": "Reject",
+      "rejectNamed": "Reject review by {{name}} for {{product}}, review #{{id}}",
+      "rejectPending": "Rejecting…",
+      "cancel": "Cancel"
+    },
+    "confirm": {
+      "approve": {
+        "title": "Approve review?",
+        "description": "Approve the review by {{name}} for {{product}} (Review #{{id}})?"
+      },
+      "reject": {
+        "title": "Reject review?",
+        "description": "Reject the review by {{name}} for {{product}} (Review #{{id}})?"
+      }
+    },
+    "feedback": {
+      "approved": "Review approved successfully.",
+      "rejected": "Review rejected successfully.",
+      "approveError": "Review could not be approved.",
+      "rejectError": "Review could not be rejected."
+    }
+  }
+}

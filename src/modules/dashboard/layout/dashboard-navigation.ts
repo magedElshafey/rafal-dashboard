@@ -13,6 +13,7 @@ import {
   TicketPercent,
   Info,
   UserRound,
+  MessageSquareText,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -47,6 +48,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.customers,
     labelKey: 'dashboard.sidebar.customers',
     icon: UserRound,
+    match: 'prefix',
+  },
+  {
+    to: Routes.reviews,
+    labelKey: 'dashboard.sidebar.reviews',
+    icon: MessageSquareText,
     match: 'prefix',
   },
   {

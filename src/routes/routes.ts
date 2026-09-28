@@ -18,6 +18,7 @@ export const Routes = {
   customers: '/dashboard/customers',
   customerDetail: '/dashboard/customers/:id',
   customerDetailPath: (id: number) => `/dashboard/customers/${id}`,
+  reviews: '/dashboard/reviews',
   productNew: '/dashboard/products/new',
   productEdit: '/dashboard/products/:id/edit',
   productEditPath: (id: number) => `/dashboard/products/${id}/edit`,
