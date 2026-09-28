@@ -11,20 +11,23 @@
     "total_many": "{{count}} مستودعًا",
     "total_other": "{{count}} مستودع",
     "loadingMore": "جارٍ تحميل المزيد من المستودعات",
-    "noCoverageZones": "لا توجد نطاقات تغطية",
-    "moreCoverageZones": "{{count}} نطاقات تغطية إضافية",
     "fields": {
       "name": "اسم المستودع",
-      "coverageZones": "نطاقات التغطية",
-      "addCoverageZone": "أضف نطاق تغطية…",
-      "removeCoverageZone": "إزالة {{value}}",
+      "cities": "المدن",
       "status": "الحالة",
       "active": "نشط"
     },
     "status": { "active": "نشط", "inactive": "غير نشط" },
     "form": {
-      "createDescription": "أضف المستودع ونطاقات التغطية النصية الحالية.",
-      "editDescription": "حدّث المستودع ونطاقات التغطية النصية الحالية."
+      "createDescription": "أضف مستودعًا وحدد المدن التابعة له.",
+      "editDescription": "حدّث المستودع وتعيينه الكامل للمدن.",
+      "citiesPlaceholder": "اختر المدن",
+      "citiesEmpty": "لا توجد مدن متاحة.",
+      "citiesLoading": "جارٍ تحميل المدن…",
+      "citiesLoadMore": "تحميل المزيد من المدن",
+      "citiesError": "تعذر تحميل المدن.",
+      "citiesRetry": "حاول مرة أخرى",
+      "citiesClear": "مسح المدن"
     },
     "actions": {
       "label": "الإجراءات",
@@ -50,6 +53,13 @@
       "updateError": "تعذر تحديث المستودع.",
       "deleteError": "تعذر حذف المستودع."
     },
-    "validation": { "nameRequired": "اسم المستودع مطلوب." }
+    "errors": {
+      "cityConflict": "واحدة أو أكثر من المدن المحددة معينة لمستودع آخر. اختر مدنًا مختلفة ثم حاول مرة أخرى.",
+      "stockConflict": "ما زال هذا المستودع يحتوي على مخزون منتجات. أفرغ مخزونه قبل حذفه."
+    },
+    "validation": {
+      "nameRequired": "اسم المستودع مطلوب.",
+      "citiesRequired": "اختر مدينة واحدة على الأقل."
+    }
   }
 }

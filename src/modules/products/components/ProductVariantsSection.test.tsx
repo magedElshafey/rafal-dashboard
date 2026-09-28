@@ -11,7 +11,7 @@ import { productVariantsService } from '@/modules/products/api/product-variants.
 import { ProductVariantsSection } from '@/modules/products/components/ProductVariantsSection'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductDetail } from '@/modules/products/types/product.types'
-import { seedWarehousesMock } from '@/modules/warehouses/mocks/warehouses.mock'
+import { warehousesService } from '@/modules/warehouses/api/warehouses.service'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -94,32 +94,23 @@ describe('ProductVariantsSection', () => {
     vi.restoreAllMocks()
     URL.createObjectURL = vi.fn(() => 'blob:variant')
     URL.revokeObjectURL = vi.fn()
-    seedWarehousesMock([
-      {
-        id: 1,
-        name: 'Warehouse One',
-        coverage_zone: [],
-        is_active: true,
-        created_at: 'created',
-        updated_at: 'updated',
+    vi.spyOn(warehousesService, 'list').mockResolvedValue({
+      items: [
+        { id: 1, name: 'Warehouse One', isActive: true, createdAt: 'created', updatedAt: 'updated' },
+        { id: 2, name: 'Warehouse Two', isActive: true, createdAt: 'created', updatedAt: 'updated' },
+        { id: 3, name: 'Warehouse Three', isActive: true, createdAt: 'created', updatedAt: 'updated' },
+      ],
+      paginate: {
+        current_page: 1,
+        total_pages: 1,
+        per_page: 15,
+        total: 3,
+        count: 3,
+        next_page_url: null,
+        prev_page_url: null,
       },
-      {
-        id: 2,
-        name: 'Warehouse Two',
-        coverage_zone: [],
-        is_active: true,
-        created_at: 'created',
-        updated_at: 'updated',
-      },
-      {
-        id: 3,
-        name: 'Warehouse Three',
-        coverage_zone: [],
-        is_active: true,
-        created_at: 'created',
-        updated_at: 'updated',
-      },
-    ])
+      extra: null,
+    })
     await i18n.changeLanguage('en')
   })
 

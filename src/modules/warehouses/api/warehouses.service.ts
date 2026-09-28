@@ -1,24 +1,76 @@
-import env from '@/config/env'
-import { warehousesMockTransport } from '@/modules/warehouses/mocks/warehouses.mock'
 import type {
   DeleteWarehouseResponse,
-  WarehousePayload,
+  RawWarehouseCreatePayload,
+  RawWarehouseDetail,
+  RawWarehouseListItem,
+  RawWarehouseResponse,
+  RawWarehouseUpdatePayload,
+  WarehouseCreatePayload,
+  WarehouseDetail,
+  WarehouseListItem,
   WarehouseResponse,
   WarehousesIndexResponse,
+  WarehouseUpdatePayload,
 } from '@/modules/warehouses/types/warehouse.types'
+import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
 
-export function serializeWarehouse(payload: WarehousePayload) {
-  const body = new FormData()
-  body.set('name', payload.name.trim())
-  payload.coverageZone.forEach((zone) => body.append('coverage_zone[]', zone.trim()))
-  body.set('is_active', payload.isActive ? '1' : '0')
-  return body
+function assertId(id: number, label: string) {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`${label} is unavailable`)
+  return id
 }
 
-const warehousesHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
-    return (
+export function normalizeWarehouseListItem(raw: RawWarehouseListItem): WarehouseListItem {
+  return {
+    id: assertId(raw.id, 'Warehouse ID'),
+    name: raw.name,
+    isActive: raw.is_active,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+  }
+}
+
+export function normalizeWarehouseDetail(raw: RawWarehouseDetail): WarehouseDetail {
+  if (!Array.isArray(raw.cities)) throw new Error('Warehouse cities are unavailable')
+  return {
+    ...normalizeWarehouseListItem(raw),
+    cities: raw.cities.map((city) => ({
+      id: assertId(city.id, 'City ID'),
+      name: { ...city.name },
+    })),
+  }
+}
+
+function assertCityIds(cityIds: number[], required: boolean) {
+  if (required && cityIds.length === 0) throw new Error('At least one City ID is required')
+  cityIds.forEach((id) => assertId(id, 'City ID'))
+}
+
+export function serializeWarehouseCreate(payload: WarehouseCreatePayload): RawWarehouseCreatePayload {
+  assertCityIds(payload.cityIds, true)
+  return {
+    name: payload.name.trim(),
+    city_ids: [...payload.cityIds],
+    is_active: toApiBoolean(payload.isActive),
+  }
+}
+
+export function serializeWarehouseUpdate(payload: WarehouseUpdatePayload): RawWarehouseUpdatePayload {
+  if (payload.cityIds !== undefined) assertCityIds(payload.cityIds, false)
+  return {
+    ...(payload.name !== undefined ? { name: payload.name.trim() } : {}),
+    ...(payload.cityIds !== undefined ? { city_ids: [...payload.cityIds] } : {}),
+    ...(payload.isActive !== undefined ? { is_active: toApiBoolean(payload.isActive) } : {}),
+  }
+}
+
+function normalizeResponse(response: RawWarehouseResponse): WarehouseResponse {
+  return { ...response, data: normalizeWarehouseDetail(response.data) }
+}
+
+export const warehousesService = {
+  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<WarehouseListItem>> {
+    const response = (
       await $http.get<WarehousesIndexResponse>({
         url: '/dashboard/warehouses',
         query: { page },
@@ -26,62 +78,15 @@ const warehousesHttpTransport = {
         suppressErrorNotification: true,
       })
     ).data
-  },
-  async show(id: number, signal?: AbortSignal) {
-    return (
-      await $http.get<WarehouseResponse>({
-        url: `/dashboard/warehouses/${id}`,
-        signal,
-        suppressErrorNotification: true,
-      })
-    ).data
-  },
-  async create(payload: WarehousePayload) {
-    return (
-      await $http.post<WarehouseResponse>({
-        url: '/dashboard/warehouses',
-        data: serializeWarehouse(payload),
-        isFormData: true,
-        suppressSuccessNotification: true,
-        suppressErrorNotification: true,
-      })
-    ).data
-  },
-  async update(id: number, payload: WarehousePayload) {
-    return (
-      await $http.put<WarehouseResponse>({
-        url: `/dashboard/warehouses/${id}`,
-        data: serializeWarehouse(payload),
-        isFormData: true,
-        suppressSuccessNotification: true,
-        suppressErrorNotification: true,
-      })
-    ).data
-  },
-  async delete(id: number) {
-    return (
-      await $http.delete<DeleteWarehouseResponse>({
-        url: `/dashboard/warehouses/${id}`,
-        suppressSuccessNotification: true,
-        suppressErrorNotification: true,
-      })
-    ).data
-  },
-}
-
-const transport = env.WAREHOUSES_USE_MOCK ? warehousesMockTransport : warehousesHttpTransport
-
-export const warehousesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<import('../types/warehouse.types').Warehouse>> {
-    const response = await transport.list(page, signal)
+    const items = response.data.map(normalizeWarehouseListItem)
     return {
-      items: response.data,
+      items,
       paginate: {
         current_page: response.meta.current_page,
         total_pages: response.meta.last_page,
         per_page: response.meta.per_page,
         total: response.meta.total,
-        count: response.data.length,
+        count: items.length,
         next_page_url:
           response.meta.current_page < response.meta.last_page ? String(response.meta.current_page + 1) : null,
         prev_page_url: response.meta.current_page > 1 ? String(response.meta.current_page - 1) : null,
@@ -89,8 +94,43 @@ export const warehousesService = {
       extra: null,
     }
   },
-  show: (id: number, signal?: AbortSignal) => transport.show(id, signal),
-  create: (payload: WarehousePayload) => transport.create(payload),
-  update: (id: number, payload: WarehousePayload) => transport.update(id, payload),
-  delete: (id: number) => transport.delete(id),
+
+  async show(id: number, signal?: AbortSignal) {
+    const response = await $http.get<RawWarehouseResponse>({
+      url: `/dashboard/warehouses/${assertId(id, 'Warehouse ID')}`,
+      signal,
+      suppressErrorNotification: true,
+    })
+    return normalizeResponse(response.data)
+  },
+
+  async create(payload: WarehouseCreatePayload) {
+    const response = await $http.post<RawWarehouseResponse>({
+      url: '/dashboard/warehouses',
+      data: serializeWarehouseCreate(payload),
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+    return normalizeResponse(response.data)
+  },
+
+  async update(id: number, payload: WarehouseUpdatePayload) {
+    const response = await $http.put<RawWarehouseResponse>({
+      url: `/dashboard/warehouses/${assertId(id, 'Warehouse ID')}`,
+      data: serializeWarehouseUpdate(payload),
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+    return normalizeResponse(response.data)
+  },
+
+  async delete(id: number) {
+    return (
+      await $http.delete<DeleteWarehouseResponse>({
+        url: `/dashboard/warehouses/${assertId(id, 'Warehouse ID')}`,
+        suppressSuccessNotification: true,
+        suppressErrorNotification: true,
+      })
+    ).data
+  },
 }

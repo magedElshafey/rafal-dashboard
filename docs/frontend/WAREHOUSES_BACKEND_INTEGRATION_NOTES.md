@@ -1,5 +1,9 @@
 # Warehouses backend integration notes
 
-The implemented contract represents coverage as user-editable free-text strings sent as repeated `coverage_zone[]` multipart fields. Product/backend clarification is required on whether the final model should reference managed City or Region IDs/entities, because the BRD separately requires Regions, Cities, and warehouse coverage management.
+Warehouses use the real backend exclusively through the shared HTTP client. The Index endpoint is paginated, and Edit always loads the complete Warehouse with `GET /dashboard/warehouses/:id` before rendering editable city assignments.
 
-Please also confirm whether `coverage_zone` is required, whether values must be unique, whether Arabic and English variants are intentionally separate values, and whether duplicate comparison should be case-insensitive. Until clarified, coverage is optional, whitespace is trimmed, empty entries are prevented, and only exact duplicates are rejected.
+Create and partial Update use `application/json`. Frontend booleans remain `boolean`, while `is_active` writes use numeric `0 | 1`. Create requires `city_ids`; the former free-text coverage field is absent from the frontend model and request contract.
+
+On Update, omitted fields remain unchanged. When `city_ids` is present it replaces the Warehouse's complete city assignment, so a changed selection sends every currently selected City ID rather than an added/removed delta. An unchanged selection omits `city_ids`.
+
+The backend owns cross-Warehouse city uniqueness. Assignment conflicts preserve the form and selected cities while showing localized corrective feedback. Delete can be rejected while the Warehouse still owns Product Variant stock; the row and confirmation remain available so the user can clear stock and retry.

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { warehousesService } from '@/modules/warehouses/api/warehouses.service'
 import { warehousesKeys } from '@/modules/warehouses/queries/warehouses.keys'
+import { isWarehouseStockConflict } from '@/modules/warehouses/utils/warehouse-error.utils'
 
 export function useDeleteWarehouse() {
   const queryClient = useQueryClient()
@@ -15,6 +16,9 @@ export function useDeleteWarehouse() {
       await queryClient.invalidateQueries({ queryKey: warehousesKeys.lists() })
       toast.success(t('warehouses.feedback.deleted'))
     },
-    onError: () => toast.error(t('warehouses.feedback.deleteError')),
+    onError: (error) =>
+      toast.error(
+        t(isWarehouseStockConflict(error) ? 'warehouses.errors.stockConflict' : 'warehouses.feedback.deleteError')
+      ),
   })
 }

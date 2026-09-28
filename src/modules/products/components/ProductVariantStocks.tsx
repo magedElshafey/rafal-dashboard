@@ -10,12 +10,12 @@ import {
 } from '@/modules/products/components/ProductVariantStockDrawer'
 import { useDeleteProductVariantStock } from '@/modules/products/hooks/useDeleteProductVariantStock'
 import type { ProductVariant } from '@/modules/products/types/product-variant.types'
-import type { Warehouse } from '@/modules/warehouses/types/warehouse.types'
+import type { WarehouseListItem } from '@/modules/warehouses/types/warehouse.types'
 
 type Props = {
   productId: number
   variant: ProductVariant
-  warehouses: Warehouse[]
+  warehouses: WarehouseListItem[]
   isLoadingWarehouses: boolean
   isFetchingWarehouses: boolean
   isFetchingNextWarehousePage: boolean

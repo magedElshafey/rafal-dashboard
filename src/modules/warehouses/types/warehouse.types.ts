@@ -1,21 +1,62 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
+import type { LocalizedName } from '@/types/localized-name.types'
 
-export type Warehouse = {
+export type WarehouseListItem = {
   id: number
   name: string
-  coverage_zone: string[]
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type WarehouseCity = {
+  id: number
+  name: LocalizedName
+}
+
+export type WarehouseDetail = WarehouseListItem & {
+  cities: WarehouseCity[]
+}
+
+export type WarehouseFormValues = {
+  name: string
+  cityIds: string[]
+  isActive: boolean
+}
+
+export type WarehouseCreatePayload = {
+  name: string
+  cityIds: number[]
+  isActive: boolean
+}
+
+export type WarehouseUpdatePayload = {
+  name?: string
+  cityIds?: number[]
+  isActive?: boolean
+}
+
+export type RawWarehouseListItem = {
+  id: number
+  name: string
   is_active: boolean
   created_at: string
   updated_at: string
 }
 
-export type WarehouseFormValues = {
-  name: string
-  coverageZone: string[]
-  isActive: boolean
+export type RawWarehouseDetail = RawWarehouseListItem & {
+  cities: Array<{ id: number; name: LocalizedName }>
 }
 
-export type WarehousePayload = WarehouseFormValues
-export type WarehousesIndexResponse = PaginatedDashboardResponse<Warehouse>
-export type WarehouseResponse = { success: boolean; message: string; data: Warehouse }
-export type DeleteWarehouseResponse = Omit<WarehouseResponse, 'data'>
+export type RawWarehouseCreatePayload = {
+  name: string
+  city_ids: number[]
+  is_active: 0 | 1
+}
+
+export type RawWarehouseUpdatePayload = Partial<RawWarehouseCreatePayload>
+
+export type WarehousesIndexResponse = PaginatedDashboardResponse<RawWarehouseListItem>
+export type RawWarehouseResponse = { success: boolean; message: string; data: RawWarehouseDetail }
+export type WarehouseResponse = { success: boolean; message: string; data: WarehouseDetail }
+export type DeleteWarehouseResponse = { success: boolean; message: string }

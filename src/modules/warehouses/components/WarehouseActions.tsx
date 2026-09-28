@@ -2,12 +2,12 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { DashboardCardActions } from '@/components/shared/dashboard/molecules/DashboardCardAction/DashboardCardAction'
-import type { Warehouse } from '@/modules/warehouses/types/warehouse.types'
+import type { WarehouseListItem } from '@/modules/warehouses/types/warehouse.types'
 
 type Props = {
-  warehouse: Warehouse
-  onEdit: (warehouse: Warehouse) => void
-  onDelete: (warehouse: Warehouse) => void
+  warehouse: WarehouseListItem
+  onEdit: (warehouse: WarehouseListItem) => void
+  onDelete: (warehouse: WarehouseListItem) => void
   disabled?: boolean
 }
 

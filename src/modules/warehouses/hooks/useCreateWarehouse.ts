@@ -4,17 +4,22 @@ import { toast } from 'sonner'
 
 import { warehousesService } from '@/modules/warehouses/api/warehouses.service'
 import { warehousesKeys } from '@/modules/warehouses/queries/warehouses.keys'
-import type { WarehousePayload } from '@/modules/warehouses/types/warehouse.types'
+import type { WarehouseCreatePayload } from '@/modules/warehouses/types/warehouse.types'
+import { isWarehouseCityConflict } from '@/modules/warehouses/utils/warehouse-error.utils'
 
 export function useCreateWarehouse() {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
   return useMutation({
-    mutationFn: (payload: WarehousePayload) => warehousesService.create(payload),
-    onSuccess: async () => {
+    mutationFn: (payload: WarehouseCreatePayload) => warehousesService.create(payload),
+    onSuccess: async (response) => {
+      queryClient.setQueryData(warehousesKeys.detail(response.data.id), response)
       await queryClient.invalidateQueries({ queryKey: warehousesKeys.lists() })
       toast.success(t('warehouses.feedback.created'))
     },
-    onError: () => toast.error(t('warehouses.feedback.createError')),
+    onError: (error) =>
+      toast.error(
+        t(isWarehouseCityConflict(error) ? 'warehouses.errors.cityConflict' : 'warehouses.feedback.createError')
+      ),
   })
 }

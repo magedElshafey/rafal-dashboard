@@ -4,15 +4,14 @@ export function WarehousesListSkeleton() {
   return (
     <div aria-hidden="true">
       <div className="hidden lg:block">
-        <div className="grid grid-cols-[1fr_1.5fr_8rem_5rem] gap-4 border-b border-border p-5">
-          {Array.from({ length: 4 }, (_, i) => (
+        <div className="grid grid-cols-[1fr_8rem_5rem] gap-4 border-b border-border p-5">
+          {Array.from({ length: 3 }, (_, i) => (
             <Skeleton key={i} className="h-4 w-20" />
           ))}
         </div>
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="grid grid-cols-[1fr_1.5fr_8rem_5rem] items-center gap-4 border-b border-border p-5">
+          <div key={i} className="grid grid-cols-[1fr_8rem_5rem] items-center gap-4 border-b border-border p-5">
             <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-7 w-52" />
             <Skeleton className="h-6 w-16" />
             <Skeleton className="size-9" />
           </div>
@@ -25,7 +24,6 @@ export function WarehousesListSkeleton() {
               <Skeleton className="h-5 w-36" />
               <Skeleton className="size-9" />
             </div>
-            <Skeleton className="h-12 w-full" />
             <Skeleton className="h-7 w-3/4" />
           </div>
         ))}

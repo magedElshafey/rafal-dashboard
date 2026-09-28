@@ -18,7 +18,7 @@ import { WarehousesList } from '@/modules/warehouses/components/WarehousesList'
 import { WarehousesListSkeleton } from '@/modules/warehouses/components/WarehousesListSkeleton'
 import { useDeleteWarehouse } from '@/modules/warehouses/hooks/useDeleteWarehouse'
 import { useWarehouses } from '@/modules/warehouses/hooks/useWarehouses'
-import type { Warehouse } from '@/modules/warehouses/types/warehouse.types'
+import type { WarehouseListItem } from '@/modules/warehouses/types/warehouse.types'
 
 function WarehousesPage() {
   const { t } = useTranslation()
@@ -27,7 +27,7 @@ function WarehousesPage() {
   const deleteWarehouse = useDeleteWarehouse()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
-  const [warehouseToDelete, setWarehouseToDelete] = useState<Warehouse | null>(null)
+  const [warehouseToDelete, setWarehouseToDelete] = useState<WarehouseListItem | null>(null)
   const warehouses = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? warehouses?.length
   const loadMoreRef = useInfiniteScroll({

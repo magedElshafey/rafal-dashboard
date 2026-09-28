@@ -7,20 +7,23 @@
     "total_one": "{{count}} warehouse",
     "total_other": "{{count}} warehouses",
     "loadingMore": "Loading more warehouses",
-    "noCoverageZones": "No Coverage Zones",
-    "moreCoverageZones": "{{count}} more coverage zones",
     "fields": {
       "name": "Warehouse Name",
-      "coverageZones": "Coverage Zones",
-      "addCoverageZone": "Add coverage zone…",
-      "removeCoverageZone": "Remove {{value}}",
+      "cities": "Cities",
       "status": "Status",
       "active": "Active"
     },
     "status": { "active": "Active", "inactive": "Inactive" },
     "form": {
-      "createDescription": "Add the warehouse and its current free-text coverage zones.",
-      "editDescription": "Update the warehouse and its current free-text coverage zones."
+      "createDescription": "Add a warehouse and assign its cities.",
+      "editDescription": "Update the warehouse and its complete city assignment.",
+      "citiesPlaceholder": "Select cities",
+      "citiesEmpty": "No cities available.",
+      "citiesLoading": "Loading cities…",
+      "citiesLoadMore": "Load more cities",
+      "citiesError": "Cities could not be loaded.",
+      "citiesRetry": "Try again",
+      "citiesClear": "Clear cities"
     },
     "actions": {
       "label": "Actions",
@@ -46,6 +49,13 @@
       "updateError": "Warehouse could not be updated.",
       "deleteError": "Warehouse could not be deleted."
     },
-    "validation": { "nameRequired": "Warehouse name is required." }
+    "errors": {
+      "cityConflict": "One or more selected cities are already assigned to another warehouse. Choose different cities and try again.",
+      "stockConflict": "This warehouse still has product stock. Clear its stock before deleting it."
+    },
+    "validation": {
+      "nameRequired": "Warehouse name is required.",
+      "citiesRequired": "Select at least one city."
+    }
   }
 }

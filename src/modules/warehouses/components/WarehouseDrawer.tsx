@@ -9,7 +9,8 @@ import { WarehouseFormSkeleton } from './WarehouseFormSkeleton'
 import { useWarehouse } from '@/modules/warehouses/hooks/useWarehouse'
 import { useCreateWarehouse } from '@/modules/warehouses/hooks/useCreateWarehouse'
 import { useUpdateWarehouse } from '@/modules/warehouses/hooks/useUpdateWarehouse'
-import type { Warehouse, WarehouseFormValues } from '@/modules/warehouses/types/warehouse.types'
+import type { WarehouseDetail, WarehouseFormValues } from '@/modules/warehouses/types/warehouse.types'
+import { buildWarehouseCreatePayload, buildWarehouseUpdatePayload } from '@/modules/warehouses/utils/warehouse.utils'
 
 type Props = {
   open: boolean
@@ -19,8 +20,12 @@ type Props = {
 }
 const FORM_ID = 'warehouse-form'
 
-function toFormValues(warehouse: Warehouse): WarehouseFormValues {
-  return { name: warehouse.name, coverageZone: [...warehouse.coverage_zone], isActive: warehouse.is_active }
+function toFormValues(warehouse: WarehouseDetail): WarehouseFormValues {
+  return {
+    name: warehouse.name,
+    cityIds: warehouse.cities.map((city) => String(city.id)),
+    isActive: warehouse.isActive,
+  }
 }
 
 export function WarehouseDrawer({ open, mode, warehouseId, onOpenChange }: Props) {
@@ -48,13 +53,15 @@ export function WarehouseDrawer({ open, mode, warehouseId, onOpenChange }: Props
     lockRef.current = true
     try {
       if (mode === 'create') {
-        await createWarehouse.mutateAsync(values)
+        await createWarehouse.mutateAsync(buildWarehouseCreatePayload(values))
         methods.reset(EMPTY_WAREHOUSE_FORM_VALUES)
         if (intent === 'create-another') {
           window.requestAnimationFrame(() => methods.setFocus('name'))
         } else onOpenChange(false)
       } else {
-        const response = await updateWarehouse.mutateAsync(values)
+        const response = await updateWarehouse.mutateAsync(
+          buildWarehouseUpdatePayload(values, methods.formState.dirtyFields)
+        )
         methods.reset(toFormValues(response.data))
         onOpenChange(false)
       }
@@ -89,7 +96,9 @@ export function WarehouseDrawer({ open, mode, warehouseId, onOpenChange }: Props
         <WarehouseForm
           key={`${mode}-${warehouseId ?? 'new'}-${open}`}
           formId={FORM_ID}
+          mode={mode}
           initialValues={initialValues}
+          initialCities={mode === 'edit' && detail.data ? detail.data.data.cities : []}
           resetValuesKey={`${mode}-${warehouseId ?? 'new'}`}
           isSubmitting={isSubmitting}
           onDirtyChange={onDirtyChange}

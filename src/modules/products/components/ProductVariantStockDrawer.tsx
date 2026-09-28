@@ -11,7 +11,7 @@ import type {
   VariantWarehouseStock,
   VariantWarehouseStockFormValues,
 } from '@/modules/products/types/product-variant.types'
-import type { Warehouse } from '@/modules/warehouses/types/warehouse.types'
+import type { WarehouseListItem } from '@/modules/warehouses/types/warehouse.types'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
 const FORM_ID = 'product-variant-stock-form'
@@ -23,7 +23,7 @@ type Props = {
   productId: number
   state: ProductVariantStockDrawerState | null
   onOpenChange: (open: boolean) => void
-  warehouses: Warehouse[]
+  warehouses: WarehouseListItem[]
   assignedWarehouseIds: number[]
   isLoadingWarehouses: boolean
   isFetchingWarehouses: boolean
