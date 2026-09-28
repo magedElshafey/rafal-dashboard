@@ -26,6 +26,13 @@ describe('core routes', () => {
     expect(privatePaths).not.toContain('/dashboard/products/:id/stocks')
   })
 
+  it('defines the Coupons route', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.coupons).toBe('/dashboard/coupons')
+    expect(privatePaths).toContain('/dashboard/coupons')
+  })
+
   it('redirects unauthenticated dashboard access to login', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>

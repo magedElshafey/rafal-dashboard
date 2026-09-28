@@ -28,6 +28,8 @@ import * as shippingMethodsAr from '@/modules/shipping-methods/locale/ar.json'
 import * as shippingMethodsEn from '@/modules/shipping-methods/locale/en.json'
 import * as productsAr from '@/modules/products/locale/ar.json'
 import * as productsEn from '@/modules/products/locale/en.json'
+import * as couponsAr from '@/modules/coupons/locale/ar.json'
+import * as couponsEn from '@/modules/coupons/locale/en.json'
 
 export const resources = {
   en: {
@@ -47,6 +49,7 @@ export const resources = {
       ...settingsEn,
       ...shippingMethodsEn,
       ...productsEn,
+      ...couponsEn,
     },
   },
   ar: {
@@ -66,6 +69,7 @@ export const resources = {
       ...settingsAr,
       ...shippingMethodsAr,
       ...productsAr,
+      ...couponsAr,
     },
   },
 } as const

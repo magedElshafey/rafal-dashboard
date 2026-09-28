@@ -1,0 +1,100 @@
+{
+  "coupons": {
+    "title": "Coupons",
+    "listTitle": "Coupon management",
+    "total_one": "{{count}} coupon",
+    "total_other": "{{count}} coupons",
+    "createCoupon": "Create Coupon",
+    "editCoupon": "Edit Coupon",
+    "loadingMore": "Loading more coupons",
+    "empty": {
+      "title": "No coupons yet",
+      "description": "Create a coupon to offer a percentage or fixed discount."
+    },
+    "sections": {
+      "basic": "Basic information",
+      "discount": "Discount",
+      "schedule": "Schedule",
+      "limits": "Usage limits",
+      "status": "Availability"
+    },
+    "fields": {
+      "coupon": "Coupon",
+      "code": "Code",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "descriptionAr": "Arabic Description",
+      "descriptionEn": "English Description",
+      "type": "Type",
+      "value": "Value",
+      "percentValue": "Percentage Value",
+      "fixedValue": "Fixed Discount Amount",
+      "discount": "Discount",
+      "maxDiscountAmount": "Max Discount Amount",
+      "minOrderAmount": "Minimum Order Amount",
+      "startsAt": "Starts At",
+      "endsAt": "Ends At",
+      "isPublic": "Public",
+      "isActive": "Active",
+      "usageLimitTotal": "Total Usage Limit",
+      "usageLimitPerCustomer": "Usage Limit per Customer",
+      "newCustomersOnly": "New Customers Only",
+      "usagesCount": "Uses",
+      "status": "Status",
+      "schedule": "Schedule"
+    },
+    "types": {
+      "percent": "Percent",
+      "fixed": "Fixed"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "public": "Public",
+      "private": "Private"
+    },
+    "schedule": {
+      "scheduled": "Scheduled",
+      "current": "Current",
+      "expired": "Expired",
+      "anytime": "Any time"
+    },
+    "form": {
+      "createDescription": "Set the discount, optional schedule, availability, and usage limits.",
+      "editDescription": "Only changed fields will be sent when this coupon is updated."
+    },
+    "actions": {
+      "label": "Actions",
+      "forCoupon": "Actions for {{name}}",
+      "edit": "Edit",
+      "editNamed": "Edit {{name}}",
+      "delete": "Delete",
+      "deleteNamed": "Delete {{name}}",
+      "deleting": "Deleting…",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "delete": {
+      "title": "Delete coupon?",
+      "description": "Delete {{name}}? This action cannot be undone."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "validNumber": "Enter a valid number.",
+      "percentRange": "Percentage must be between 0 and 100.",
+      "validDate": "Enter a valid date and time.",
+      "dateOrder": "End date must be the same as or after the start date."
+    },
+    "feedback": {
+      "created": "Coupon created successfully.",
+      "updated": "Coupon updated successfully.",
+      "deleted": "Coupon deleted successfully.",
+      "createError": "Coupon could not be created.",
+      "updateError": "Coupon could not be updated.",
+      "deleteError": "Coupon could not be deleted."
+    }
+  }
+}

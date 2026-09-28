@@ -1,0 +1,104 @@
+{
+  "coupons": {
+    "title": "القسائم",
+    "listTitle": "إدارة القسائم",
+    "total_zero": "لا توجد قسائم",
+    "total_one": "قسيمة واحدة",
+    "total_two": "قسيمتان",
+    "total_few": "{{count}} قسائم",
+    "total_many": "{{count}} قسيمة",
+    "total_other": "{{count}} قسيمة",
+    "createCoupon": "إنشاء قسيمة",
+    "editCoupon": "تعديل القسيمة",
+    "loadingMore": "جارٍ تحميل المزيد من القسائم",
+    "empty": {
+      "title": "لا توجد قسائم بعد",
+      "description": "أنشئ قسيمة لتقديم خصم بنسبة مئوية أو بقيمة ثابتة."
+    },
+    "sections": {
+      "basic": "المعلومات الأساسية",
+      "discount": "الخصم",
+      "schedule": "الجدولة",
+      "limits": "حدود الاستخدام",
+      "status": "الإتاحة"
+    },
+    "fields": {
+      "coupon": "القسيمة",
+      "code": "الرمز",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "descriptionAr": "الوصف بالعربية",
+      "descriptionEn": "الوصف بالإنجليزية",
+      "type": "النوع",
+      "value": "القيمة",
+      "percentValue": "قيمة النسبة المئوية",
+      "fixedValue": "مبلغ الخصم الثابت",
+      "discount": "الخصم",
+      "maxDiscountAmount": "الحد الأقصى للخصم",
+      "minOrderAmount": "الحد الأدنى للطلب",
+      "startsAt": "يبدأ في",
+      "endsAt": "ينتهي في",
+      "isPublic": "عام",
+      "isActive": "نشط",
+      "usageLimitTotal": "إجمالي حد الاستخدام",
+      "usageLimitPerCustomer": "حد الاستخدام لكل عميل",
+      "newCustomersOnly": "للعملاء الجدد فقط",
+      "usagesCount": "مرات الاستخدام",
+      "status": "الحالة",
+      "schedule": "الجدولة"
+    },
+    "types": {
+      "percent": "نسبة مئوية",
+      "fixed": "ثابت"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "public": "عام",
+      "private": "خاص"
+    },
+    "schedule": {
+      "scheduled": "مجدولة",
+      "current": "سارية",
+      "expired": "منتهية",
+      "anytime": "في أي وقت"
+    },
+    "form": {
+      "createDescription": "حدّد الخصم والجدولة الاختيارية والإتاحة وحدود الاستخدام.",
+      "editDescription": "لن تُرسل عند التحديث إلا الحقول التي تغيرت."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "forCoupon": "إجراءات {{name}}",
+      "edit": "تعديل",
+      "editNamed": "تعديل {{name}}",
+      "delete": "حذف",
+      "deleteNamed": "حذف {{name}}",
+      "deleting": "جارٍ الحذف…",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة أخرى",
+      "update": "تحديث",
+      "cancel": "إلغاء",
+      "close": "إغلاق"
+    },
+    "delete": {
+      "title": "حذف القسيمة؟",
+      "description": "هل تريد حذف {{name}}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "validNumber": "أدخل رقمًا صالحًا.",
+      "percentRange": "يجب أن تكون النسبة بين 0 و100.",
+      "validDate": "أدخل تاريخًا ووقتًا صالحين.",
+      "dateOrder": "يجب أن يكون تاريخ الانتهاء مساويًا لتاريخ البدء أو بعده."
+    },
+    "feedback": {
+      "created": "تم إنشاء القسيمة بنجاح.",
+      "updated": "تم تحديث القسيمة بنجاح.",
+      "deleted": "تم حذف القسيمة بنجاح.",
+      "createError": "تعذر إنشاء القسيمة.",
+      "updateError": "تعذر تحديث القسيمة.",
+      "deleteError": "تعذر حذف القسيمة."
+    }
+  }
+}
