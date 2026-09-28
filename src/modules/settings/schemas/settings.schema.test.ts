@@ -21,6 +21,9 @@ const valid: SettingsFormValues = {
   maxAddressesPerUser: 10,
   maxCartItemQuantity: 10,
   otpResendCooldownSeconds: 1,
+  guestOrderVerificationMinutes: 30,
+  lowStockThreshold: 5,
+  returnWindowDays: 14,
 }
 
 describe('Settings validation', () => {
@@ -49,11 +52,25 @@ describe('Settings validation', () => {
     ['otpResendCooldownSeconds', 30, true],
     ['otpResendCooldownSeconds', -1, false],
     ['otpResendCooldownSeconds', 1.5, false],
+    ['guestOrderVerificationMinutes', -1, true],
+    ['guestOrderVerificationMinutes', 1.5, false],
+    ['lowStockThreshold', -1, true],
+    ['lowStockThreshold', 1.5, false],
+    ['returnWindowDays', -1, true],
+    ['returnWindowDays', 1.5, false],
   ] as const)('validates %s = %s', async (field, value, expected) => {
     await expect(schema.isValid({ ...valid, [field]: value })).resolves.toBe(expected)
   })
 
-  it.each(Object.keys(valid) as Array<keyof SettingsFormValues>)('requires %s', async (field) => {
+  it.each(
+    Object.keys(valid).filter((field) => field !== 'freeShippingThreshold' && field !== 'giftWrapFee') as Array<
+      keyof SettingsFormValues
+    >
+  )('requires %s', async (field) => {
     await expect(schema.isValid({ ...valid, [field]: undefined })).resolves.toBe(false)
+  })
+
+  it('allows the dependent amount fields to be omitted', async () => {
+    await expect(schema.isValid({ ...valid, freeShippingThreshold: null, giftWrapFee: null })).resolves.toBe(true)
   })
 })

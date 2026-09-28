@@ -20,15 +20,27 @@ function numberField(messages: SettingsValidationMessages) {
     .test('finite', messages.validNumber, Number.isFinite)
 }
 
+function optionalNumberField(messages: SettingsValidationMessages) {
+  return yup
+    .number()
+    .transform((value, originalValue) => (originalValue === '' || originalValue === null ? null : value))
+    .nullable()
+    .typeError(messages.validNumber)
+    .test('finite', messages.validNumber, (value) => value === null || value === undefined || Number.isFinite(value))
+}
+
 export function createSettingsSchema(messages: SettingsValidationMessages) {
   return yup.object<SettingsFormValues>({
     vatRate: numberField(messages).min(0, messages.vatRange).max(100, messages.vatRange),
     freeShippingEnabled: yup.boolean().required(messages.required).defined(),
-    freeShippingThreshold: numberField(messages).min(0, messages.nonNegative),
+    freeShippingThreshold: optionalNumberField(messages).min(0, messages.nonNegative),
     giftWrapEnabled: yup.boolean().required(messages.required).defined(),
-    giftWrapFee: numberField(messages).min(0, messages.nonNegative),
+    giftWrapFee: optionalNumberField(messages).min(0, messages.nonNegative),
     maxAddressesPerUser: numberField(messages).integer(messages.integer).min(1, messages.minimumOne),
     maxCartItemQuantity: numberField(messages).integer(messages.integer).min(1, messages.minimumOne),
     otpResendCooldownSeconds: numberField(messages).integer(messages.integer).min(0, messages.nonNegative),
+    guestOrderVerificationMinutes: numberField(messages).integer(messages.integer),
+    lowStockThreshold: numberField(messages).integer(messages.integer),
+    returnWindowDays: numberField(messages).integer(messages.integer),
   })
 }

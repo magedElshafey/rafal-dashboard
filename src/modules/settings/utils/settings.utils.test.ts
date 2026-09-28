@@ -12,6 +12,9 @@ const values: SettingsFormValues = {
   maxAddressesPerUser: 10,
   maxCartItemQuantity: 10,
   otpResendCooldownSeconds: 1,
+  guestOrderVerificationMinutes: 30,
+  lowStockThreshold: 5,
+  returnWindowDays: 14,
 }
 
 describe('buildSettingsUpdatePayload', () => {
@@ -25,15 +28,36 @@ describe('buildSettingsUpdatePayload', () => {
   it('includes required dependent zeros when toggles are turned off', () => {
     expect(
       buildSettingsUpdatePayload(
-        { ...values, freeShippingEnabled: false, freeShippingThreshold: 0 },
+        { ...values, freeShippingEnabled: false, freeShippingThreshold: null },
         { freeShippingEnabled: true, freeShippingThreshold: true }
       )
-    ).toEqual({ freeShippingEnabled: false, freeShippingThreshold: 0 })
+    ).toEqual({ freeShippingEnabled: false, freeShippingThreshold: null })
     expect(
       buildSettingsUpdatePayload(
         { ...values, giftWrapEnabled: false, giftWrapFee: 0 },
         { giftWrapEnabled: true, giftWrapFee: true }
       )
     ).toEqual({ giftWrapEnabled: false, giftWrapFee: 0 })
+  })
+
+  it('does not add dependent values when a feature is enabled without one', () => {
+    expect(
+      buildSettingsUpdatePayload(
+        { ...values, freeShippingEnabled: true, freeShippingThreshold: null },
+        { freeShippingEnabled: true }
+      )
+    ).toEqual({ freeShippingEnabled: true })
+    expect(
+      buildSettingsUpdatePayload({ ...values, giftWrapEnabled: true, giftWrapFee: null }, { giftWrapEnabled: true })
+    ).toEqual({ giftWrapEnabled: true })
+  })
+
+  it('includes each newly confirmed field only when dirty', () => {
+    expect(
+      buildSettingsUpdatePayload(
+        { ...values, guestOrderVerificationMinutes: 45, lowStockThreshold: 2, returnWindowDays: 30 },
+        { guestOrderVerificationMinutes: true, returnWindowDays: true }
+      )
+    ).toEqual({ guestOrderVerificationMinutes: 45, returnWindowDays: 30 })
   })
 })

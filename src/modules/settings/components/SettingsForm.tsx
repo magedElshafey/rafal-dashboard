@@ -43,10 +43,6 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
   const freeShippingEnabled = useWatch({ control, name: 'freeShippingEnabled' })
   const giftWrapEnabled = useWatch({ control, name: 'giftWrapEnabled' })
 
-  const zeroDependentField = (field: 'freeShippingThreshold' | 'giftWrapFee', enabled: boolean) => {
-    if (!enabled) setValue(field, 0, { shouldDirty: true, shouldValidate: true, shouldTouch: true })
-  }
-
   return (
     <div className="space-y-5">
       <SettingsSection title={t('settings.sections.tax.title')} description={t('settings.sections.tax.description')}>
@@ -72,7 +68,11 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
           name="freeShippingEnabled"
           label={t('settings.fields.freeShippingEnabled')}
           disabled={isSubmitting}
-          onChange={(enabled) => zeroDependentField('freeShippingThreshold', enabled)}
+          onChange={(enabled) => {
+            if (!enabled) {
+              setValue('freeShippingThreshold', null, { shouldDirty: true, shouldValidate: true, shouldTouch: true })
+            }
+          }}
         />
         <FormInput
           name="freeShippingThreshold"
@@ -83,7 +83,6 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
           step="any"
           suffix={<span className="text-xs text-muted-foreground">{t('settings.units.currency')}</span>}
           disabled={isSubmitting || !freeShippingEnabled}
-          required
         />
       </SettingsSection>
 
@@ -95,7 +94,9 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
           name="giftWrapEnabled"
           label={t('settings.fields.giftWrapEnabled')}
           disabled={isSubmitting}
-          onChange={(enabled) => zeroDependentField('giftWrapFee', enabled)}
+          onChange={(enabled) => {
+            if (!enabled) setValue('giftWrapFee', 0, { shouldDirty: true, shouldValidate: true, shouldTouch: true })
+          }}
         />
         <FormInput
           name="giftWrapFee"
@@ -106,7 +107,6 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
           step="any"
           suffix={<span className="text-xs text-muted-foreground">{t('settings.units.currency')}</span>}
           disabled={isSubmitting || !giftWrapEnabled}
-          required
         />
       </SettingsSection>
 
@@ -151,6 +151,41 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
           disabled={isSubmitting}
           required
         />
+        <FormInput
+          name="guestOrderVerificationMinutes"
+          label={t('settings.fields.guestOrderVerificationMinutes')}
+          type="number"
+          inputMode="numeric"
+          step={1}
+          suffix={<span className="text-sm text-muted-foreground">{t('settings.units.minutes')}</span>}
+          disabled={isSubmitting}
+          required
+        />
+      </SettingsSection>
+
+      <SettingsSection
+        title={t('settings.sections.operations.title')}
+        description={t('settings.sections.operations.description')}
+      >
+        <FormInput
+          name="lowStockThreshold"
+          label={t('settings.fields.lowStockThreshold')}
+          type="number"
+          inputMode="numeric"
+          step={1}
+          disabled={isSubmitting}
+          required
+        />
+        <FormInput
+          name="returnWindowDays"
+          label={t('settings.fields.returnWindowDays')}
+          type="number"
+          inputMode="numeric"
+          step={1}
+          suffix={<span className="text-sm text-muted-foreground">{t('settings.units.days')}</span>}
+          disabled={isSubmitting}
+          required
+        />
       </SettingsSection>
     </div>
   )
@@ -190,6 +225,9 @@ export function SettingsForm({ settings, isSubmitting, onSubmit }: SettingsFormP
         max_addresses_per_user: 'maxAddressesPerUser',
         max_cart_item_quantity: 'maxCartItemQuantity',
         otp_resend_cooldown_seconds: 'otpResendCooldownSeconds',
+        guest_order_verification_minutes: 'guestOrderVerificationMinutes',
+        low_stock_threshold: 'lowStockThreshold',
+        return_window_days: 'returnWindowDays',
       })
     } finally {
       submissionLockRef.current = false

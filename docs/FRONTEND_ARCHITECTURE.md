@@ -23,7 +23,9 @@ Required data must come from route parameters and canonical queries. Do not requ
 
 Services are the only feature layer that calls project HTTP clients. `createHttpClient` supports typed GET/POST/PUT/PATCH/DELETE requests, cleaned query parameters, upload progress, multipart bodies, and `AbortSignal` cancellation.
 
-Frontend/domain boolean state remains `boolean`. Laravel/API boolean writes use the shared serializer and the wire representation `0 | 1`; feature components do not repeat this conversion.
+Requests without media use `application/json`. Requests with media use `multipart/form-data`; services MUST NOT select multipart encoding for requests that contain no media.
+
+Frontend/domain boolean state remains `boolean`. Laravel/API boolean writes use the shared serializer and the numeric wire representation `0 | 1`; feature components do not repeat this conversion, and services MUST NOT send the strings `"true"` or `"false"`.
 
 Service functions should:
 

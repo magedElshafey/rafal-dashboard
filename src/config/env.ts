@@ -5,9 +5,6 @@ const env = {
   // Temporary feature transport until the Laravel Warehouses API is available locally.
   WAREHOUSES_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_WAREHOUSES_USE_MOCK !== 'false',
 
-  // Temporary feature transport until the Laravel Settings API is available locally.
-  SETTINGS_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_SETTINGS_USE_MOCK !== 'false',
-
   // Temporary feature transport until the Laravel Products API is available locally.
   PRODUCTS_USE_MOCK: import.meta.env.DEV && import.meta.env.VITE_PRODUCTS_USE_MOCK !== 'false',
 

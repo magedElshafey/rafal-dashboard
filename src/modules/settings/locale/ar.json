@@ -21,7 +21,11 @@
       },
       "security": {
         "title": "الأمان",
-        "description": "تحديد مدة الانتظار قبل طلب رمز تحقق آخر."
+        "description": "تحديد مدة إعادة إرسال رمز التحقق ومهلة تحقق طلبات الزوار."
+      },
+      "operations": {
+        "title": "المخزون والإرجاع",
+        "description": "تحديد حد تنبيه انخفاض المخزون وفترة إرجاع الطلبات."
       }
     },
     "fields": {
@@ -32,11 +36,16 @@
       "giftWrapFee": "رسوم تغليف الهدايا",
       "maxAddressesPerUser": "الحد الأقصى للعناوين لكل مستخدم",
       "maxCartItemQuantity": "الحد الأقصى لكمية المنتج في السلة",
-      "otpResendCooldownSeconds": "مدة انتظار إعادة إرسال رمز التحقق"
+      "otpResendCooldownSeconds": "مدة انتظار إعادة إرسال رمز التحقق",
+      "guestOrderVerificationMinutes": "مهلة التحقق من طلب الزائر",
+      "lowStockThreshold": "حد انخفاض المخزون",
+      "returnWindowDays": "فترة الإرجاع"
     },
     "units": {
       "currency": "قيمة الطلب",
-      "seconds": "ثانية"
+      "seconds": "ثانية",
+      "minutes": "دقيقة",
+      "days": "يوم"
     },
     "actions": {
       "save": "حفظ التغييرات",

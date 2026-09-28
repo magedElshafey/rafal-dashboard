@@ -21,7 +21,11 @@
       },
       "security": {
         "title": "Security",
-        "description": "Set the wait time before another OTP can be requested."
+        "description": "Set OTP resend timing and the guest-order verification window."
+      },
+      "operations": {
+        "title": "Inventory and Returns",
+        "description": "Set the low-stock alert threshold and order return window."
       }
     },
     "fields": {
@@ -32,11 +36,16 @@
       "giftWrapFee": "Gift Wrap Fee",
       "maxAddressesPerUser": "Maximum Addresses Per User",
       "maxCartItemQuantity": "Maximum Cart Item Quantity",
-      "otpResendCooldownSeconds": "OTP Resend Cooldown"
+      "otpResendCooldownSeconds": "OTP Resend Cooldown",
+      "guestOrderVerificationMinutes": "Guest Order Verification Window",
+      "lowStockThreshold": "Low Stock Threshold",
+      "returnWindowDays": "Return Window"
     },
     "units": {
       "currency": "order value",
-      "seconds": "seconds"
+      "seconds": "seconds",
+      "minutes": "minutes",
+      "days": "days"
     },
     "actions": {
       "save": "Save Changes",

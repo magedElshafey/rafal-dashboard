@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { settingsService } from '@/modules/settings/api/settings.service'
-import { resetSettingsMock } from '@/modules/settings/mocks/settings.mock'
+import type { Settings } from '@/modules/settings/types/settings.types'
 import SettingsPage from './SettingsPage'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -18,6 +18,30 @@ class ResizeObserverMock {
   disconnect() {}
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+
+const initialSettings: Settings = {
+  vatRate: 15,
+  freeShippingEnabled: true,
+  freeShippingThreshold: 500,
+  giftWrapEnabled: true,
+  giftWrapFee: 15,
+  maxAddressesPerUser: 10,
+  maxCartItemQuantity: 10,
+  otpResendCooldownSeconds: 1,
+  guestOrderVerificationMinutes: 30,
+  lowStockThreshold: 5,
+  returnWindowDays: 14,
+}
+
+let settings: Settings = { ...initialSettings }
+
+function installServiceFixtures() {
+  vi.spyOn(settingsService, 'get').mockImplementation(async () => ({ ...settings }))
+  vi.spyOn(settingsService, 'update').mockImplementation(async (payload) => {
+    settings = { ...settings, ...payload }
+    return { ...settings }
+  })
+}
 
 function renderPage() {
   const client = new QueryClient({
@@ -33,7 +57,8 @@ function renderPage() {
 describe('SettingsPage', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
-    resetSettingsMock()
+    settings = { ...initialSettings }
+    installServiceFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
@@ -45,14 +70,16 @@ describe('SettingsPage', () => {
     expect(await screen.findByRole('spinbutton', { name: /VAT Rate/ })).toHaveValue(15)
     expect(screen.getByRole('switch', { name: 'Free Shipping' })).toBeChecked()
     expect(screen.getByRole('spinbutton', { name: /Free Shipping Threshold/ })).toHaveValue(500)
+    expect(screen.getByRole('spinbutton', { name: /Guest Order Verification Window/ })).toHaveValue(30)
+    expect(screen.getByRole('spinbutton', { name: /Low Stock Threshold/ })).toHaveValue(5)
+    expect(screen.getByRole('spinbutton', { name: /Return Window/ })).toHaveValue(14)
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
   })
 
   it('shows a safe load error and retries without rendering an empty form', async () => {
-    const originalGet = settingsService.get
-    vi.spyOn(settingsService, 'get')
-      .mockRejectedValueOnce(new Error('unsafe backend detail'))
-      .mockImplementation(originalGet)
+    const get = vi.mocked(settingsService.get)
+    const implementation = get.getMockImplementation()
+    get.mockRejectedValueOnce(new Error('unsafe backend detail')).mockImplementation(implementation!)
     const user = userEvent.setup()
     renderPage()
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
@@ -76,7 +103,7 @@ describe('SettingsPage', () => {
     expect(toastMocks.success).toHaveBeenCalledWith('Settings updated successfully.')
   })
 
-  it('zeroes, disables, dirties, and submits both Free Shipping fields when switched off', async () => {
+  it('clears, disables, dirties, and submits both Free Shipping fields when switched off', async () => {
     const update = vi.spyOn(settingsService, 'update')
     const user = userEvent.setup()
     renderPage()
@@ -84,11 +111,26 @@ describe('SettingsPage', () => {
     const threshold = screen.getByRole('spinbutton', { name: /Free Shipping Threshold/ })
     await user.click(toggle)
     expect(toggle).not.toBeChecked()
-    expect(threshold).toHaveValue(0)
+    expect(threshold).toHaveValue(null)
     expect(threshold).toBeDisabled()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled())
     await user.click(screen.getByRole('button', { name: 'Save Changes' }))
-    await waitFor(() => expect(update).toHaveBeenCalledWith({ freeShippingEnabled: false, freeShippingThreshold: 0 }))
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith({ freeShippingEnabled: false, freeShippingThreshold: null })
+    )
+  })
+
+  it('enables Free Shipping without requiring or sending a threshold', async () => {
+    settings = { ...settings, freeShippingEnabled: false, freeShippingThreshold: null }
+    const update = vi.spyOn(settingsService, 'update')
+    const user = userEvent.setup()
+    renderPage()
+    const toggle = await screen.findByRole('switch', { name: 'Free Shipping' })
+    expect(toggle).not.toBeChecked()
+    expect(screen.getByRole('spinbutton', { name: /Free Shipping Threshold/ })).toHaveValue(null)
+    await user.click(toggle)
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith({ freeShippingEnabled: true }))
   })
 
   it('zeroes and submits only both Gift Wrap fields when switched off', async () => {
@@ -102,6 +144,20 @@ describe('SettingsPage', () => {
     expect(fee).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Save Changes' }))
     await waitFor(() => expect(update).toHaveBeenCalledWith({ giftWrapEnabled: false, giftWrapFee: 0 }))
+  })
+
+  it('enables Gift Wrap without requiring or sending a fee', async () => {
+    settings = { ...settings, giftWrapEnabled: false, giftWrapFee: 0 }
+    const update = vi.spyOn(settingsService, 'update')
+    const user = userEvent.setup()
+    renderPage()
+    const toggle = await screen.findByRole('switch', { name: 'Enable Gift Wrap' })
+    expect(toggle).not.toBeChecked()
+    await user.click(toggle)
+    const fee = screen.getByRole('spinbutton', { name: /Gift Wrap Fee/ })
+    await user.clear(fee)
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith({ giftWrapEnabled: true }))
   })
 
   it('disables save for invalid edits', async () => {

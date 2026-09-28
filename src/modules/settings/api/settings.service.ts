@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { settingsMockTransport } from '@/modules/settings/mocks/settings.mock'
 import type {
   RawSettings,
   RawSettingsResponse,
@@ -22,12 +20,17 @@ export function normalizeSettings(settings: RawSettings): Settings {
   if (!settings || typeof settings !== 'object') throw new Error('Settings data is unavailable')
   const numericValues = [
     settings.vat_rate,
-    settings.free_shipping_threshold,
     settings.gift_wrap_fee,
     settings.max_addresses_per_user,
     settings.max_cart_item_quantity,
     settings.otp_resend_cooldown_seconds,
+    settings.guest_order_verification_minutes,
+    settings.low_stock_threshold,
+    settings.return_window_days,
   ]
+  if (settings.free_shipping_threshold !== null && !Number.isFinite(settings.free_shipping_threshold)) {
+    throw new Error('Settings data is unavailable')
+  }
   if (numericValues.some((value) => !Number.isFinite(value))) throw new Error('Settings data is unavailable')
   return {
     vatRate: settings.vat_rate,
@@ -38,6 +41,9 @@ export function normalizeSettings(settings: RawSettings): Settings {
     maxAddressesPerUser: settings.max_addresses_per_user,
     maxCartItemQuantity: settings.max_cart_item_quantity,
     otpResendCooldownSeconds: settings.otp_resend_cooldown_seconds,
+    guestOrderVerificationMinutes: settings.guest_order_verification_minutes,
+    lowStockThreshold: settings.low_stock_threshold,
+    returnWindowDays: settings.return_window_days,
   }
 }
 
@@ -55,6 +61,11 @@ export function serializeSettingsUpdate(payload: SettingsUpdatePayload): RawSett
     ...(payload.otpResendCooldownSeconds !== undefined
       ? { otp_resend_cooldown_seconds: payload.otpResendCooldownSeconds }
       : {}),
+    ...(payload.guestOrderVerificationMinutes !== undefined
+      ? { guest_order_verification_minutes: payload.guestOrderVerificationMinutes }
+      : {}),
+    ...(payload.lowStockThreshold !== undefined ? { low_stock_threshold: payload.lowStockThreshold } : {}),
+    ...(payload.returnWindowDays !== undefined ? { return_window_days: payload.returnWindowDays } : {}),
   }
 }
 
@@ -62,35 +73,22 @@ function normalizeResponse(response: RawSettingsResponse): SettingsResponse {
   return { ...response, data: normalizeSettings(response.data) }
 }
 
-export const settingsHttpTransport = {
-  async get(signal?: AbortSignal) {
-    return (
-      await $http.get<RawSettingsResponse>({
-        url: '/dashboard/settings',
-        signal,
-        suppressErrorNotification: true,
-      })
-    ).data
-  },
-  async update(payload: RawSettingsUpdatePayload) {
-    return (
-      await $http.put<RawSettingsResponse>({
-        url: '/dashboard/settings',
-        data: payload,
-        suppressSuccessNotification: true,
-        suppressErrorNotification: true,
-      })
-    ).data
-  },
-}
-
-const transport = env.SETTINGS_USE_MOCK ? settingsMockTransport : settingsHttpTransport
-
 export const settingsService = {
   async get(signal?: AbortSignal): Promise<Settings> {
-    return normalizeResponse(await transport.get(signal)).data
+    const response = await $http.get<RawSettingsResponse>({
+      url: '/dashboard/settings',
+      signal,
+      suppressErrorNotification: true,
+    })
+    return normalizeResponse(response.data).data
   },
   async update(payload: SettingsUpdatePayload): Promise<Settings> {
-    return normalizeResponse(await transport.update(serializeSettingsUpdate(payload))).data
+    const response = await $http.put<RawSettingsResponse>({
+      url: '/dashboard/settings',
+      data: serializeSettingsUpdate(payload),
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+    return normalizeResponse(response.data).data
   },
 }

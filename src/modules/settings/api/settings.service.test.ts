@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const httpMocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn() }))
 
-vi.mock('@/config/env', () => ({ default: { SETTINGS_USE_MOCK: false } }))
 vi.mock('@/utils/http', () => ({
   $http: {
     get: httpMocks.get,
@@ -15,12 +14,15 @@ import { serializeSettingsUpdate, settingsService } from './settings.service'
 const rawSettings = {
   vat_rate: 15,
   free_shipping_enabled: 1 as const,
-  free_shipping_threshold: 500,
+  free_shipping_threshold: null,
   gift_wrap_enabled: false,
   gift_wrap_fee: 15,
   max_addresses_per_user: 10,
   max_cart_item_quantity: 10,
   otp_resend_cooldown_seconds: 1,
+  guest_order_verification_minutes: 30,
+  low_stock_threshold: 5,
+  return_window_days: 14,
 }
 
 describe('settingsService', () => {
@@ -31,12 +33,15 @@ describe('settingsService', () => {
     await expect(settingsService.get()).resolves.toEqual({
       vatRate: 15,
       freeShippingEnabled: true,
-      freeShippingThreshold: 500,
+      freeShippingThreshold: null,
       giftWrapEnabled: false,
       giftWrapFee: 15,
       maxAddressesPerUser: 10,
       maxCartItemQuantity: 10,
       otpResendCooldownSeconds: 1,
+      guestOrderVerificationMinutes: 30,
+      lowStockThreshold: 5,
+      returnWindowDays: 14,
     })
     expect(httpMocks.get).toHaveBeenCalledWith({
       url: '/dashboard/settings',
@@ -61,6 +66,9 @@ describe('settingsService', () => {
     ['maxAddressesPerUser', 12, { max_addresses_per_user: 12 }],
     ['maxCartItemQuantity', 14, { max_cart_item_quantity: 14 }],
     ['otpResendCooldownSeconds', 30, { otp_resend_cooldown_seconds: 30 }],
+    ['guestOrderVerificationMinutes', 45, { guest_order_verification_minutes: 45 }],
+    ['lowStockThreshold', 4, { low_stock_threshold: 4 }],
+    ['returnWindowDays', 30, { return_window_days: 30 }],
   ] as const)('serializes only %s', (field, value, expected) => {
     expect(serializeSettingsUpdate({ [field]: value })).toEqual(expected)
   })
@@ -69,7 +77,7 @@ describe('settingsService', () => {
     httpMocks.put.mockResolvedValue({
       data: { success: true, message: 'updated', data: { ...rawSettings, gift_wrap_enabled: 0, gift_wrap_fee: 0 } },
     })
-    await settingsService.update({ giftWrapEnabled: false, giftWrapFee: 0 })
+    const updated = await settingsService.update({ giftWrapEnabled: false, giftWrapFee: 0 })
     expect(httpMocks.put).toHaveBeenCalledWith({
       url: '/dashboard/settings',
       data: { gift_wrap_enabled: 0, gift_wrap_fee: 0 },
@@ -77,5 +85,25 @@ describe('settingsService', () => {
       suppressErrorNotification: true,
     })
     expect(httpMocks.put.mock.calls[0][0].data).not.toBeInstanceOf(FormData)
+    expect(updated).toEqual({
+      vatRate: 15,
+      freeShippingEnabled: true,
+      freeShippingThreshold: null,
+      giftWrapEnabled: false,
+      giftWrapFee: 0,
+      maxAddressesPerUser: 10,
+      maxCartItemQuantity: 10,
+      otpResendCooldownSeconds: 1,
+      guestOrderVerificationMinutes: 30,
+      lowStockThreshold: 5,
+      returnWindowDays: 14,
+    })
+  })
+
+  it('serializes the confirmed disabled Free Shipping values as partial JSON', () => {
+    expect(serializeSettingsUpdate({ freeShippingEnabled: false, freeShippingThreshold: null })).toEqual({
+      free_shipping_enabled: 0,
+      free_shipping_threshold: null,
+    })
   })
 })
