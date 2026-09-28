@@ -3,10 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
-import {
-  serializeStaticPageUpdate,
-  staticPagesService,
-} from '@/modules/static-pages/api/static-pages.service'
+import { serializeStaticPageUpdate, staticPagesService } from '@/modules/static-pages/api/static-pages.service'
 import type { RawStaticPage, StaticPageCreatePayload } from '@/modules/static-pages/types/static-page.types'
 
 const rawPage: RawStaticPage = {
@@ -119,11 +116,7 @@ describe('staticPagesService', () => {
   })
 
   it('omits an untouched legacy slug and normalizes a changed slug', () => {
-    expect([...serializeStaticPageUpdate({ title: { ar: 'جديد' } }).entries()]).toEqual([
-      ['title[ar]', 'جديد'],
-    ])
-    expect([...serializeStaticPageUpdate({ slug: ' New / Page? ' }).entries()]).toEqual([
-      ['slug', 'new-page'],
-    ])
+    expect([...serializeStaticPageUpdate({ title: { ar: 'جديد' } }).entries()]).toEqual([['title[ar]', 'جديد']])
+    expect([...serializeStaticPageUpdate({ slug: ' New / Page? ' }).entries()]).toEqual([['slug', 'new-page']])
   })
 })

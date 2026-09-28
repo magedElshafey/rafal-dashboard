@@ -13,10 +13,7 @@ function StaticPageCreatePage() {
 
   return (
     <main className="min-w-0">
-      <DashboardPageHeader
-        title={t('staticPages.create.title')}
-        description={t('staticPages.create.description')}
-      />
+      <DashboardPageHeader title={t('staticPages.create.title')} description={t('staticPages.create.description')} />
       <StaticPageForm
         mode="create"
         isSubmitting={create.isPending}

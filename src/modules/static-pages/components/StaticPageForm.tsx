@@ -98,10 +98,7 @@ export function StaticPageForm(props: Props) {
     () => (props.mode === 'edit' ? toStaticPageFormValues(props.page) : EMPTY_STATIC_PAGE_FORM_VALUES),
     [props]
   )
-  const schema = useMemo(
-    () => createStaticPageSchema({ slugRequired: t('staticPages.validation.slugRequired') }),
-    [t]
-  )
+  const schema = useMemo(() => createStaticPageSchema({ slugRequired: t('staticPages.validation.slugRequired') }), [t])
 
   const handleSubmit = async (values: StaticPageFormValues, methods: UseFormReturn<StaticPageFormValues>) => {
     if (submissionLockRef.current) return
@@ -138,11 +135,7 @@ export function StaticPageForm(props: Props) {
         <h2 className="text-lg font-semibold text-foreground">{t('staticPages.sections.basic')}</h2>
         <SlugField disabled={props.isSubmitting} />
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormSwitch
-            name="isPublished"
-            label={t('staticPages.fields.isPublished')}
-            disabled={props.isSubmitting}
-          />
+          <FormSwitch name="isPublished" label={t('staticPages.fields.isPublished')} disabled={props.isSubmitting} />
           <FormSwitch name="isSystem" label={t('staticPages.fields.isSystem')} disabled={props.isSubmitting} />
         </div>
       </DashboardCard>

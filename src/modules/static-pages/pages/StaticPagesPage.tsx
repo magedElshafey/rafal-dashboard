@@ -84,10 +84,7 @@ function StaticPagesPage() {
               />
             }
           >
-            <StaticPagesList
-              pages={pages}
-              onEdit={(page) => navigate(Routes.staticPageEditPath(page.id))}
-            />
+            <StaticPagesList pages={pages} onEdit={(page) => navigate(Routes.staticPageEditPath(page.id))} />
             {query.isFetchNextPageError ? (
               <div className="p-4">
                 <QueryStateNotice
