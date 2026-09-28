@@ -1,0 +1,118 @@
+{
+  "customers": {
+    "title": "Customers",
+    "description": "Review customer accounts, access state, and order history.",
+    "listTitle": "Customer management",
+    "total_one": "{{count}} customer",
+    "total_other": "{{count}} customers",
+    "loadingMore": "Loading more customers",
+    "identityFallback": "Customer #{{id}}",
+    "empty": {
+      "title": "No customers yet",
+      "description": "Customer accounts will appear here when they become available."
+    },
+    "fields": {
+      "customer": "Customer",
+      "name": "Name",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "contact": "Contact",
+      "status": "Status",
+      "access": "Access",
+      "ordersCount": "Orders",
+      "lifetimeSpend": "Lifetime spend",
+      "blockedAt": "Blocked at",
+      "blockedReason": "Blocked reason",
+      "termsAcceptedAt": "Terms accepted at",
+      "marketingOptIn": "Marketing opt-in",
+      "addressesCount": "Addresses",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at"
+    },
+    "values": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "status": {
+      "customer": {
+        "active": "Active"
+      },
+      "access": {
+        "allowed": "Allowed",
+        "blocked": "Blocked"
+      },
+      "order": {
+        "processing": "Processing",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled"
+      },
+      "payment": {
+        "pending": "Pending",
+        "paid": "Paid",
+        "cancelled": "Cancelled"
+      }
+    },
+    "actions": {
+      "label": "Actions",
+      "forCustomer": "Actions for {{name}}",
+      "view": "View",
+      "viewNamed": "View {{name}}",
+      "block": "Block",
+      "blockNamed": "Block {{name}}",
+      "blockPending": "Blocking…",
+      "unblock": "Unblock",
+      "unblockNamed": "Unblock {{name}}",
+      "unblockPending": "Unblocking…",
+      "cancel": "Cancel",
+      "back": "Back to Customers"
+    },
+    "confirm": {
+      "block": {
+        "title": "Block customer?",
+        "description": "Block {{name}} from customer access?"
+      },
+      "unblock": {
+        "title": "Unblock customer?",
+        "description": "Restore customer access for {{name}}?"
+      }
+    },
+    "feedback": {
+      "blocked": "Customer blocked successfully.",
+      "unblocked": "Customer unblocked successfully.",
+      "blockError": "Customer could not be blocked.",
+      "unblockError": "Customer could not be unblocked."
+    },
+    "detail": {
+      "title": "Customer Details",
+      "description": "Read-only customer account details and order history.",
+      "identity": "Identity",
+      "account": "Account",
+      "metrics": "Metrics",
+      "invalid": {
+        "title": "Customer unavailable",
+        "description": "The customer identifier is invalid."
+      }
+    },
+    "orders": {
+      "title": "Order history",
+      "total_one": "{{count}} order",
+      "total_other": "{{count}} orders",
+      "loadingMore": "Loading more customer orders",
+      "gift": "Gift",
+      "empty": {
+        "title": "No orders yet",
+        "description": "This customer has no order history."
+      },
+      "fields": {
+        "number": "Order",
+        "status": "Status",
+        "items": "Items",
+        "total": "Total",
+        "payment": "Payment",
+        "placedAt": "Placed at"
+      }
+    }
+  }
+}

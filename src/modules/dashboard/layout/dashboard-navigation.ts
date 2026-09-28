@@ -12,6 +12,7 @@ import {
   Truck,
   TicketPercent,
   Info,
+  UserRound,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -40,6 +41,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.admins,
     labelKey: 'dashboard.sidebar.admins',
     icon: UsersRound,
+    match: 'prefix',
+  },
+  {
+    to: Routes.customers,
+    labelKey: 'dashboard.sidebar.customers',
+    icon: UserRound,
     match: 'prefix',
   },
   {

@@ -1,0 +1,126 @@
+{
+  "customers": {
+    "title": "العملاء",
+    "description": "راجع حسابات العملاء وحالة الوصول وسجل الطلبات.",
+    "listTitle": "إدارة العملاء",
+    "total_zero": "لا يوجد عملاء",
+    "total_one": "عميل واحد",
+    "total_two": "عميلان",
+    "total_few": "{{count}} عملاء",
+    "total_many": "{{count}} عميلاً",
+    "total_other": "{{count}} عميل",
+    "loadingMore": "جارٍ تحميل المزيد من العملاء",
+    "identityFallback": "العميل رقم {{id}}",
+    "empty": {
+      "title": "لا يوجد عملاء بعد",
+      "description": "ستظهر حسابات العملاء هنا عند توفرها."
+    },
+    "fields": {
+      "customer": "العميل",
+      "name": "الاسم",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "contact": "بيانات التواصل",
+      "status": "الحالة",
+      "access": "الوصول",
+      "ordersCount": "الطلبات",
+      "lifetimeSpend": "إجمالي الإنفاق",
+      "blockedAt": "تاريخ الحظر",
+      "blockedReason": "سبب الحظر",
+      "termsAcceptedAt": "تاريخ قبول الشروط",
+      "marketingOptIn": "الموافقة على التسويق",
+      "addressesCount": "العناوين",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "تاريخ التحديث"
+    },
+    "values": {
+      "yes": "نعم",
+      "no": "لا"
+    },
+    "status": {
+      "customer": {
+        "active": "نشط"
+      },
+      "access": {
+        "allowed": "مسموح",
+        "blocked": "محظور"
+      },
+      "order": {
+        "processing": "قيد المعالجة",
+        "delivered": "تم التوصيل",
+        "cancelled": "ملغي"
+      },
+      "payment": {
+        "pending": "قيد الانتظار",
+        "paid": "مدفوع",
+        "cancelled": "ملغي"
+      }
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "forCustomer": "إجراءات العميل {{name}}",
+      "view": "عرض",
+      "viewNamed": "عرض {{name}}",
+      "block": "حظر",
+      "blockNamed": "حظر {{name}}",
+      "blockPending": "جارٍ الحظر…",
+      "unblock": "إلغاء الحظر",
+      "unblockNamed": "إلغاء حظر {{name}}",
+      "unblockPending": "جارٍ إلغاء الحظر…",
+      "cancel": "إلغاء",
+      "back": "العودة إلى العملاء"
+    },
+    "confirm": {
+      "block": {
+        "title": "حظر العميل؟",
+        "description": "هل تريد حظر وصول العميل {{name}}؟"
+      },
+      "unblock": {
+        "title": "إلغاء حظر العميل؟",
+        "description": "هل تريد استعادة وصول العميل {{name}}؟"
+      }
+    },
+    "feedback": {
+      "blocked": "تم حظر العميل بنجاح.",
+      "unblocked": "تم إلغاء حظر العميل بنجاح.",
+      "blockError": "تعذر حظر العميل.",
+      "unblockError": "تعذر إلغاء حظر العميل."
+    },
+    "detail": {
+      "title": "تفاصيل العميل",
+      "description": "تفاصيل حساب العميل وسجل الطلبات للقراءة فقط.",
+      "identity": "الهوية",
+      "account": "الحساب",
+      "metrics": "الإحصاءات",
+      "invalid": {
+        "title": "العميل غير متاح",
+        "description": "معرّف العميل غير صالح."
+      }
+    },
+    "orders": {
+      "title": "سجل الطلبات",
+      "total_zero": "لا توجد طلبات",
+      "total_one": "طلب واحد",
+      "total_two": "طلبان",
+      "total_few": "{{count}} طلبات",
+      "total_many": "{{count}} طلباً",
+      "total_other": "{{count}} طلب",
+      "loadingMore": "جارٍ تحميل المزيد من طلبات العميل",
+      "gift": "هدية",
+      "empty": {
+        "title": "لا توجد طلبات بعد",
+        "description": "لا يوجد سجل طلبات لهذا العميل."
+      },
+      "fields": {
+        "number": "الطلب",
+        "status": "الحالة",
+        "items": "العناصر",
+        "total": "الإجمالي",
+        "payment": "الدفع",
+        "placedAt": "تاريخ الطلب"
+      }
+    }
+  }
+}

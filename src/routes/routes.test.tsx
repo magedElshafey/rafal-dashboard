@@ -40,6 +40,16 @@ describe('core routes', () => {
     expect(privatePaths).toContain('/dashboard/about-us')
   })
 
+  it('defines the Customer Index and Detail routes', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.customers).toBe('/dashboard/customers')
+    expect(AppRoutes.customerDetail).toBe('/dashboard/customers/:id')
+    expect(AppRoutes.customerDetailPath(6)).toBe('/dashboard/customers/6')
+    expect(privatePaths).toContain('/dashboard/customers')
+    expect(privatePaths).toContain('/dashboard/customers/:id')
+  })
+
   it('redirects unauthenticated dashboard access to login', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
