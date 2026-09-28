@@ -1,0 +1,75 @@
+{
+  "staticPages": {
+    "title": "الصفحات الثابتة",
+    "description": "إدارة صفحات المعلومات باللغتين.",
+    "listTitle": "الصفحات",
+    "total_zero": "لا توجد صفحات",
+    "total_one": "صفحة واحدة",
+    "total_two": "صفحتان",
+    "total_few": "{{count}} صفحات",
+    "total_many": "{{count}} صفحة",
+    "total_other": "{{count}} صفحة",
+    "loadingMore": "جارٍ تحميل مزيد من الصفحات",
+    "titleFallback": "الصفحة رقم {{id}}",
+    "empty": {
+      "title": "لا توجد صفحات ثابتة",
+      "description": "أنشئ أول صفحة ثابتة متعددة اللغات."
+    },
+    "create": {
+      "title": "إنشاء صفحة ثابتة",
+      "description": "أضف محتوى الصفحة بالعربية والإنجليزية."
+    },
+    "edit": {
+      "title": "تعديل الصفحة الثابتة",
+      "description": "حدّث فقط حقول الصفحة التي تحتاج للتغيير."
+    },
+    "sections": {
+      "basic": "إعدادات الصفحة",
+      "arabic": "المحتوى العربي",
+      "english": "المحتوى الإنجليزي"
+    },
+    "fields": {
+      "title": "العنوان",
+      "slug": "معرّف الرابط",
+      "publishedState": "النشر",
+      "systemState": "النظام",
+      "updatedAt": "آخر تحديث",
+      "isPublished": "نشر هذه الصفحة",
+      "isSystem": "صفحة نظام",
+      "titleAr": "العنوان العربي",
+      "titleEn": "العنوان الإنجليزي",
+      "contentAr": "المحتوى العربي",
+      "contentEn": "المحتوى الإنجليزي"
+    },
+    "status": {
+      "published": "منشورة",
+      "unpublished": "غير منشورة",
+      "system": "نظام",
+      "standard": "عادية"
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "createPage": "إنشاء صفحة",
+      "edit": "تعديل",
+      "forPage": "إجراءات {{title}}",
+      "editNamed": "تعديل {{name}}",
+      "create": "إنشاء",
+      "creating": "جارٍ الإنشاء…",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ الحفظ…",
+      "cancel": "إلغاء"
+    },
+    "form": {
+      "slugHelp": "يُستخدم في رابط الصفحة. تتحول المسافات وعلامات الترقيم إلى شرطات عند مغادرة الحقل."
+    },
+    "validation": {
+      "slugRequired": "أدخل معرّفًا يحتوي على حرف أو رقم واحد على الأقل."
+    },
+    "feedback": {
+      "created": "تم إنشاء الصفحة الثابتة.",
+      "updated": "تم تحديث الصفحة الثابتة.",
+      "createError": "تعذر إنشاء الصفحة الثابتة.",
+      "updateError": "تعذر تحديث الصفحة الثابتة."
+    }
+  }
+}

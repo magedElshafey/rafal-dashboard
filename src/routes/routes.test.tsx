@@ -58,6 +58,19 @@ describe('core routes', () => {
     expect(privatePaths).not.toContain('/dashboard/reviews/:id')
   })
 
+  it('defines the Static Pages Index, Create, and Edit routes without unsupported actions', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.staticPages).toBe('/dashboard/pages')
+    expect(AppRoutes.staticPageNew).toBe('/dashboard/pages/new')
+    expect(AppRoutes.staticPageEdit).toBe('/dashboard/pages/:id/edit')
+    expect(AppRoutes.staticPageEditPath(9)).toBe('/dashboard/pages/9/edit')
+    expect(privatePaths).toEqual(
+      expect.arrayContaining(['/dashboard/pages', '/dashboard/pages/new', '/dashboard/pages/:id/edit'])
+    )
+    expect(privatePaths).not.toContain('/dashboard/pages/:id/delete')
+  })
+
   it('redirects unauthenticated dashboard access to login', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>

@@ -1,0 +1,71 @@
+{
+  "staticPages": {
+    "title": "Static Pages",
+    "description": "Manage localized informational pages.",
+    "listTitle": "Pages",
+    "total_one": "{{count}} page",
+    "total_other": "{{count}} pages",
+    "loadingMore": "Loading more pages",
+    "titleFallback": "Page #{{id}}",
+    "empty": {
+      "title": "No static pages yet",
+      "description": "Create the first localized static page."
+    },
+    "create": {
+      "title": "Create static page",
+      "description": "Add Arabic and English page content."
+    },
+    "edit": {
+      "title": "Edit static page",
+      "description": "Update only the page fields that need to change."
+    },
+    "sections": {
+      "basic": "Page settings",
+      "arabic": "Arabic content",
+      "english": "English content"
+    },
+    "fields": {
+      "title": "Title",
+      "slug": "Slug",
+      "publishedState": "Published",
+      "systemState": "System",
+      "updatedAt": "Updated",
+      "isPublished": "Publish this page",
+      "isSystem": "System page",
+      "titleAr": "Arabic title",
+      "titleEn": "English title",
+      "contentAr": "Arabic content",
+      "contentEn": "English content"
+    },
+    "status": {
+      "published": "Published",
+      "unpublished": "Unpublished",
+      "system": "System",
+      "standard": "Standard"
+    },
+    "actions": {
+      "label": "Actions",
+      "createPage": "Create page",
+      "edit": "Edit",
+      "forPage": "Actions for {{title}}",
+      "editNamed": "Edit {{name}}",
+      "create": "Create",
+      "creating": "Creating…",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "slugHelp": "Used in the page URL. Spaces and punctuation become hyphens when you leave this field."
+    },
+    "validation": {
+      "slugRequired": "Enter a slug containing at least one letter or number."
+    },
+    "feedback": {
+      "created": "Static page created.",
+      "updated": "Static page updated.",
+      "createError": "The static page could not be created.",
+      "updateError": "The static page could not be updated."
+    }
+  }
+}

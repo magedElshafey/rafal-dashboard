@@ -14,6 +14,7 @@ import {
   Info,
   UserRound,
   MessageSquareText,
+  FileText,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -54,6 +55,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.reviews,
     labelKey: 'dashboard.sidebar.reviews',
     icon: MessageSquareText,
+    match: 'prefix',
+  },
+  {
+    to: Routes.staticPages,
+    labelKey: 'dashboard.sidebar.staticPages',
+    icon: FileText,
     match: 'prefix',
   },
   {

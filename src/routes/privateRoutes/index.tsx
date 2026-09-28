@@ -24,6 +24,9 @@ const AboutUsPage = lazy(() => import('@/modules/about-us/pages/AboutUsPage'))
 const CustomersPage = lazy(() => import('@/modules/customers/pages/CustomersPage'))
 const CustomerDetailPage = lazy(() => import('@/modules/customers/pages/CustomerDetailPage'))
 const ReviewsPage = lazy(() => import('@/modules/reviews/pages/ReviewsPage'))
+const StaticPagesPage = lazy(() => import('@/modules/static-pages/pages/StaticPagesPage'))
+const StaticPageCreatePage = lazy(() => import('@/modules/static-pages/pages/StaticPageCreatePage'))
+const StaticPageEditPage = lazy(() => import('@/modules/static-pages/pages/StaticPageEditPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -57,6 +60,9 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.customers, Component: CustomersPage },
       { path: Routes.customerDetail, Component: CustomerDetailPage },
       { path: Routes.reviews, Component: ReviewsPage },
+      { path: Routes.staticPages, Component: StaticPagesPage },
+      { path: Routes.staticPageNew, Component: StaticPageCreatePage },
+      { path: Routes.staticPageEdit, Component: StaticPageEditPage },
     ],
   },
 ]
