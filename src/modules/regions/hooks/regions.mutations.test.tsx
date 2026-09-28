@@ -4,11 +4,24 @@ import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
+import { regionsService } from '@/modules/regions/api/regions.service'
+import type { Region } from '@/modules/regions/types/region.types'
 import { useCreateRegion } from './useCreateRegion'
 import { useDeleteRegion } from './useDeleteRegion'
 import { useUpdateRegion } from './useUpdateRegion'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+
+const region: Region = {
+  id: 1,
+  name: { ar: 'الرياض', en: 'Riyadh' },
+  code: 'RYD',
+  is_active: true,
+  sort_order: 1,
+  cities_count: 0,
+  created_at: '2026-09-28T00:00:00Z',
+  updated_at: '2026-09-28T00:00:00Z',
+}
 
 function setup() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
@@ -20,7 +33,12 @@ function setup() {
 }
 
 describe('region mutation cache ownership', () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.spyOn(regionsService, 'create').mockResolvedValue({ success: true, message: 'created', data: region })
+    vi.spyOn(regionsService, 'update').mockResolvedValue({ success: true, message: 'updated', data: region })
+    vi.spyOn(regionsService, 'delete').mockResolvedValue({ success: true, message: 'deleted' })
+  })
 
   it('invalidates only region lists after create', async () => {
     const { invalidate, wrapper } = setup()

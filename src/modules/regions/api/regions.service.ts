@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { regionsMockTransport } from '@/modules/regions/mocks/regions.mock'
 import type {
   DeleteRegionResponse,
   RawRegion,
@@ -75,11 +73,9 @@ const regionsHttpTransport = {
   },
 }
 
-const transport = env.REGIONS_USE_MOCK ? regionsMockTransport : regionsHttpTransport
-
 export const regionsService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ReturnType<typeof normalizeRegion>>> {
-    const response = await transport.list(page, signal)
+    const response = await regionsHttpTransport.list(page, signal)
     const items = response.data.map(normalizeRegion)
     return {
       items,
@@ -97,10 +93,10 @@ export const regionsService = {
     }
   },
   async create(payload: RegionPayload) {
-    return normalizeResponse(await transport.create(payload))
+    return normalizeResponse(await regionsHttpTransport.create(payload))
   },
   async update(id: number, payload: RegionPayload) {
-    return normalizeResponse(await transport.update(id, payload))
+    return normalizeResponse(await regionsHttpTransport.update(id, payload))
   },
-  delete: (id: number) => transport.delete(id),
+  delete: (id: number) => regionsHttpTransport.delete(id),
 }

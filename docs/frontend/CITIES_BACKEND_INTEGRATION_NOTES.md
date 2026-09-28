@@ -1,8 +1,10 @@
 # Cities backend integration notes
 
+Cities runtime data is real-backend-only through the shared authenticated HTTP client.
+
 Confirmed contracts are `GET /dashboard/cities`, `POST /dashboard/cities`, `PUT /dashboard/cities/:id`, and `DELETE /dashboard/cities/:id`. Create uses JSON with `region_id`, localized `name`, `is_active`, optional `sort_order`, and required `boundary` and `center`. The production form does not submit without completed geography. Backend responses remain nullable because temporary test-compatible records without geography still exist.
 
-The provided create response repeats the first boundary point at the end, indicating that the backend closes the polygon ring. The frontend keeps only user-entered ordered points and does not add a closing point before submission. The mock closes its response ring without mutating the submitted payload.
+The provided create response repeats the first boundary point at the end, indicating that the backend closes the polygon ring. The frontend keeps only user-entered ordered points and does not add a closing point before submission.
 
 Create invalidates City lists and Region lists because the documented Region `cities_count` aggregate changes.
 

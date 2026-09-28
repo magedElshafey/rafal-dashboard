@@ -1,5 +1,6 @@
 # Dashboard authentication
 
+- Authentication is real-backend-only; there is no development bypass or mock login path.
 - The dashboard signs in with `POST /dashboard/auth/login` using multipart fields `email` and `password`.
 - The frontend persists only the normalized admin identity, admin roles, and Laravel personal-access token in local storage.
 - The shared Axios request interceptor adds the session token as `Authorization: Bearer <token>`; feature modules must not read auth storage or add this header themselves.

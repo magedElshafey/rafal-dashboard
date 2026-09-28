@@ -6,8 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { regionsService } from '@/modules/regions/api/regions.service'
-import { resetRegionsMock, seedRegionsMock } from '@/modules/regions/mocks/regions.mock'
-import type { Region } from '@/modules/regions/types/region.types'
+import type { Region, RegionPayload } from '@/modules/regions/types/region.types'
 import RegionsPage from './RegionsPage'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -36,6 +35,59 @@ const region = (id: number, overrides: Partial<Region> = {}): Region => ({
   ...overrides,
 })
 
+let regions: Region[] = []
+
+function installServiceFixtures() {
+  const perPage = 15
+  vi.spyOn(regionsService, 'list').mockImplementation(async (page) => {
+    const start = (page - 1) * perPage
+    const items = regions.slice(start, start + perPage)
+    const totalPages = Math.max(1, Math.ceil(regions.length / perPage))
+    return {
+      items,
+      paginate: {
+        current_page: page,
+        total_pages: totalPages,
+        per_page: perPage,
+        total: regions.length,
+        count: items.length,
+        next_page_url: page < totalPages ? String(page + 1) : null,
+        prev_page_url: page > 1 ? String(page - 1) : null,
+      },
+      extra: null,
+    }
+  })
+  vi.spyOn(regionsService, 'create').mockImplementation(async (payload: RegionPayload) => {
+    const id = Math.max(0, ...regions.map((item) => item.id)) + 1
+    const created = region(id, {
+      name: payload.name,
+      code: payload.code ?? null,
+      sort_order: payload.sortOrder ?? 0,
+      is_active: payload.isActive,
+      cities_count: 0,
+    })
+    regions.unshift(created)
+    return { success: true, message: 'created', data: created }
+  })
+  vi.spyOn(regionsService, 'update').mockImplementation(async (id, payload) => {
+    const index = regions.findIndex((item) => item.id === id)
+    if (index < 0) throw new Error('Region not found')
+    const updated = {
+      ...regions[index],
+      name: payload.name,
+      code: payload.code ?? null,
+      sort_order: payload.sortOrder ?? regions[index].sort_order,
+      is_active: payload.isActive,
+    }
+    regions[index] = updated
+    return { success: true, message: 'updated', data: updated }
+  })
+  vi.spyOn(regionsService, 'delete').mockImplementation(async (id) => {
+    regions = regions.filter((item) => item.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+}
+
 function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
@@ -57,15 +109,16 @@ async function openAction(user: ReturnType<typeof userEvent.setup>, name: string
 
 describe('RegionsPage', () => {
   beforeEach(async () => {
-    resetRegionsMock()
     vi.restoreAllMocks()
+    regions = []
+    installServiceFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
   })
 
   it('renders loading, pagination, localized fields, status, fallback code, and no unsupported search', async () => {
-    seedRegionsMock([
+    regions = [
       region(16, {
         name: { ar: 'منطقة بلا ترجمة', en: '' },
         code: null,
@@ -74,8 +127,8 @@ describe('RegionsPage', () => {
         sort_order: 42,
       }),
       ...Array.from({ length: 15 }, (_, index) => region(index + 1)),
-    ])
-    const list = vi.spyOn(regionsService, 'list')
+    ]
+    const list = vi.mocked(regionsService.list)
     renderPage()
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
     expect(await screen.findAllByText('منطقة بلا ترجمة')).toHaveLength(2)
@@ -88,11 +141,8 @@ describe('RegionsPage', () => {
   })
 
   it('shows a safe retry and the shared empty state', async () => {
-    seedRegionsMock([])
-    const original = regionsService.list
-    vi.spyOn(regionsService, 'list')
-      .mockRejectedValueOnce(new Error('unsafe server detail'))
-      .mockImplementation(original)
+    regions = []
+    vi.mocked(regionsService.list).mockRejectedValueOnce(new Error('unsafe server detail'))
     const user = userEvent.setup()
     renderPage()
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
@@ -102,8 +152,8 @@ describe('RegionsPage', () => {
   })
 
   it('omits empty optional code and sort order from create', async () => {
-    seedRegionsMock([])
-    const create = vi.spyOn(regionsService, 'create')
+    regions = []
+    const create = vi.mocked(regionsService.create)
     const user = userEvent.setup()
     renderPage()
     await screen.findByText('No regions yet')
@@ -122,10 +172,10 @@ describe('RegionsPage', () => {
   })
 
   it('validates and resets create-another, edits from the complete row, and deletes after confirmation', async () => {
-    seedRegionsMock([region(1)])
-    const create = vi.spyOn(regionsService, 'create')
-    const update = vi.spyOn(regionsService, 'update')
-    const remove = vi.spyOn(regionsService, 'delete')
+    regions = [region(1)]
+    const create = vi.mocked(regionsService.create)
+    const update = vi.mocked(regionsService.update)
+    const remove = vi.mocked(regionsService.delete)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Region 1')

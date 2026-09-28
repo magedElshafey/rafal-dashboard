@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { rolesMockTransport } from '@/modules/roles/mocks/roles.mock'
 import type {
   CreateRolePayload,
   DeleteRoleResponse,
@@ -65,11 +63,9 @@ const rolesHttpTransport = {
   },
 }
 
-const transport = env.ROLES_USE_MOCK ? rolesMockTransport : rolesHttpTransport
-
 export const rolesService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Role>> {
-    const response = await transport.list(page, signal)
+    const response = await rolesHttpTransport.list(page, signal)
     return {
       items: response.data,
       paginate: {
@@ -85,10 +81,10 @@ export const rolesService = {
       extra: null,
     }
   },
-  show: (id: number, signal?: AbortSignal) => transport.show(id, signal),
-  create: (payload: CreateRolePayload) => transport.create(payload),
-  update: (id: number, payload: UpdateRolePayload) => transport.update(id, payload),
-  delete: (id: number) => transport.delete(id),
+  show: (id: number, signal?: AbortSignal) => rolesHttpTransport.show(id, signal),
+  create: (payload: CreateRolePayload) => rolesHttpTransport.create(payload),
+  update: (id: number, payload: UpdateRolePayload) => rolesHttpTransport.update(id, payload),
+  delete: (id: number) => rolesHttpTransport.delete(id),
 }
 
 export { serializeRole }

@@ -5,10 +5,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
 import { citiesService } from '@/modules/cities/api/cities.service'
+import type { City } from '@/modules/cities/types/city.types'
 import { useDeleteCity } from './useDeleteCity'
 import { useUpdateCity } from './useUpdateCity'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+
+const city: City = {
+  id: 1,
+  region_id: 1,
+  region: { id: 1, name: { ar: 'الرياض', en: 'Riyadh' } },
+  name: { ar: 'الرياض', en: 'Riyadh' },
+  boundary: null,
+  center: null,
+  is_active: true,
+  sort_order: 1,
+  created_at: '2026-09-28T00:00:00Z',
+  updated_at: '2026-09-28T00:00:00Z',
+}
 
 function setup() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
@@ -20,7 +34,11 @@ function setup() {
 }
 
 describe('City mutation cache ownership', () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.spyOn(citiesService, 'update').mockResolvedValue({ success: true, message: 'updated', data: city })
+    vi.spyOn(citiesService, 'delete').mockResolvedValue({ success: true, message: 'deleted' })
+  })
 
   it.each([
     { nameEn: 'Riyadh New' },

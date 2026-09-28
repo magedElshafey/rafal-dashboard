@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { bannersMockTransport } from '@/modules/banners/mocks/banners.mock'
 import type {
   Banner,
   BannerPayload,
@@ -88,11 +86,9 @@ const bannersHttpTransport = {
   },
 }
 
-const transport = env.BANNERS_USE_MOCK ? bannersMockTransport : bannersHttpTransport
-
 export const bannersService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Banner>> {
-    const response = (await transport.list(page, signal)) as RawBannersIndexResponse
+    const response = await bannersHttpTransport.list(page, signal)
     const items = response.data.map(normalizeBanner)
     return {
       items,
@@ -110,13 +106,13 @@ export const bannersService = {
     }
   },
   async show(id: number, signal?: AbortSignal) {
-    return normalizeResponse((await transport.show(id, signal)) as RawBannerResponse)
+    return normalizeResponse(await bannersHttpTransport.show(id, signal))
   },
   async create(payload: BannerPayload) {
-    return normalizeResponse((await transport.create(payload)) as RawBannerResponse)
+    return normalizeResponse(await bannersHttpTransport.create(payload))
   },
   async update(id: number, payload: BannerPayload) {
-    return normalizeResponse((await transport.update(id, payload)) as RawBannerResponse)
+    return normalizeResponse(await bannersHttpTransport.update(id, payload))
   },
-  delete: (id: number) => transport.delete(id),
+  delete: (id: number) => bannersHttpTransport.delete(id),
 }

@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { adminsMockTransport } from '@/modules/admins/mocks/admins.mock'
 import type {
   Admin,
   AdminResponse,
@@ -80,11 +78,9 @@ const adminsHttpTransport = {
   },
 }
 
-const transport = env.ADMINS_USE_MOCK ? adminsMockTransport : adminsHttpTransport
-
 export const adminsService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Admin>> {
-    const response = await transport.list(page, signal)
+    const response = await adminsHttpTransport.list(page, signal)
     return {
       items: response.data,
       paginate: {
@@ -100,8 +96,8 @@ export const adminsService = {
       extra: null,
     }
   },
-  show: (id: number, signal?: AbortSignal) => transport.show(id, signal),
-  create: (payload: CreateAdminPayload) => transport.create(payload),
-  update: (id: number, payload: UpdateAdminPayload) => transport.update(id, payload),
-  delete: (id: number) => transport.delete(id),
+  show: (id: number, signal?: AbortSignal) => adminsHttpTransport.show(id, signal),
+  create: (payload: CreateAdminPayload) => adminsHttpTransport.create(payload),
+  update: (id: number, payload: UpdateAdminPayload) => adminsHttpTransport.update(id, payload),
+  delete: (id: number) => adminsHttpTransport.delete(id),
 }

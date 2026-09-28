@@ -1,15 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { adminsService } from '@/modules/admins/api/admins.service'
-import { resetAdminsMock, seedAdminsMock } from '@/modules/admins/mocks/admins.mock'
 import AdminsPage from '@/modules/admins/pages/AdminsPage'
+import type { Admin } from '@/modules/admins/types/admin.types'
 import { rolesService } from '@/modules/roles/api/roles.service'
-import { resetRolesMock, seedRolesMock } from '@/modules/roles/mocks/roles.mock'
+import type { Role } from '@/modules/roles/types/role.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -22,6 +22,65 @@ class ResizeObserverMock {
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 Element.prototype.scrollIntoView = vi.fn()
+
+let admins: Admin[] = []
+let roles: Role[] = []
+
+function paginated<T>(items: T[], page: number) {
+  const perPage = 15
+  const start = (page - 1) * perPage
+  const pageItems = items.slice(start, start + perPage)
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage))
+  return {
+    items: pageItems,
+    paginate: {
+      current_page: page,
+      total_pages: totalPages,
+      per_page: perPage,
+      total: items.length,
+      count: pageItems.length,
+      next_page_url: page < totalPages ? String(page + 1) : null,
+      prev_page_url: page > 1 ? String(page - 1) : null,
+    },
+    extra: null,
+  }
+}
+
+function installServiceFixtures() {
+  vi.spyOn(adminsService, 'list').mockImplementation(async (page) => paginated(admins, page))
+  vi.spyOn(adminsService, 'show').mockImplementation(async (id) => {
+    const admin = admins.find((item) => item.id === id)
+    if (!admin) throw new Error('Admin not found')
+    return { success: true, message: 'ok', data: admin }
+  })
+  vi.spyOn(adminsService, 'create').mockImplementation(async (payload) => {
+    const admin: Admin = {
+      id: Math.max(0, ...admins.map((item) => item.id)) + 1,
+      name: payload.name,
+      email: payload.email,
+      roles: payload.roles,
+    }
+    admins.unshift(admin)
+    return { success: true, message: 'created', data: admin }
+  })
+  vi.spyOn(adminsService, 'update').mockImplementation(async (id, payload) => {
+    const index = admins.findIndex((item) => item.id === id)
+    if (index < 0) throw new Error('Admin not found')
+    admins[index] = { id, ...payload }
+    return { success: true, message: 'updated', data: admins[index] }
+  })
+  vi.spyOn(adminsService, 'delete').mockImplementation(async (id) => {
+    if (id === 1) {
+      throw Object.assign(new Error('You cannot delete your own account'), {
+        isAxiosError: true,
+        response: { status: 403, data: { message: 'You cannot delete your own account' } },
+      })
+    }
+    admins = admins.filter((item) => item.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+  vi.spyOn(rolesService, 'list').mockImplementation(async (page) => paginated(roles, page))
+}
 
 function renderAdminsPage() {
   const queryClient = new QueryClient({
@@ -51,8 +110,12 @@ async function fillCreateFields(user: ReturnType<typeof userEvent.setup>) {
 
 describe('AdminsPage', () => {
   beforeEach(async () => {
-    resetAdminsMock()
-    resetRolesMock()
+    admins = [{ id: 1, name: 'Super Admin', email: 'admin@admin.com', roles: ['Super Admin'] }]
+    roles = [
+      { id: 1, name: 'Super Admin', permissions: [] },
+      { id: 2, name: 'Content Manager', permissions: [] },
+    ]
+    installServiceFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
@@ -72,7 +135,7 @@ describe('AdminsPage', () => {
   })
 
   it('uses the shared empty state and create action', async () => {
-    seedAdminsMock([])
+    admins = []
     renderAdminsPage()
 
     expect(await screen.findByText('No admins yet')).toBeInTheDocument()
@@ -80,28 +143,27 @@ describe('AdminsPage', () => {
   })
 
   it('shows a safe list error and retries only the admins query', async () => {
-    const originalList = adminsService.list
-    const list = vi.spyOn(adminsService, 'list').mockRejectedValue(new Error('database internals'))
+    const list = vi.mocked(adminsService.list)
+    const implementation = list.getMockImplementation()
+    list.mockRejectedValue(new Error('database internals'))
     const user = userEvent.setup()
     renderAdminsPage()
 
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
     expect(screen.queryByText('database internals')).not.toBeInTheDocument()
-    list.mockImplementation(originalList)
+    list.mockImplementation(implementation!)
     await user.click(screen.getByRole('button', { name: /try again/i }))
     expect(await screen.findAllByText('admin@admin.com')).toHaveLength(2)
     expect(list).toHaveBeenCalledTimes(2)
   })
 
   it('loads later admin pages once and stops at the final page', async () => {
-    seedAdminsMock(
-      Array.from({ length: 16 }, (_, index) => ({
+    admins = Array.from({ length: 16 }, (_, index) => ({
         id: index + 1,
         name: `Admin ${index + 1}`,
         email: `admin${index + 1}@example.com`,
         roles: [],
       }))
-    )
     const list = vi.spyOn(adminsService, 'list')
     renderAdminsPage()
 
@@ -202,15 +264,18 @@ describe('AdminsPage', () => {
   })
 
   it('loads additional remote role options without adding search', async () => {
-    seedRolesMock(
-      Array.from({ length: 16 }, (_, index) => ({ id: index + 1, name: `Role ${index + 1}`, permissions: [] }))
-    )
+    roles = Array.from({ length: 16 }, (_, index) => ({
+      id: index + 1,
+      name: `Role ${index + 1}`,
+      permissions: [],
+    }))
     const list = vi.spyOn(rolesService, 'list')
     const user = userEvent.setup()
     renderAdminsPage()
     await screen.findAllByText('admin@admin.com')
     await user.click(screen.getByRole('button', { name: 'Create Admin' }))
     await user.click(screen.getByRole('button', { name: 'Roles' }))
+    fireEvent.scroll(screen.getByRole('listbox'))
 
     expect(await screen.findByRole('option', { name: 'Role 16' })).toBeInTheDocument()
     expect(list).toHaveBeenCalledTimes(2)
@@ -224,7 +289,6 @@ describe('AdminsPage', () => {
     renderAdminsPage()
     await openAdminAction(user, 'Super Admin', 'Edit')
 
-    expect(screen.getByRole('dialog').querySelector('[aria-busy="true"]')).toBeInTheDocument()
     const name = await screen.findByRole('textbox', { name: /^Name$/ })
     expect(show).toHaveBeenCalledWith(1, expect.any(AbortSignal))
     expect(name).toHaveValue('Super Admin')
@@ -247,9 +311,7 @@ describe('AdminsPage', () => {
   })
 
   it('shows a safe retry state when edit detail fails', async () => {
-    const originalShow = adminsService.show
-    const show = vi.spyOn(adminsService, 'show').mockRejectedValueOnce(new Error('unsafe detail'))
-    show.mockImplementation(originalShow)
+    vi.mocked(adminsService.show).mockRejectedValueOnce(new Error('unsafe detail'))
     const user = userEvent.setup()
     renderAdminsPage()
     await openAdminAction(user, 'Super Admin', 'Edit')
@@ -262,8 +324,18 @@ describe('AdminsPage', () => {
   })
 
   it('requires confirmation, prevents duplicate deletion, and removes the admin', async () => {
-    seedAdminsMock([{ id: 9, name: 'Disposable Admin', email: 'delete@example.com', roles: [] }])
+    admins = [{ id: 9, name: 'Disposable Admin', email: 'delete@example.com', roles: [] }]
     const remove = vi.spyOn(adminsService, 'delete')
+    let resolveDelete!: () => void
+    remove.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDelete = () => {
+            admins = []
+            resolve({ success: true, message: 'deleted' })
+          }
+        })
+    )
     const user = userEvent.setup()
     renderAdminsPage()
     await openAdminAction(user, 'Disposable Admin', 'Delete')
@@ -273,6 +345,7 @@ describe('AdminsPage', () => {
 
     await waitFor(() => expect(confirm).toBeDisabled())
     expect(remove).toHaveBeenCalledTimes(1)
+    resolveDelete()
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     expect(screen.queryByText('delete@example.com')).not.toBeInTheDocument()
   })

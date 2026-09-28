@@ -1,104 +1,83 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
+
+vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { regionsService, serializeRegion } from './regions.service'
-import { resetRegionsMock, seedRegionsMock } from '../mocks/regions.mock'
 
-describe('regionsService', () => {
-  beforeEach(() => resetRegionsMock())
+const rawRegion = {
+  id: 1,
+  name: { ar: 'منطقة الرياض', en: 'Riyadh Region' },
+  code: 'RUH',
+  is_active: true,
+  sort_order: 1,
+  created_at: '2026-09-17T18:09:21+00:00',
+  updated_at: '2026-09-17T18:09:21+00:00',
+}
 
-  it('omits empty optional code and null or undefined sort order values', () => {
-    const nullBody = serializeRegion({
-      name: { ar: ' الرياض ', en: ' Riyadh ' },
-      code: '   ',
-      sortOrder: null,
-      isActive: false,
-    })
-    expect([...nullBody.entries()]).toEqual([
+const payload = {
+  name: { ar: ' الرياض ', en: ' Riyadh ' },
+  code: ' RUH ',
+  sortOrder: 3,
+  isActive: true,
+}
+
+describe('regions service boundary', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('omits empty optional code and absent sort order values', () => {
+    const body = serializeRegion({ ...payload, code: '   ', sortOrder: null, isActive: false })
+    expect([...body.entries()]).toEqual([
       ['name[ar]', 'الرياض'],
       ['name[en]', 'Riyadh'],
       ['is_active', '0'],
     ])
-    expect(nullBody.has('code')).toBe(false)
-    expect(nullBody.has('sort_order')).toBe(false)
-
-    const undefinedBody = serializeRegion({
-      name: { ar: 'الرياض', en: 'Riyadh' },
-      isActive: true,
-    })
-    expect(undefinedBody.has('sort_order')).toBe(false)
   })
 
-  it('includes populated optional code and sort order values', () => {
-    const body = serializeRegion({
-      name: { ar: 'الرياض', en: 'Riyadh' },
-      code: ' RUH ',
-      sortOrder: 3,
-      isActive: true,
-    })
+  it.each([0, -1, 3])('preserves integer sort order %s and trims code', (sortOrder) => {
+    const body = serializeRegion({ ...payload, sortOrder })
     expect(body.get('code')).toBe('RUH')
-    expect(body.get('sort_order')).toBe('3')
+    expect(body.get('sort_order')).toBe(String(sortOrder))
   })
 
-  it('preserves zero as a valid sort order', () => {
-    const body = serializeRegion({
-      name: { ar: 'الرياض', en: 'Riyadh' },
-      sortOrder: 0,
-      isActive: true,
-    })
-    expect(body.get('sort_order')).toBe('0')
-  })
+  it('calls only the real Region endpoints through shared HTTP', async () => {
+    const listResponse = {
+      success: true,
+      message: 'ok',
+      data: [rawRegion],
+      meta: { current_page: 1, last_page: 1, per_page: 15, total: 1 },
+    }
+    const itemResponse = { success: true, message: 'ok', data: rawRegion }
+    httpMocks.get.mockResolvedValue({ data: listResponse })
+    httpMocks.post.mockResolvedValue({ data: itemResponse })
+    httpMocks.put.mockResolvedValue({ data: itemResponse })
+    httpMocks.delete.mockResolvedValue({ data: { success: true, message: 'deleted' } })
 
-  it('serializes a negative integer sort order', () => {
-    const body = serializeRegion({
-      name: { ar: 'الرياض', en: 'Riyadh' },
-      sortOrder: -1,
-      isActive: true,
+    await expect(regionsService.list(1)).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: 1, cities_count: 0 })],
+      paginate: { total: 1 },
     })
-    expect(body.get('sort_order')).toBe('-1')
-  })
+    await regionsService.create(payload)
+    await regionsService.update(1, payload)
+    await regionsService.delete(1)
 
-  it('matches the documented initial region dataset', async () => {
-    const regions = (await regionsService.list(1)).items
-    expect(regions.map(({ name, code }) => ({ name, code }))).toEqual([
-      { name: { ar: 'منطقة الرياض', en: 'Riyadh Region' }, code: 'RUH' },
-      { name: { ar: 'منطقة مكة المكرمة', en: 'Makkah Region' }, code: 'MKC' },
-      { name: { ar: 'المنطقة الشرقية', en: 'Eastern Region' }, code: 'DMM' },
-      { name: { ar: 'منطقة المدينة المنورة', en: 'Madinah Region' }, code: 'MED' },
-      { name: { ar: 'منطقة القصيم', en: 'Qassim Region' }, code: 'QSM' },
-      { name: { ar: 'منطقة الحدود الشمالية', en: 'Northern Borders Region' }, code: 'AJF' },
-      { name: { ar: 'منطقة جازان', en: 'Jazan Region' }, code: 'JZN' },
-      { name: { ar: 'منطقة عسير', en: 'Asir Region' }, code: 'ABS' },
-      { name: { ar: 'منطقة تبوك', en: 'Tabuk Region' }, code: 'TBK' },
-      { name: { ar: 'منطقة حائل', en: "Ha'il Region" }, code: 'HAL' },
-      { name: { ar: 'منطقة الباحة', en: 'Al-Baha Region' }, code: 'BHA' },
-      { name: { ar: 'منطقة نجران', en: 'Najran Region' }, code: 'NJN' },
-      { name: { ar: 'الجزيرة المحايدة', en: 'Neutral Zone' }, code: 'NZ' },
-    ])
-  })
-
-  it('normalizes create responses and mutates the in-memory transport', async () => {
-    seedRegionsMock([])
-    const created = await regionsService.create({
-      name: { ar: 'الرياض', en: 'Riyadh' },
-      code: 'RUH',
-      sortOrder: 3,
-      isActive: true,
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/regions',
+      query: { page: 1 },
+      signal: undefined,
+      suppressErrorNotification: true,
     })
-    expect(created.data).toMatchObject({ code: 'RUH', sort_order: 3, cities_count: 0 })
-    const updated = await regionsService.update(created.data.id, {
-      name: { ar: 'منطقة الرياض', en: 'Riyadh Region' },
-      code: 'RDH',
-      sortOrder: 0,
-      isActive: false,
+    expect(httpMocks.post).toHaveBeenCalledWith(
+      expect.objectContaining({ url: '/dashboard/regions', data: expect.any(FormData), isFormData: true })
+    )
+    expect(httpMocks.put).toHaveBeenCalledWith(
+      expect.objectContaining({ url: '/dashboard/regions/1', data: expect.any(FormData), isFormData: true })
+    )
+    expect(httpMocks.delete).toHaveBeenCalledWith({
+      url: '/dashboard/regions/1',
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
     })
-    expect(updated.data).toMatchObject({
-      name: { ar: 'منطقة الرياض', en: 'Riyadh Region' },
-      code: 'RDH',
-      sort_order: 0,
-      is_active: false,
-    })
-    expect((await regionsService.list(1)).items).toHaveLength(1)
-    await regionsService.delete(created.data.id)
-    expect((await regionsService.list(1)).items).toHaveLength(0)
   })
 })

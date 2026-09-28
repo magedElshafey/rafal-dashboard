@@ -1,5 +1,3 @@
-import env from '@/config/env'
-import { citiesMockTransport } from '@/modules/cities/mocks/cities.mock'
 import type {
   City,
   CityCreateRequest,
@@ -122,11 +120,9 @@ const citiesHttpTransport = {
   },
 }
 
-const transport = env.CITIES_USE_MOCK ? citiesMockTransport : citiesHttpTransport
-
 export const citiesService = {
   async list(page: number, signal?: AbortSignal): Promise<PaginatedData<City>> {
-    const response = await transport.list(page, signal)
+    const response = await citiesHttpTransport.list(page, signal)
     const items = response.data.map(normalizeCity)
     return {
       items,
@@ -145,12 +141,12 @@ export const citiesService = {
   },
   async create(payload: CityPayload) {
     assertRequiredGeometry(payload)
-    const response = await transport.create(payload)
+    const response = await citiesHttpTransport.create(payload)
     return { ...response, data: normalizeCity(response.data) }
   },
   async update(id: number, payload: CityUpdatePayload) {
-    const response = await transport.update(id, payload)
+    const response = await citiesHttpTransport.update(id, payload)
     return { ...response, data: normalizeCity(response.data) }
   },
-  delete: (id: number) => transport.delete(id),
+  delete: (id: number) => citiesHttpTransport.delete(id),
 }

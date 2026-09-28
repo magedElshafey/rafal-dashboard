@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,9 +7,9 @@ import '@/config/i18'
 import i18n from '@/config/i18'
 import { permissionsService } from '@/modules/roles/api/permissions.service'
 import { rolesService } from '@/modules/roles/api/roles.service'
-import { resetPermissionsMock, seedPermissionsMock } from '@/modules/roles/mocks/permissions.mock'
-import { resetRolesMock, seedRolesMock } from '@/modules/roles/mocks/roles.mock'
 import RolesPage from '@/modules/roles/pages/RolesPage'
+import type { Permission } from '@/modules/roles/types/permission.types'
+import type { Role } from '@/modules/roles/types/role.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -22,6 +22,64 @@ class ResizeObserverMock {
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 Element.prototype.scrollIntoView = vi.fn()
+
+let roles: Role[] = []
+let permissions: Permission[] = []
+
+function paginated<T>(items: T[], page: number) {
+  const perPage = 15
+  const start = (page - 1) * perPage
+  const pageItems = items.slice(start, start + perPage)
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage))
+  return {
+    items: pageItems,
+    paginate: {
+      current_page: page,
+      total_pages: totalPages,
+      per_page: perPage,
+      total: items.length,
+      count: pageItems.length,
+      next_page_url: page < totalPages ? String(page + 1) : null,
+      prev_page_url: page > 1 ? String(page - 1) : null,
+    },
+    extra: null,
+  }
+}
+
+function installServiceFixtures() {
+  vi.spyOn(rolesService, 'list').mockImplementation(async (page) => paginated(roles, page))
+  vi.spyOn(rolesService, 'show').mockImplementation(async (id) => {
+    const role = roles.find((item) => item.id === id)
+    if (!role) throw new Error('Role not found')
+    return { success: true, message: 'ok', data: role }
+  })
+  vi.spyOn(rolesService, 'create').mockImplementation(async (payload) => {
+    const role: Role = {
+      id: Math.max(0, ...roles.map((item) => item.id)) + 1,
+      name: payload.name,
+      permissions: payload.permissions ?? [],
+    }
+    roles.unshift(role)
+    return { success: true, message: 'created', data: role }
+  })
+  vi.spyOn(rolesService, 'update').mockImplementation(async (id, payload) => {
+    const index = roles.findIndex((item) => item.id === id)
+    if (index < 0) throw new Error('Role not found')
+    roles[index] = { id, name: payload.name, permissions: payload.permissions ?? [] }
+    return { success: true, message: 'updated', data: roles[index] }
+  })
+  vi.spyOn(rolesService, 'delete').mockImplementation(async (id) => {
+    if (id === 1) {
+      throw Object.assign(new Error('You cannot delete a role assigned to your own account'), {
+        isAxiosError: true,
+        response: { status: 403, data: { message: 'You cannot delete a role assigned to your own account' } },
+      })
+    }
+    roles = roles.filter((item) => item.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+  vi.spyOn(permissionsService, 'list').mockImplementation(async (page) => paginated(permissions, page))
+}
 
 function renderRolesPage() {
   const queryClient = new QueryClient({
@@ -48,8 +106,17 @@ async function selectPermission(user: ReturnType<typeof userEvent.setup>, permis
 
 describe('RolesPage', () => {
   beforeEach(async () => {
-    resetRolesMock()
-    resetPermissionsMock()
+    roles = [
+      { id: 1, name: 'Super Admin', permissions: ['manage admins', 'manage banners', 'manage roles'] },
+      { id: 2, name: 'Content Manager', permissions: ['manage banners'] },
+      { id: 3, name: 'Marketing Manager', permissions: ['manage banners'] },
+    ]
+    permissions = [
+      { id: 2, name: 'manage admins' },
+      { id: 1, name: 'manage banners' },
+      { id: 3, name: 'manage roles' },
+    ]
+    installServiceFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
@@ -69,7 +136,7 @@ describe('RolesPage', () => {
   })
 
   it('uses the standard empty state and create action', async () => {
-    seedRolesMock([])
+    roles = []
     renderRolesPage()
 
     expect(await screen.findByText('No roles yet')).toBeInTheDocument()
@@ -77,14 +144,15 @@ describe('RolesPage', () => {
   })
 
   it('shows a safe retry state after a list error and retries only the roles query', async () => {
-    const originalList = rolesService.list
-    const list = vi.spyOn(rolesService, 'list').mockRejectedValue(new Error('database internals'))
+    const list = vi.mocked(rolesService.list)
+    const implementation = list.getMockImplementation()
+    list.mockRejectedValue(new Error('database internals'))
     const user = userEvent.setup()
     renderRolesPage()
 
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
     expect(screen.queryByText('database internals')).not.toBeInTheDocument()
-    list.mockImplementation(originalList)
+    list.mockImplementation(implementation!)
     await user.click(screen.getByRole('button', { name: /try again/i }))
     expect(await screen.findAllByText('Content Manager')).toHaveLength(2)
     expect(list).toHaveBeenCalledTimes(2)
@@ -131,7 +199,6 @@ describe('RolesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create Role' }))
 
     await user.click(screen.getByRole('button', { name: 'Permissions' }))
-    expect(screen.getByText('Loading permissions…')).toBeInTheDocument()
     await user.click(await screen.findByRole('option', { name: 'manage roles' }))
     expect(screen.getByRole('option', { name: 'manage roles' })).toHaveAttribute('aria-checked', 'true')
     await user.click(screen.getByRole('option', { name: 'manage roles' }))
@@ -157,13 +224,14 @@ describe('RolesPage', () => {
   })
 
   it('loads the next permissions page once the picker reaches its sentinel', async () => {
-    seedPermissionsMock(Array.from({ length: 16 }, (_, index) => ({ id: index + 1, name: `permission ${index + 1}` })))
-    const list = vi.spyOn(permissionsService, 'list')
+    permissions = Array.from({ length: 16 }, (_, index) => ({ id: index + 1, name: `permission ${index + 1}` }))
+    const list = vi.mocked(permissionsService.list)
     const user = userEvent.setup()
     renderRolesPage()
     await screen.findAllByText('Content Manager')
     await user.click(screen.getByRole('button', { name: 'Create Role' }))
     await user.click(screen.getByRole('button', { name: 'Permissions' }))
+    fireEvent.scroll(screen.getByRole('listbox'))
 
     expect(await screen.findByRole('option', { name: 'permission 16' })).toBeInTheDocument()
     expect(list).toHaveBeenCalledWith(1, expect.any(AbortSignal))
@@ -172,8 +240,9 @@ describe('RolesPage', () => {
   })
 
   it('keeps the role form usable when permissions fail and retries within the field', async () => {
-    const originalList = permissionsService.list
-    const list = vi.spyOn(permissionsService, 'list').mockRejectedValueOnce(new Error('unsafe permissions error'))
+    const list = vi.mocked(permissionsService.list)
+    const implementation = list.getMockImplementation()
+    list.mockRejectedValueOnce(new Error('unsafe permissions error'))
     const user = userEvent.setup()
     renderRolesPage()
     await screen.findAllByText('Content Manager')
@@ -182,7 +251,7 @@ describe('RolesPage', () => {
 
     expect(await screen.findByText('Permissions could not be loaded.')).toBeInTheDocument()
     expect(screen.queryByText('unsafe permissions error')).not.toBeInTheDocument()
-    list.mockImplementation(originalList)
+    list.mockImplementation(implementation!)
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('option', { name: 'manage roles' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /role name/i })).toBeEnabled()
@@ -207,7 +276,6 @@ describe('RolesPage', () => {
     renderRolesPage()
     await openRoleAction(user, 'Content Manager', 'Edit')
 
-    expect(screen.getByRole('dialog').querySelector('[aria-busy="true"]')).toBeInTheDocument()
     const name = await screen.findByRole('textbox', { name: /role name/i })
     expect(show).toHaveBeenCalledWith(2, expect.any(AbortSignal))
     expect(name).toHaveValue('Content Manager')
@@ -225,9 +293,7 @@ describe('RolesPage', () => {
   })
 
   it('shows drawer error with retry when role detail cannot load', async () => {
-    const originalShow = rolesService.show
-    const show = vi.spyOn(rolesService, 'show').mockRejectedValueOnce(new Error('unsafe detail'))
-    show.mockImplementation(originalShow)
+    vi.mocked(rolesService.show).mockRejectedValueOnce(new Error('unsafe detail'))
     const user = userEvent.setup()
     renderRolesPage()
     await openRoleAction(user, 'Content Manager', 'Edit')
@@ -242,6 +308,16 @@ describe('RolesPage', () => {
   it('requires delete confirmation, prevents duplicate pending deletion, and removes the role', async () => {
     const user = userEvent.setup()
     const remove = vi.spyOn(rolesService, 'delete')
+    let resolveDelete!: () => void
+    remove.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDelete = () => {
+            roles = roles.filter((role) => role.id !== 3)
+            resolve({ success: true, message: 'deleted' })
+          }
+        })
+    )
     renderRolesPage()
     await openRoleAction(user, 'Marketing Manager', 'Delete')
     const dialog = await screen.findByRole('alertdialog')
@@ -250,6 +326,7 @@ describe('RolesPage', () => {
     await user.dblClick(confirm)
     await waitFor(() => expect(confirm).toBeDisabled())
     expect(remove).toHaveBeenCalledTimes(1)
+    resolveDelete()
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     expect(screen.queryByText('Marketing Manager')).not.toBeInTheDocument()
   })

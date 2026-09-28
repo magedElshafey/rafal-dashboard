@@ -3,15 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { City } from '@/modules/cities/types/city.types'
 
 const httpMocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
   put: vi.fn(),
   delete: vi.fn(),
 }))
 
-vi.mock('@/config/env', () => ({ default: { CITIES_USE_MOCK: false } }))
 vi.mock('@/utils/http', () => ({
   $http: {
-    get: vi.fn(),
-    post: vi.fn(),
+    get: httpMocks.get,
+    post: httpMocks.post,
     put: httpMocks.put,
     delete: httpMocks.delete,
   },
@@ -61,5 +62,52 @@ describe('Cities HTTP transport', () => {
       suppressErrorNotification: true,
     })
     expect(httpMocks.delete.mock.calls[0][0]).not.toHaveProperty('data')
+  })
+
+  it('GETs the real collection and POSTs the confirmed Create JSON', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [city],
+        meta: { current_page: 1, last_page: 1, per_page: 15, total: 1 },
+      },
+    })
+    httpMocks.post.mockResolvedValue({ data: { success: true, message: 'created', data: city } })
+    const createPayload = {
+      regionId: 1,
+      name: city.name,
+      boundary: [
+        { lat: 24.6, lng: 46.5 },
+        { lat: 24.9, lng: 46.9 },
+        { lat: 24.9, lng: 46.5 },
+      ],
+      center: { lat: 24.75, lng: 46.7 },
+      isActive: true,
+      sortOrder: 1,
+    }
+
+    await expect(citiesService.list(1)).resolves.toMatchObject({ items: [city], paginate: { total: 1 } })
+    await citiesService.create(createPayload)
+
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/cities',
+      query: { page: 1 },
+      signal: undefined,
+      suppressErrorNotification: true,
+    })
+    expect(httpMocks.post).toHaveBeenCalledWith({
+      url: '/dashboard/cities',
+      data: {
+        region_id: 1,
+        name: city.name,
+        boundary: createPayload.boundary,
+        center: createPayload.center,
+        is_active: true,
+        sort_order: 1,
+      },
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
   })
 })

@@ -7,9 +7,9 @@ import '@/config/i18'
 import type { LocationMapEditorLabels } from '@/components/map/location-map.types'
 import i18n from '@/config/i18'
 import { citiesService } from '@/modules/cities/api/cities.service'
-import { resetCitiesMock, seedCitiesMock } from '@/modules/cities/mocks/cities.mock'
-import type { City } from '@/modules/cities/types/city.types'
-import { resetRegionsMock } from '@/modules/regions/mocks/regions.mock'
+import type { City, CityPayload, CityUpdatePayload } from '@/modules/cities/types/city.types'
+import { regionsService } from '@/modules/regions/api/regions.service'
+import type { Region } from '@/modules/regions/types/region.types'
 import type { Coordinate } from '@/types/geo.types'
 import CitiesPage from './CitiesPage'
 
@@ -94,6 +94,76 @@ const city = (id: number, overrides: Partial<City> = {}): City => ({
   ...overrides,
 })
 
+let cities: City[] = []
+let regions: Region[] = []
+
+function paginated<T>(items: T[], page: number) {
+  const perPage = 15
+  const start = (page - 1) * perPage
+  const pageItems = items.slice(start, start + perPage)
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage))
+  return {
+    items: pageItems,
+    paginate: {
+      current_page: page,
+      total_pages: totalPages,
+      per_page: perPage,
+      total: items.length,
+      count: pageItems.length,
+      next_page_url: page < totalPages ? String(page + 1) : null,
+      prev_page_url: page > 1 ? String(page - 1) : null,
+    },
+    extra: null,
+  }
+}
+
+function installServiceFixtures() {
+  vi.spyOn(citiesService, 'list').mockImplementation(async (page) => paginated(cities, page))
+  vi.spyOn(citiesService, 'create').mockImplementation(async (payload: CityPayload) => {
+    const region = regions.find((item) => item.id === payload.regionId)
+    if (!region || payload.regionId === null || !payload.center) throw new Error('Invalid City fixture payload')
+    const created = city(Math.max(0, ...cities.map((item) => item.id)) + 1, {
+      region_id: payload.regionId,
+      region: { id: region.id, name: region.name },
+      name: payload.name,
+      boundary: payload.boundary,
+      center: payload.center,
+      is_active: payload.isActive,
+      sort_order: payload.sortOrder ?? 0,
+    })
+    cities.unshift(created)
+    return { success: true, message: 'created', data: created }
+  })
+  vi.spyOn(citiesService, 'update').mockImplementation(async (id, payload: CityUpdatePayload) => {
+    const index = cities.findIndex((item) => item.id === id)
+    if (index < 0) throw new Error('City not found')
+    const current = cities[index]
+    const region =
+      payload.regionId === undefined ? current.region : regions.find((item) => item.id === payload.regionId)
+    if (!region) throw new Error('Region not found')
+    const updated: City = {
+      ...current,
+      region_id: payload.regionId ?? current.region_id,
+      region: { id: region.id, name: region.name },
+      name: {
+        ar: payload.nameAr ?? current.name.ar,
+        en: payload.nameEn ?? current.name.en,
+      },
+      is_active: payload.isActive ?? current.is_active,
+      sort_order: payload.sortOrder ?? current.sort_order,
+      center: payload.center ?? current.center,
+      boundary: payload.boundary ?? current.boundary,
+    }
+    cities[index] = updated
+    return { success: true, message: 'updated', data: updated }
+  })
+  vi.spyOn(citiesService, 'delete').mockImplementation(async (id) => {
+    cities = cities.filter((item) => item.id !== id)
+    return { success: true, message: 'deleted' }
+  })
+  vi.spyOn(regionsService, 'list').mockImplementation(async (page) => paginated(regions, page))
+}
+
 function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
@@ -115,16 +185,28 @@ async function openAction(user: ReturnType<typeof userEvent.setup>, name: string
 
 describe('CitiesPage', () => {
   beforeEach(async () => {
-    resetCitiesMock()
-    resetRegionsMock()
     vi.restoreAllMocks()
+    cities = []
+    regions = [
+      {
+        id: 1,
+        name: { ar: 'منطقة الرياض', en: 'Riyadh Region' },
+        code: 'RUH',
+        is_active: true,
+        sort_order: 1,
+        cities_count: 0,
+        created_at: '2026-09-17T18:09:21+00:00',
+        updated_at: '2026-09-17T18:09:21+00:00',
+      },
+    ]
+    installServiceFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
     await i18n.changeLanguage('en')
   })
 
   it('renders loading, pagination, localized data, logical boundary count, status, and supported actions', async () => {
-    seedCitiesMock([
+    cities = [
       city(16),
       city(15, {
         name: { ar: 'مدينة بلا ترجمة', en: '' },
@@ -140,8 +222,8 @@ describe('CitiesPage', () => {
         is_active: false,
       }),
       ...Array.from({ length: 14 }, (_, index) => city(index + 1)),
-    ])
-    const list = vi.spyOn(citiesService, 'list')
+    ]
+    const list = vi.mocked(citiesService.list)
     renderPage()
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
     expect(await screen.findAllByText('مدينة بلا ترجمة')).toHaveLength(2)
@@ -157,11 +239,8 @@ describe('CitiesPage', () => {
   })
 
   it('shows a safe retry and the shared empty state', async () => {
-    seedCitiesMock([])
-    const original = citiesService.list
-    vi.spyOn(citiesService, 'list')
-      .mockRejectedValueOnce(new Error('unsafe server detail'))
-      .mockImplementation(original)
+    cities = []
+    vi.mocked(citiesService.list).mockRejectedValueOnce(new Error('unsafe server detail'))
     const user = userEvent.setup()
     renderPage()
     expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
@@ -172,8 +251,8 @@ describe('CitiesPage', () => {
   })
 
   it('validates create, submits Region ID once, and fully resets Create Another', async () => {
-    seedCitiesMock([])
-    const create = vi.spyOn(citiesService, 'create')
+    cities = []
+    const create = vi.mocked(citiesService.create)
     const user = userEvent.setup()
     renderPage()
     await screen.findByText('No cities yet')
@@ -218,8 +297,8 @@ describe('CitiesPage', () => {
   })
 
   it('submits entered geography without adding a frontend closing point', async () => {
-    seedCitiesMock([])
-    const create = vi.spyOn(citiesService, 'create')
+    cities = []
+    const create = vi.mocked(citiesService.create)
     const user = userEvent.setup()
     renderPage()
     await screen.findByText('No cities yet')
@@ -249,7 +328,7 @@ describe('CitiesPage', () => {
   })
 
   it('hydrates row-backed Edit, enables all confirmed fields, and sends only the dirty English name', async () => {
-    seedCitiesMock([
+    cities = [
       city(1, {
         name: { ar: 'الدرعية', en: 'Diriyah' },
         boundary: [
@@ -263,8 +342,8 @@ describe('CitiesPage', () => {
         sort_order: -1,
         is_active: false,
       }),
-    ])
-    const update = vi.spyOn(citiesService, 'update')
+    ]
+    const update = vi.mocked(citiesService.update)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Diriyah')
@@ -299,7 +378,7 @@ describe('CitiesPage', () => {
   })
 
   it('sends changed geography atomically and blocks cleared required geography', async () => {
-    seedCitiesMock([
+    cities = [
       city(1, {
         boundary: [
           { lat: 24.6, lng: 46.5 },
@@ -309,8 +388,8 @@ describe('CitiesPage', () => {
         ],
         center: { lat: 24.7, lng: 46.7 },
       }),
-    ])
-    const update = vi.spyOn(citiesService, 'update')
+    ]
+    const update = vi.mocked(citiesService.update)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('City 1')
@@ -341,7 +420,7 @@ describe('CitiesPage', () => {
   })
 
   it('opens a legacy nullable-geometry row safely and requires both geography values before update', async () => {
-    seedCitiesMock([city(2)])
+    cities = [city(2)]
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('City 2')
@@ -357,7 +436,7 @@ describe('CitiesPage', () => {
   })
 
   it('keeps Edit usable and shows safe localized feedback when update fails', async () => {
-    seedCitiesMock([
+    cities = [
       city(4, {
         name: { ar: 'الخبر', en: 'Khobar' },
         center: { lat: 26.2, lng: 50.2 },
@@ -368,7 +447,7 @@ describe('CitiesPage', () => {
           { lat: 26.1, lng: 50.1 },
         ],
       }),
-    ])
+    ]
     vi.spyOn(citiesService, 'update').mockRejectedValueOnce(new Error('unsafe backend detail'))
     const user = userEvent.setup()
     renderPage()
@@ -387,8 +466,8 @@ describe('CitiesPage', () => {
   })
 
   it('cancels delete, protects duplicate confirmation, deletes the correct City, and removes it from the list', async () => {
-    seedCitiesMock([city(7)])
-    const remove = vi.spyOn(citiesService, 'delete')
+    cities = [city(7)]
+    const remove = vi.mocked(citiesService.delete)
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('City 7')
@@ -406,7 +485,7 @@ describe('CitiesPage', () => {
   })
 
   it('shows safe localized delete feedback without exposing raw server details', async () => {
-    seedCitiesMock([city(9)])
+    cities = [city(9)]
     vi.spyOn(citiesService, 'delete').mockRejectedValueOnce(new Error('SQL raw detail'))
     const user = userEvent.setup()
     renderPage()

@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { citiesService, serializeCity, serializeCityUpdate } from './cities.service'
-import { resetCitiesMock, seedCitiesMock } from '../mocks/cities.mock'
+import { serializeCity, serializeCityUpdate } from './cities.service'
 
 const base = {
   regionId: 1,
@@ -16,9 +15,7 @@ const base = {
   center: { lat: 24.75, lng: 46.7 },
 }
 
-describe('cities service boundary', () => {
-  beforeEach(() => resetCitiesMock())
-
+describe('cities service serialization', () => {
   it('maps camelCase to JSON, trims names, and preserves nullable optional values', () => {
     expect(serializeCity(base)).toEqual({
       region_id: 1,
@@ -33,13 +30,9 @@ describe('cities service boundary', () => {
     expect(serializeCity({ ...base, sortOrder }).sort_order).toBe(sortOrder)
   })
 
-  it('preserves boundary order without closing the request and copies center', () => {
-    const boundary = [
-      { lat: 24.6, lng: 46.5 },
-      { lat: 24.9, lng: 46.9 },
-      { lat: 24.9, lng: 46.5 },
-    ]
-    const center = { lat: 24.75, lng: 46.7 }
+  it('preserves boundary order without closing the request and copies geometry', () => {
+    const boundary = base.boundary.map((point) => ({ ...point }))
+    const center = { ...base.center }
     const body = serializeCity({ ...base, boundary, center })
     expect(body.boundary).toEqual(boundary)
     expect(body.boundary).not.toBe(boundary)
@@ -48,43 +41,15 @@ describe('cities service boundary', () => {
     expect(body.center).not.toBe(center)
   })
 
-  it('never serializes unfinished coordinates', () => {
+  it('rejects missing, incomplete, or unfinished required geography', () => {
+    expect(() => serializeCity({ ...base, center: null })).toThrow('center is required')
+    expect(() => serializeCity({ ...base, boundary: base.boundary.slice(0, 2) })).toThrow('boundary is required')
     expect(() =>
       serializeCity({
         ...base,
         boundary: [{ lat: Number.NaN, lng: 46.5 }, base.boundary[1], base.boundary[2]],
       })
     ).toThrow('unfinished coordinate')
-  })
-
-  it('does not serialize missing or incomplete required geography', () => {
-    expect(() => serializeCity({ ...base, center: null })).toThrow('center is required')
-    expect(() => serializeCity({ ...base, boundary: base.boundary.slice(0, 2) })).toThrow('boundary is required')
-  })
-
-  it('keeps the documented Region 13 relationship on the paginated seed', async () => {
-    const page = await citiesService.list(3)
-    expect(page.items).toContainEqual(
-      expect.objectContaining({
-        id: 31,
-        name: { ar: 'الخفجي', en: 'Khafji' },
-        region_id: 13,
-        region: { id: 13, name: { ar: 'الجزيرة المحايدة', en: 'Neutral Zone' } },
-      })
-    )
-  })
-
-  it('mock create closes only its response ring and does not mutate frontend input', async () => {
-    seedCitiesMock([])
-    const boundary = [
-      { lat: 24.6, lng: 46.5 },
-      { lat: 24.6, lng: 46.9 },
-      { lat: 24.9, lng: 46.9 },
-      { lat: 24.9, lng: 46.5 },
-    ]
-    const response = await citiesService.create({ ...base, boundary })
-    expect(boundary).toHaveLength(4)
-    expect(response.data.boundary).toEqual([...boundary, boundary[0]])
   })
 
   it.each([
@@ -99,7 +64,7 @@ describe('cities service boundary', () => {
     expect([...serializeCityUpdate(payload).entries()]).toEqual(entries)
   })
 
-  it('serializes center and an unclosed boundary as atomic multipart values without mutating input', () => {
+  it('serializes center and an unclosed boundary atomically without mutating input', () => {
     const center = { lat: 24.8, lng: 46.8 }
     const boundary = base.boundary.map((point) => ({ ...point }))
     expect([...serializeCityUpdate({ center }).entries()]).toEqual([
@@ -134,36 +99,5 @@ describe('cities service boundary', () => {
       ['center[lng]', '46.7'],
     ])
     expect([...serializeCityUpdate({}).entries()]).toEqual([])
-  })
-
-  it('mock update replaces provided fields, preserves omitted fields, and closes only its response boundary', async () => {
-    const before = (await citiesService.list(1)).items[0]
-    const boundary = base.boundary.map((point) => ({ ...point }))
-    const response = await citiesService.update(before.id, {
-      regionId: 2,
-      nameEn: 'Riyadh New',
-      isActive: false,
-      sortOrder: -1,
-      center: base.center,
-      boundary,
-    })
-    expect(response.data).toMatchObject({
-      id: before.id,
-      name: { ar: before.name.ar, en: 'Riyadh New' },
-      region_id: 2,
-      center: base.center,
-      is_active: false,
-      sort_order: -1,
-    })
-    expect(response.data.boundary).toEqual([...boundary, boundary[0]])
-    expect(boundary).toHaveLength(3)
-  })
-
-  it('mock delete removes the City from the in-memory dataset', async () => {
-    const before = await citiesService.list(1)
-    await citiesService.delete(before.items[0].id)
-    const after = await citiesService.list(1)
-    expect(after.paginate.total).toBe(before.paginate.total - 1)
-    expect(after.items).not.toContainEqual(expect.objectContaining({ id: before.items[0].id }))
   })
 })
