@@ -1,4 +1,7 @@
 {
+  "routeLoading": {
+    "label": "Loading page…"
+  },
   "remaining_time": {
     "day_one": "{{count}} day",
     "day_other": "{{count}} days",

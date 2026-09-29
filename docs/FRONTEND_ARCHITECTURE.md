@@ -17,6 +17,8 @@ Keep domain models inside their domain. A shared component is appropriate only w
 
 Top-level private routes live in `src/routes/privateRoutes`. `RequireAuth` protects authenticated routes and redirects unauthenticated requests to `/login`. Navigation uses React Router `Link`, `NavLink`, and `navigate` directly.
 
+Routes remain code-split with `React.lazy`. `DashboardShell` keeps the sidebar and topbar mounted while a Suspense boundary inside `.dashboard-content` wraps the routed outlet. Its shared `RouteLoadingFallback` shows a localized, accessible content skeleton using semantic surfaces and motion-safe skeleton primitives. The outer Suspense boundary in `App` provides the same fallback for lazy routes outside the dashboard shell. These fallbacks handle code loading only; page-level `QueryStateBoundary` continues to own backend/data loading and errors. Lazy import failures still propagate to React Router's error handling.
+
 Required data must come from route parameters and canonical queries. Do not require `location.state` for refreshable detail/action pages. Shareable filters belong in URL search parameters and invalid values should be normalized with `replace`.
 
 ## Services and HTTP

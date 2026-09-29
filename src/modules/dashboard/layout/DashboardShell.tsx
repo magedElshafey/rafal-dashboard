@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { RouteLoadingFallback } from '@/components/shared/RouteLoadingFallback'
 import { DashboardSidebar } from '@/modules/dashboard/layout/DashboardSidebar'
 import { DashboardTopbar } from '@/modules/dashboard/layout/DashboardTopbar'
 import { DASHBOARD_SIDEBAR_COLLAPSED_WIDTH } from '@/modules/dashboard/layout/sidebar.constants'
@@ -64,7 +65,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
       />
       <div data-testid="dashboard-application" className="dashboard-application min-w-0">
         <DashboardTopbar onOpenNavigation={() => setMobileNavigationOpen(true)} />
-        <div className="dashboard-content mx-auto min-w-0 bg-background p-6">{children}</div>
+        <div className="dashboard-content mx-auto min-w-0 bg-background p-6">
+          <Suspense fallback={<RouteLoadingFallback />}>{children}</Suspense>
+        </div>
       </div>
     </div>
   )

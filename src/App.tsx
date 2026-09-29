@@ -6,7 +6,7 @@ import { RouterProvider } from 'react-router-dom'
 
 import { QueryClientProvider } from '@tanstack/react-query'
 
-import { TransparentFallback } from '@/components/shared/TransparentFallback'
+import { RouteLoadingFallback } from '@/components/shared/RouteLoadingFallback'
 import { router } from '@/routes'
 import { queryClient } from '@/lib/react-query/query-client'
 import { AuthStorageSync } from '@/modules/auth/components/AuthStorageSync'
@@ -31,7 +31,13 @@ function App() {
           }}
         />
         <AuthStorageSync />
-        <Suspense fallback={<TransparentFallback />}>
+        <Suspense
+          fallback={
+            <div className="p-6">
+              <RouteLoadingFallback />
+            </div>
+          }
+        >
           <RouterProvider router={router} />
         </Suspense>
       </QueryClientProvider>

@@ -1,4 +1,7 @@
 {
+  "routeLoading": {
+    "label": "جارٍ تحميل الصفحة…"
+  },
   "remaining_time": {
     "day_zero": "{{count}} يوم",
     "day_one": "يوم واحد",
