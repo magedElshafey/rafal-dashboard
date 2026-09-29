@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { bannersService } from '@/modules/banners/api/banners.service'
 import { bannersKeys } from '@/modules/banners/queries/banners.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteBanner() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useDeleteBanner() {
       await queryClient.invalidateQueries({ queryKey: bannersKeys.lists() })
       toast.success(t('banners.feedback.deleted'))
     },
-    onError: () => toast.error(t('banners.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('banners.feedback.deleteError')),
   })
 }

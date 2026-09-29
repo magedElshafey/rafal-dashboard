@@ -6,6 +6,7 @@ import { warehousesService } from '@/modules/warehouses/api/warehouses.service'
 import { warehousesKeys } from '@/modules/warehouses/queries/warehouses.keys'
 import type { WarehouseUpdatePayload } from '@/modules/warehouses/types/warehouse.types'
 import { isWarehouseCityConflict } from '@/modules/warehouses/utils/warehouse-error.utils'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateWarehouse(id: number | null) {
   const queryClient = useQueryClient()
@@ -21,7 +22,8 @@ export function useUpdateWarehouse(id: number | null) {
       toast.success(t('warehouses.feedback.updated'))
     },
     onError: (error) =>
-      toast.error(
+      toastApiError(
+        error,
         t(isWarehouseCityConflict(error) ? 'warehouses.errors.cityConflict' : 'warehouses.feedback.updateError')
       ),
   })

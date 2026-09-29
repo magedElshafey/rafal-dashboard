@@ -1,5 +1,3 @@
-import type { FieldNamesMarkedBoolean } from 'react-hook-form'
-
 import type {
   StaticPage,
   StaticPageCreatePayload,
@@ -29,7 +27,6 @@ export function toStaticPageFormValues(page: StaticPage): StaticPageFormValues {
     title: { ar: page.title.ar ?? '', en: page.title.en ?? '' },
     content: { ar: page.content.ar ?? '', en: page.content.en ?? '' },
     isPublished: page.isPublished,
-    isSystem: page.isSystem,
   }
 }
 
@@ -39,21 +36,24 @@ export function buildStaticPageCreatePayload(values: StaticPageFormValues): Stat
     title: { ar: values.title.ar.trim(), en: values.title.en.trim() },
     content: { ar: values.content.ar.trim(), en: values.content.en.trim() },
     isPublished: values.isPublished,
-    isSystem: values.isSystem,
   }
 }
 
-export function buildStaticPageUpdatePayload(
-  values: StaticPageFormValues,
-  dirty: Partial<Readonly<FieldNamesMarkedBoolean<StaticPageFormValues>>>
-): StaticPageUpdatePayload {
-  const payload: StaticPageUpdatePayload = {}
-  if (dirty.slug) payload.slug = normalizeStaticPageSlug(values.slug)
-  if (dirty.title?.ar) payload.title = { ...payload.title, ar: values.title.ar.trim() }
-  if (dirty.title?.en) payload.title = { ...payload.title, en: values.title.en.trim() }
-  if (dirty.content?.ar) payload.content = { ...payload.content, ar: values.content.ar.trim() }
-  if (dirty.content?.en) payload.content = { ...payload.content, en: values.content.en.trim() }
-  if (dirty.isPublished) payload.isPublished = values.isPublished
-  if (dirty.isSystem) payload.isSystem = values.isSystem
-  return payload
+type BuildStaticPageUpdatePayloadOptions = {
+  values: StaticPageFormValues
+  originalPage: StaticPage
+  slugWasEdited: boolean
+}
+
+export function buildStaticPageUpdatePayload({
+  values,
+  originalPage,
+  slugWasEdited,
+}: BuildStaticPageUpdatePayloadOptions): StaticPageUpdatePayload {
+  return {
+    slug: slugWasEdited ? normalizeStaticPageSlug(values.slug) : originalPage.slug,
+    title: { ar: values.title.ar.trim(), en: values.title.en.trim() },
+    content: { ar: values.content.ar.trim(), en: values.content.en.trim() },
+    isPublished: values.isPublished,
+  }
 }

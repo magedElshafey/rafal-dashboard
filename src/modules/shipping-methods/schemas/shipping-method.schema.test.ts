@@ -15,7 +15,7 @@ const editSchema = createShippingMethodSchema('edit', messages)
 const valid: ShippingMethodFormValues = {
   code: 'standard',
   name: { ar: 'عادي', en: 'Standard' },
-  etaLabel: { ar: '٣ أيام', en: '3 days' },
+  deliveryDuration: 3,
   price: 25,
   isPickup: false,
   isActive: true,
@@ -23,12 +23,22 @@ const valid: ShippingMethodFormValues = {
 }
 
 describe('Shipping Method validation', () => {
-  it.each(['code', 'name.ar', 'name.en', 'etaLabel.ar', 'etaLabel.en'])('rejects blank %s', async (path) => {
+  it.each(['code', 'name.ar', 'name.en'])('rejects blank %s', async (path) => {
     const next = structuredClone(valid) as Record<string, unknown>
     const [parent, child] = path.split('.')
     if (child) (next[parent] as Record<string, unknown>)[child] = '   '
     else next[parent] = '   '
     await expect(createSchema.isValid(next)).resolves.toBe(false)
+  })
+
+  it.each([
+    [null, false],
+    [0, true],
+    [2.5, true],
+    [-1, true],
+    [Number.POSITIVE_INFINITY, false],
+  ])('validates delivery duration %s', async (deliveryDuration, expected) => {
+    await expect(createSchema.isValid({ ...valid, deliveryDuration })).resolves.toBe(expected)
   })
 
   it.each([

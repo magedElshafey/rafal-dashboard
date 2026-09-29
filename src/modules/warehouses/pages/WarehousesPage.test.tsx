@@ -228,9 +228,7 @@ describe('WarehousesPage', () => {
     await user.keyboard('{Escape}')
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
     await waitFor(() =>
-      expect(toastMocks.error).toHaveBeenCalledWith(
-        'One or more selected cities are already assigned to another warehouse. Choose different cities and try again.'
-      )
+      expect(toastMocks.error).toHaveBeenCalledWith('City IDs 1 are already assigned to a warehouse.')
     )
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cities' })).toHaveTextContent('City 1')
@@ -271,9 +269,7 @@ describe('WarehousesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Update' }))
 
     await waitFor(() => expect(update).toHaveBeenCalledWith(1, { cityIds: [2, 3] }))
-    expect(toastMocks.error).toHaveBeenCalledWith(
-      'One or more selected cities are already assigned to another warehouse. Choose different cities and try again.'
-    )
+    expect(toastMocks.error).toHaveBeenCalledWith('City IDs 3 are already assigned to a different warehouse.')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cities' })).toHaveTextContent('City 3')
   })
@@ -318,7 +314,7 @@ describe('WarehousesPage', () => {
 
     await waitFor(() =>
       expect(toastMocks.error).toHaveBeenCalledWith(
-        'This warehouse still has product stock. Clear its stock before deleting it.'
+        'Cannot delete warehouse: it still has stock for one or more product variants. Clear its stock first.'
       )
     )
     expect(screen.getByRole('alertdialog')).toBeInTheDocument()

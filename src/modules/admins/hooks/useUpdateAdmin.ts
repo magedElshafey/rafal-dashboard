@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { adminsService } from '@/modules/admins/api/admins.service'
 import { adminsKeys } from '@/modules/admins/queries/admins.keys'
 import type { UpdateAdminPayload } from '@/modules/admins/types/admin.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateAdmin(id: number | null) {
   const queryClient = useQueryClient()
@@ -17,6 +18,6 @@ export function useUpdateAdmin(id: number | null) {
       await queryClient.invalidateQueries({ queryKey: adminsKeys.lists() })
       toast.success(t('admins.feedback.updated'))
     },
-    onError: () => toast.error(t('admins.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('admins.feedback.updateError')),
   })
 }

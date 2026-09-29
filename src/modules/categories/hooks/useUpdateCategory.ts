@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { categoriesService } from '@/modules/categories/api/categories.service'
 import { categoriesKeys } from '@/modules/categories/queries/categories.keys'
 import type { CategoryPayload } from '@/modules/categories/types/category.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateCategory(id: number | null) {
   const queryClient = useQueryClient()
@@ -16,6 +17,6 @@ export function useUpdateCategory(id: number | null) {
       await queryClient.invalidateQueries({ queryKey: categoriesKeys.lists() })
       toast.success(t('categories.feedback.updated'))
     },
-    onError: () => toast.error(t('categories.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('categories.feedback.updateError')),
   })
 }

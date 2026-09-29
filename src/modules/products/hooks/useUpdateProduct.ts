@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { productsService } from '@/modules/products/api/products.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductUpdatePayload } from '@/modules/products/types/product.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateProduct(id: number) {
   const queryClient = useQueryClient()
@@ -16,6 +17,6 @@ export function useUpdateProduct(id: number) {
       await queryClient.invalidateQueries({ queryKey: productsKeys.lists() })
       toast.success(t('products.feedback.updated'))
     },
-    onError: () => toast.error(t('products.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('products.feedback.updateError')),
   })
 }

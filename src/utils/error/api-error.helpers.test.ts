@@ -12,19 +12,27 @@ describe('getApiErrorMessage', () => {
     ).toBe('Backend rejected the submission.')
   })
 
-  it('reads a message from the API data envelope', () => {
+  it('does not read a message from an unexpected nested shape', () => {
     expect(
       getApiErrorMessage(
         { isAxiosError: true, response: { data: { data: { message: 'Nested backend message.' } } } },
         'Fallback'
       )
-    ).toBe('Nested backend message.')
+    ).toBe('Fallback')
   })
 
-  it.each([{ message: '' }, { message: { text: 'unsafe' } }, { error: [] }, undefined])(
-    'uses the fallback for missing or unusable message data',
-    (data) => {
-      expect(getApiErrorMessage({ isAxiosError: true, response: { data } }, 'Fallback')).toBe('Fallback')
-    }
-  )
+  it.each([
+    undefined,
+    { message: '' },
+    { message: '   ' },
+    { message: { text: 'unsafe' } },
+    { error: 'Internal implementation detail' },
+    ['unexpected'],
+  ])('uses the fallback for missing or unusable message data', (data) => {
+    expect(getApiErrorMessage({ isAxiosError: true, response: { data } }, 'Fallback')).toBe('Fallback')
+  })
+
+  it('does not expose a normal Error message', () => {
+    expect(getApiErrorMessage(new Error('Sensitive client detail'), 'Fallback')).toBe('Fallback')
+  })
 })

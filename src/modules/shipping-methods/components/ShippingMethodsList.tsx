@@ -31,7 +31,7 @@ export function ShippingMethodsList({ shippingMethods, onEdit, onDelete, actions
   const columns = [
     { id: 'method', header: t('shippingMethods.fields.method') },
     { id: 'code', header: t('shippingMethods.fields.code'), className: 'w-32' },
-    { id: 'eta', header: t('shippingMethods.fields.eta'), className: 'w-52' },
+    { id: 'deliveryDuration', header: t('shippingMethods.fields.deliveryDuration'), className: 'w-52' },
     { id: 'price', header: t('shippingMethods.fields.price'), className: 'w-28' },
     { id: 'type', header: t('shippingMethods.fields.type'), className: 'w-28' },
     { id: 'sortOrder', header: t('shippingMethods.fields.sortOrder'), className: 'w-28' },
@@ -55,7 +55,6 @@ export function ShippingMethodsList({ shippingMethods, onEdit, onDelete, actions
         <ResponsiveDataTable columns={columns}>
           {shippingMethods.map((method) => {
             const name = getLocalizedShippingMethodValue(method.name, i18n.language)
-            const eta = getLocalizedShippingMethodValue(method.etaLabel, i18n.language)
             return (
               <ResponsiveDataTableRow key={method.id}>
                 <ResponsiveDataTableCell className="max-w-60 whitespace-normal font-medium">
@@ -68,7 +67,7 @@ export function ShippingMethodsList({ shippingMethods, onEdit, onDelete, actions
                 </ResponsiveDataTableCell>
                 <ResponsiveDataTableCell className="max-w-52 whitespace-normal">
                   <bdi dir="auto" className="break-words">
-                    {eta}
+                    {numberFormatter.format(method.deliveryDuration)}
                   </bdi>
                 </ResponsiveDataTableCell>
                 <ResponsiveDataTableCell>{numberFormatter.format(method.price)}</ResponsiveDataTableCell>
@@ -92,7 +91,6 @@ export function ShippingMethodsList({ shippingMethods, onEdit, onDelete, actions
       <ResponsiveDataMobileCards>
         {shippingMethods.map((method) => {
           const name = getLocalizedShippingMethodValue(method.name, i18n.language)
-          const eta = getLocalizedShippingMethodValue(method.etaLabel, i18n.language)
           return (
             <ResponsiveDataMobileCard
               key={method.id}
@@ -109,8 +107,8 @@ export function ShippingMethodsList({ shippingMethods, onEdit, onDelete, actions
               }
               facts={
                 <>
-                  <ResponsiveDataFact label={t('shippingMethods.fields.eta')}>
-                    <bdi dir="auto">{eta}</bdi>
+                  <ResponsiveDataFact label={t('shippingMethods.fields.deliveryDuration')}>
+                    <bdi dir="auto">{numberFormatter.format(method.deliveryDuration)}</bdi>
                   </ResponsiveDataFact>
                   <ResponsiveDataFact label={t('shippingMethods.fields.price')}>
                     {numberFormatter.format(method.price)}

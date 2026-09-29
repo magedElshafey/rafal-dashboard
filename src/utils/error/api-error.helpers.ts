@@ -1,4 +1,3 @@
-import { handleErrorFields } from '@/utils/error/errorHandler'
 import { isAxiosError } from 'axios'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -17,14 +16,5 @@ export function getApiErrorMessage(error: unknown, fallbackMessage: string): str
   const responseData = error.response?.data
   if (!isRecord(responseData)) return fallbackMessage
 
-  const fieldsErrorMessage = isRecord(responseData.errors) ? handleErrorFields(responseData.errors) : null
-  const nestedData = isRecord(responseData.data) ? responseData.data : null
-
-  return (
-    readMessage(fieldsErrorMessage) ??
-    readMessage(responseData.message) ??
-    readMessage(responseData.error) ??
-    readMessage(nestedData?.message) ??
-    fallbackMessage
-  )
+  return readMessage(responseData.message) ?? fallbackMessage
 }

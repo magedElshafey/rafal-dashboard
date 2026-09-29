@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,7 +9,10 @@ import type { City } from '@/modules/cities/types/city.types'
 import { useDeleteCity } from './useDeleteCity'
 import { useUpdateCity } from './useUpdateCity'
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
+vi.mock('sonner', () => ({ toast: toastMocks }))
+
+const apiError = (message: string) => ({ isAxiosError: true, response: { data: { message } } })
 
 const city: City = {
   id: 1,
@@ -36,6 +39,8 @@ function setup() {
 describe('City mutation cache ownership', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    toastMocks.success.mockReset()
+    toastMocks.error.mockReset()
     vi.spyOn(citiesService, 'update').mockResolvedValue({ success: true, message: 'updated', data: city })
     vi.spyOn(citiesService, 'delete').mockResolvedValue({ success: true, message: 'deleted' })
   })
@@ -86,5 +91,14 @@ describe('City mutation cache ownership', () => {
     expect(invalidate).toHaveBeenCalledTimes(2)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cities', 'list'] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['regions', 'list'] })
+  })
+
+  it('shows the backend envelope message when delete fails', async () => {
+    vi.spyOn(citiesService, 'delete').mockRejectedValueOnce(apiError('This city is still in use.'))
+    const { wrapper } = setup()
+    const { result } = renderHook(useDeleteCity, { wrapper })
+
+    await expect(act(() => result.current.mutateAsync(1))).rejects.toEqual(apiError('This city is still in use.'))
+    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('This city is still in use.'))
   })
 })

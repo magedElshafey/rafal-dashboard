@@ -4,13 +4,17 @@ const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() 
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { serializeStaticPageUpdate, staticPagesService } from '@/modules/static-pages/api/static-pages.service'
-import type { RawStaticPage, StaticPageCreatePayload } from '@/modules/static-pages/types/static-page.types'
+import type {
+  RawStaticPage,
+  StaticPageCreatePayload,
+  StaticPageUpdatePayload,
+} from '@/modules/static-pages/types/static-page.types'
 
 const rawPage: RawStaticPage = {
   id: 2,
   slug: 'legacy Slug',
   title: { ar: 'سياسة الخصوصية' },
-  content: { ar: 'محتوى' },
+  content: { ar: '<p>محتوى</p>' },
   is_published: 1,
   is_system: false,
   created_at: '2026-09-28T13:31:50+00:00',
@@ -20,9 +24,15 @@ const rawPage: RawStaticPage = {
 const createPayload: StaticPageCreatePayload = {
   slug: ' Privacy / Policy? ',
   title: { ar: ' سياسة الخصوصية ', en: ' Privacy Policy ' },
-  content: { ar: ' محتوى ', en: ' Content ' },
+  content: { ar: ' <p>محتوى</p> ', en: ' <p>Content</p> ' },
   isPublished: true,
-  isSystem: false,
+}
+
+const updatePayload: StaticPageUpdatePayload = {
+  slug: 'Legacy Slug',
+  title: { ar: 'سياسة الخصوصية', en: 'Updated Privacy Policy' },
+  content: { ar: '<p>محتوى</p>', en: '<p>Content</p>' },
+  isPublished: true,
 }
 
 describe('staticPagesService', () => {
@@ -52,7 +62,7 @@ describe('staticPagesService', () => {
       id: 2,
       slug: 'legacy Slug',
       title: { ar: 'سياسة الخصوصية', en: null },
-      content: { ar: 'محتوى', en: null },
+      content: { ar: '<p>محتوى</p>', en: null },
       isPublished: true,
       isSystem: false,
       createdAt: rawPage.created_at,
@@ -88,17 +98,17 @@ describe('staticPagesService', () => {
       ['slug', 'privacy-policy'],
       ['title[ar]', 'سياسة الخصوصية'],
       ['title[en]', 'Privacy Policy'],
-      ['content[ar]', 'محتوى'],
-      ['content[en]', 'Content'],
+      ['content[ar]', '<p>محتوى</p>'],
+      ['content[en]', '<p>Content</p>'],
       ['is_published', '1'],
-      ['is_system', '0'],
     ])
+    expect([...request.data.keys()]).not.toContain('is_system')
   })
 
-  it('uses native multipart PUT with only a dirty localized branch and boolean', async () => {
+  it('uses native multipart PUT and always sends the complete writable body', async () => {
     httpMocks.put.mockResolvedValue({ data: { success: true, message: 'updated', data: rawPage } })
 
-    await staticPagesService.update(2, { title: { en: ' Updated ' }, isSystem: true })
+    await staticPagesService.update(2, updatePayload)
 
     const request = httpMocks.put.mock.calls[0][0]
     expect(request).toMatchObject({
@@ -108,15 +118,26 @@ describe('staticPagesService', () => {
       suppressErrorNotification: true,
     })
     expect([...request.data.entries()]).toEqual([
-      ['title[en]', 'Updated'],
-      ['is_system', '1'],
+      ['slug', 'Legacy Slug'],
+      ['title[ar]', 'سياسة الخصوصية'],
+      ['title[en]', 'Updated Privacy Policy'],
+      ['content[ar]', '<p>محتوى</p>'],
+      ['content[en]', '<p>Content</p>'],
+      ['is_published', '1'],
     ])
     expect([...request.data.keys()]).not.toContain('_method')
+    expect([...request.data.keys()]).not.toContain('is_system')
     expect(httpMocks.post).not.toHaveBeenCalled()
   })
 
-  it('omits an untouched legacy slug and normalizes a changed slug', () => {
-    expect([...serializeStaticPageUpdate({ title: { ar: 'جديد' } }).entries()]).toEqual([['title[ar]', 'جديد']])
-    expect([...serializeStaticPageUpdate({ slug: ' New / Page? ' }).entries()]).toEqual([['slug', 'new-page']])
+  it('preserves an authoritative legacy slug and accepts a normalized edited slug', () => {
+    expect(serializeStaticPageUpdate(updatePayload).get('slug')).toBe('Legacy Slug')
+    expect(serializeStaticPageUpdate({ ...updatePayload, slug: 'new-page' }).get('slug')).toBe('new-page')
+  })
+
+  it('supports a message-only Update response for exact Show reconciliation', async () => {
+    httpMocks.put.mockResolvedValue({ data: { success: true, message: 'updated' } })
+
+    await expect(staticPagesService.update(2, updatePayload)).resolves.toBeNull()
   })
 })

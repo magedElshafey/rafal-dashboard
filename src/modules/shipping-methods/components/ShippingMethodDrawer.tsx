@@ -12,6 +12,7 @@ import { useCreateShippingMethod } from '@/modules/shipping-methods/hooks/useCre
 import { useUpdateShippingMethod } from '@/modules/shipping-methods/hooks/useUpdateShippingMethod'
 import type { ShippingMethod, ShippingMethodFormValues } from '@/modules/shipping-methods/types/shipping-method.types'
 import {
+  buildShippingMethodCreatePayload,
   buildShippingMethodUpdatePayload,
   toShippingMethodFormValues,
 } from '@/modules/shipping-methods/utils/shipping-method.utils'
@@ -51,7 +52,7 @@ export function ShippingMethodDrawer({ open, mode, shippingMethod, onOpenChange 
     lockRef.current = true
     try {
       if (mode === 'create') {
-        await createShippingMethod.mutateAsync(values)
+        await createShippingMethod.mutateAsync(buildShippingMethodCreatePayload(values))
         methods.reset(EMPTY_SHIPPING_METHOD_FORM_VALUES)
         if (intent === 'create-another') window.requestAnimationFrame(() => methods.setFocus('code'))
         else onOpenChange(false)

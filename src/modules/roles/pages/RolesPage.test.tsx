@@ -165,6 +165,7 @@ describe('RolesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create Role' }))
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
     expect(await screen.findByText('Role name is required.')).toBeInTheDocument()
+    expect(screen.getByText('Select at least one permission.')).toBeInTheDocument()
 
     await user.type(screen.getByRole('textbox', { name: /role name/i }), '  Auditor  ')
     await selectPermission(user, 'manage roles')
@@ -211,7 +212,7 @@ describe('RolesPage', () => {
     await waitFor(() => expect(create).toHaveBeenCalledWith({ name: 'Auditor', permissions: ['manage admins'] }))
   })
 
-  it('accepts an empty permission selection', async () => {
+  it('blocks Create with an empty permission selection', async () => {
     const user = userEvent.setup()
     const create = vi.spyOn(rolesService, 'create')
     renderRolesPage()
@@ -220,7 +221,33 @@ describe('RolesPage', () => {
     await user.type(screen.getByRole('textbox', { name: /role name/i }), 'No Access')
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
 
-    await waitFor(() => expect(create).toHaveBeenCalledWith({ name: 'No Access', permissions: undefined }))
+    expect(await screen.findByText('Select at least one permission.')).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('keeps backend permission validation mapped to the field', async () => {
+    const error = Object.assign(new Error('unsafe client detail'), {
+      isAxiosError: true,
+      response: {
+        data: {
+          message: 'The role could not be saved.',
+          errors: { permissions: ['The selected permission is unavailable.'] },
+        },
+      },
+    })
+    vi.spyOn(rolesService, 'create').mockRejectedValueOnce(error)
+    const user = userEvent.setup()
+    renderRolesPage()
+    await screen.findAllByText('Content Manager')
+    await user.click(screen.getByRole('button', { name: 'Create Role' }))
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Auditor')
+    await selectPermission(user, 'manage admins')
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: /^Create$/ }))
+
+    expect(await screen.findByText('The selected permission is unavailable.')).toBeInTheDocument()
+    expect(toastMocks.error).toHaveBeenCalledWith('The role could not be saved.')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('loads the next permissions page once the picker reaches its sentinel', async () => {
@@ -292,6 +319,22 @@ describe('RolesPage', () => {
     expect(await screen.findAllByText('Editorial Manager')).toHaveLength(2)
   })
 
+  it('blocks Edit after removing the final permission', async () => {
+    const update = vi.spyOn(rolesService, 'update')
+    const user = userEvent.setup()
+    renderRolesPage()
+    await openRoleAction(user, 'Content Manager', 'Edit')
+
+    await screen.findByRole('textbox', { name: /role name/i })
+    await user.click(screen.getByRole('button', { name: 'Permissions' }))
+    await user.click(await screen.findByRole('option', { name: 'manage banners' }))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+
+    expect(await screen.findByText('Select at least one permission.')).toBeInTheDocument()
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it('shows drawer error with retry when role detail cannot load', async () => {
     vi.mocked(rolesService.show).mockRejectedValueOnce(new Error('unsafe detail'))
     const user = userEvent.setup()
@@ -331,7 +374,7 @@ describe('RolesPage', () => {
     expect(screen.queryByText('Marketing Manager')).not.toBeInTheDocument()
   })
 
-  it('keeps the dialog open and localizes the known self-role 403 rejection', async () => {
+  it('keeps the dialog open and shows the backend self-role 403 message', async () => {
     const user = userEvent.setup()
     renderRolesPage()
     await openRoleAction(user, 'Super Admin', 'Delete')
@@ -339,7 +382,7 @@ describe('RolesPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() =>
-      expect(toastMocks.error).toHaveBeenCalledWith('You cannot delete a role assigned to your own account.')
+      expect(toastMocks.error).toHaveBeenCalledWith('You cannot delete a role assigned to your own account')
     )
     expect(dialog).toBeInTheDocument()
     expect(window.location.pathname).not.toBe('/403')

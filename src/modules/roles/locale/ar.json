@@ -47,7 +47,10 @@
       "createDescription": "أضف دورًا وحدد صلاحياته.",
       "editDescription": "حدّث اسم الدور أو صلاحياته."
     },
-    "validation": { "nameRequired": "اسم الدور مطلوب." },
+    "validation": {
+      "nameRequired": "اسم الدور مطلوب.",
+      "permissionsRequired": "يجب اختيار صلاحية واحدة على الأقل."
+    },
     "empty": {
       "title": "لا توجد أدوار بعد",
       "description": "أنشئ الدور الأول لبدء تنظيم الوصول."

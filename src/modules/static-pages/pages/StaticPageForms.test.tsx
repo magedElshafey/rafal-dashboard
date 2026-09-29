@@ -21,12 +21,15 @@ class ResizeObserverMock {
   disconnect() {}
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+document.elementFromPoint = () => document.activeElement
+Range.prototype.getClientRects = () => [] as unknown as DOMRectList
+Range.prototype.getBoundingClientRect = () => new DOMRect()
 
 const initialPage: StaticPage = {
   id: 7,
   slug: 'Legacy Slug',
   title: { ar: 'سياسة', en: null },
-  content: { ar: 'محتوى', en: null },
+  content: { ar: '<p>محتوى</p>', en: null },
   isPublished: true,
   isSystem: false,
   createdAt: '2026-09-28T13:31:50+00:00',
@@ -36,11 +39,10 @@ const initialPage: StaticPage = {
 function mergeUpdate(payload: StaticPageUpdatePayload): StaticPage {
   return {
     ...initialPage,
-    slug: payload.slug ?? initialPage.slug,
-    title: { ...initialPage.title, ...payload.title },
-    content: { ...initialPage.content, ...payload.content },
-    isPublished: payload.isPublished ?? initialPage.isPublished,
-    isSystem: payload.isSystem ?? initialPage.isSystem,
+    slug: payload.slug,
+    title: payload.title,
+    content: payload.content,
+    isPublished: payload.isPublished,
     updatedAt: '2026-09-29T00:00:00+00:00',
   }
 }
@@ -51,11 +53,11 @@ function queryClient() {
   })
 }
 
-function renderEdit() {
+function renderEdit(entry = '/dashboard/pages/7/edit') {
   const client = queryClient()
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/dashboard/pages/7/edit']}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/dashboard/pages/:id/edit" element={<StaticPageEditPage />} />
           <Route path="/dashboard/pages" element={<p>Static Pages Index</p>} />
@@ -100,9 +102,12 @@ describe('Static Page forms', () => {
     expect(await screen.findByRole('textbox', { name: 'Slug' })).toHaveValue('Legacy Slug')
     expect(screen.getByRole('textbox', { name: 'Arabic title' })).toHaveValue('سياسة')
     expect(screen.getByRole('textbox', { name: 'English title' })).toHaveValue('')
-    expect(screen.getByRole('textbox', { name: 'English content' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Arabic content' })).toHaveTextContent('محتوى')
+    expect(screen.getByRole('textbox', { name: 'Arabic content' })).toHaveAttribute('dir', 'rtl')
+    expect(screen.getByRole('textbox', { name: 'English content' })).toHaveTextContent('')
+    expect(screen.getByRole('textbox', { name: 'English content' })).toHaveAttribute('dir', 'ltr')
     expect(screen.getByRole('switch', { name: 'Publish this page' })).toBeChecked()
-    expect(screen.getByRole('switch', { name: 'System page' })).not.toBeChecked()
+    expect(screen.queryByRole('switch', { name: 'System page' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
     expect(show).toHaveBeenCalledWith(7, expect.any(AbortSignal))
     expect(list).not.toHaveBeenCalled()
@@ -111,7 +116,7 @@ describe('Static Page forms', () => {
   it('creates with AR/EN values, blur-normalized slug, and narrow list invalidation', async () => {
     const created = { ...initialPage, slug: 'privacy-policy', title: { ar: 'سياسة', en: 'Privacy' } }
     const create = vi.spyOn(staticPagesService, 'create').mockResolvedValue(created)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: 5 })
     const client = renderCreate()
     const invalidate = vi.spyOn(client, 'invalidateQueries')
     const slug = screen.getByRole('textbox', { name: 'Slug' })
@@ -121,71 +126,86 @@ describe('Static Page forms', () => {
     expect(slug).toHaveValue('privacy-policy')
     await user.type(screen.getByRole('textbox', { name: 'Arabic title' }), 'سياسة')
     await user.type(screen.getByRole('textbox', { name: 'English title' }), 'Privacy')
-    await user.type(screen.getByRole('textbox', { name: 'Arabic content' }), 'محتوى')
-    await user.type(screen.getByRole('textbox', { name: 'English content' }), 'Content')
+    await user.click(screen.getByRole('textbox', { name: 'Arabic content' }))
+    await user.paste('محتوى')
+    await user.click(screen.getByRole('textbox', { name: 'English content' }))
+    await user.paste('Content')
     await user.click(screen.getByRole('switch', { name: 'Publish this page' }))
-    await user.click(screen.getByRole('switch', { name: 'System page' }))
+    expect(screen.queryByRole('switch', { name: 'System page' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Create' }))
 
     expect(await screen.findByText('Static Pages Index destination')).toBeInTheDocument()
     expect(create).toHaveBeenCalledWith({
       slug: 'privacy-policy',
       title: { ar: 'سياسة', en: 'Privacy' },
-      content: { ar: 'محتوى', en: 'Content' },
+      content: { ar: '<p>محتوى</p>', en: '<p>Content</p>' },
       isPublished: true,
-      isSystem: true,
     })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: staticPagesKeys.lists() })
     expect(toastMocks.success).toHaveBeenCalledWith('Static page created.')
   })
 
-  it('submits only dirty fields, including writable isSystem, then resets to authoritative data', async () => {
+  it('submits the full writable body and resets to authoritative data', async () => {
     vi.spyOn(staticPagesService, 'show').mockResolvedValue(structuredClone(initialPage))
     const update = vi.spyOn(staticPagesService, 'update').mockImplementation(async (_id, payload) => ({
       ...mergeUpdate(payload),
       title: { ...initialPage.title, en: 'Authoritative title' },
     }))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: 5 })
     const client = renderEdit()
     const invalidate = vi.spyOn(client, 'invalidateQueries')
     const englishTitle = await screen.findByRole('textbox', { name: 'English title' })
 
     await user.type(englishTitle, 'Typed title')
-    await user.click(screen.getByRole('switch', { name: 'System page' }))
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(englishTitle).toHaveValue('Authoritative title'))
-    expect(update).toHaveBeenCalledWith(7, { title: { en: 'Typed title' }, isSystem: true })
+    expect(update).toHaveBeenCalledWith(7, {
+      slug: 'Legacy Slug',
+      title: { ar: 'سياسة', en: 'Typed title' },
+      content: { ar: '<p>محتوى</p>', en: '' },
+      isPublished: true,
+    })
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
     expect(client.getQueryData(staticPagesKeys.detail(7))).toMatchObject({
       title: { en: 'Authoritative title' },
-      isSystem: true,
+      isSystem: false,
     })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: staticPagesKeys.lists() })
   })
 
   it('maps backend slug validation and preserves the edited value after failure', async () => {
     vi.spyOn(staticPagesService, 'show').mockResolvedValue(structuredClone(initialPage))
-    vi.spyOn(staticPagesService, 'update').mockRejectedValueOnce({
+    const update = vi.spyOn(staticPagesService, 'update').mockRejectedValueOnce({
       isAxiosError: true,
       response: { data: { errors: { slug: ['This slug is already in use.'] } } },
     })
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: 5 })
     renderEdit()
     const slug = await screen.findByRole('textbox', { name: 'Slug' })
 
     await user.clear(slug)
     await user.type(slug, ' Existing / Page ')
     await user.tab()
+    const englishContent = screen.getByRole('textbox', { name: 'English content' })
+    await user.click(englishContent)
+    await user.paste('Draft content')
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     expect(await screen.findByText('This slug is already in use.')).toBeInTheDocument()
     expect(slug).toHaveValue('existing-page')
     expect(slug).toHaveAttribute('aria-invalid', 'true')
+    expect(englishContent).toHaveTextContent('Draft content')
+    expect(update).toHaveBeenCalledWith(7, {
+      slug: 'existing-page',
+      title: { ar: 'سياسة', en: '' },
+      content: { ar: '<p>محتوى</p>', en: '<p>Draft content</p>' },
+      isPublished: true,
+    })
     expect(screen.queryByText(/isAxiosError|errors/)).not.toBeInTheDocument()
   })
 
-  it('protects Update from duplicate submission and omits an untouched legacy slug', async () => {
+  it('protects Update from duplicate submission and preserves an untouched legacy slug', async () => {
     vi.spyOn(staticPagesService, 'show').mockResolvedValue(structuredClone(initialPage))
     let resolveUpdate!: (page: StaticPage) => void
     const update = vi.spyOn(staticPagesService, 'update').mockImplementation(
@@ -194,15 +214,41 @@ describe('Static Page forms', () => {
           resolveUpdate = resolve
         })
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: 5 })
     renderEdit()
     const content = await screen.findByRole('textbox', { name: 'English content' })
-    await user.type(content, 'New content')
+    await user.click(content)
+    await user.paste('New content')
 
     await user.dblClick(screen.getByRole('button', { name: 'Save changes' }))
-    await waitFor(() => expect(update).toHaveBeenCalledWith(7, { content: { en: 'New content' } }))
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(7, {
+        slug: 'Legacy Slug',
+        title: { ar: 'سياسة', en: '' },
+        content: { ar: '<p>محتوى</p>', en: '<p>New content</p>' },
+        isPublished: true,
+      })
+    )
     expect(update).toHaveBeenCalledTimes(1)
-    await act(async () => resolveUpdate({ ...initialPage, content: { ...initialPage.content, en: 'New content' } }))
+    await act(async () =>
+      resolveUpdate({ ...initialPage, content: { ...initialPage.content, en: '<p>New content</p>' } })
+    )
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled())
   })
+
+  it.each(['/dashboard/pages/abc/edit', '/dashboard/pages/0/edit', '/dashboard/pages/-1/edit'])(
+    'renders a localized invalid state without Show or Retry for %s',
+    async (entry) => {
+      const show = vi.spyOn(staticPagesService, 'show')
+      const user = userEvent.setup({ delay: 5 })
+      renderEdit(entry)
+
+      expect(await screen.findByText('Invalid static page')).toBeInTheDocument()
+      expect(screen.getByText('This edit link does not contain a valid static page ID.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
+      expect(show).not.toHaveBeenCalled()
+      await user.click(screen.getByRole('link', { name: 'Back to Static Pages' }))
+      expect(await screen.findByText('Static Pages Index')).toBeInTheDocument()
+    }
+  )
 })

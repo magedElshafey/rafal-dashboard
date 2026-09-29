@@ -26,7 +26,14 @@ const EMPTY_VALUES: RoleFormValues = { name: '', permissions: [] }
 
 export function RoleForm({ formId, role, isSubmitting, onDirtyChange, onSubmit }: RoleFormProps) {
   const { t } = useTranslation()
-  const schema = useMemo(() => createRoleSchema(t('roles.validation.nameRequired')), [t])
+  const schema = useMemo(
+    () =>
+      createRoleSchema({
+        nameRequired: t('roles.validation.nameRequired'),
+        permissionsRequired: t('roles.validation.permissionsRequired'),
+      }),
+    [t]
+  )
   const permissionsQuery = usePermissions()
   const permissions = useMemo(
     () => permissionsQuery.data?.pages.flatMap((page) => page.items) ?? [],

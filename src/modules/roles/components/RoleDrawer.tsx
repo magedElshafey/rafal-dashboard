@@ -38,7 +38,7 @@ export function RoleDrawer({ open, mode, roleId, onOpenChange }: RoleDrawerProps
     intent: RoleSubmitIntent,
     methods: UseFormReturn<RoleFormValues>
   ) => {
-    const payload = { name: values.name, permissions: values.permissions.length ? values.permissions : undefined }
+    const payload = { name: values.name, permissions: values.permissions }
 
     if (mode === 'create') {
       await createRole.mutateAsync(payload)

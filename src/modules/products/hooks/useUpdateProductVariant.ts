@@ -6,6 +6,7 @@ import { productVariantsService } from '@/modules/products/api/product-variants.
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductVariantUpdatePayload } from '@/modules/products/types/product-variant.types'
 import type { ProductDetail } from '@/modules/products/types/product.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateProductVariant(productId: number, variantId: number) {
   const queryClient = useQueryClient()
@@ -23,6 +24,6 @@ export function useUpdateProductVariant(productId: number, variantId: number) {
       )
       toast.success(t('products.variants.feedback.updated'))
     },
-    onError: () => toast.error(t('products.variants.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('products.variants.feedback.updateError')),
   })
 }

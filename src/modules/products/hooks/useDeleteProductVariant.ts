@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { productVariantsService } from '@/modules/products/api/product-variants.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductDetail } from '@/modules/products/types/product.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteProductVariant(productId: number) {
   const queryClient = useQueryClient()
@@ -18,6 +19,6 @@ export function useDeleteProductVariant(productId: number) {
       await queryClient.invalidateQueries({ queryKey: productsKeys.lists() })
       toast.success(t('products.variants.feedback.deleted'))
     },
-    onError: () => toast.error(t('products.variants.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('products.variants.feedback.deleteError')),
   })
 }

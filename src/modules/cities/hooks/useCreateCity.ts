@@ -6,6 +6,7 @@ import { citiesService } from '@/modules/cities/api/cities.service'
 import { citiesKeys } from '@/modules/cities/queries/cities.keys'
 import type { CityPayload } from '@/modules/cities/types/city.types'
 import { regionsKeys } from '@/modules/regions/queries/regions.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateCity() {
   const queryClient = useQueryClient()
@@ -19,6 +20,6 @@ export function useCreateCity() {
       ])
       toast.success(t('cities.feedback.created'))
     },
-    onError: () => toast.error(t('cities.feedback.createError')),
+    onError: (error) => toastApiError(error, t('cities.feedback.createError')),
   })
 }

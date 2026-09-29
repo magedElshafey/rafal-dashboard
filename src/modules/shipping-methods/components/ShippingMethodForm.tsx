@@ -14,7 +14,7 @@ export type ShippingMethodSubmitIntent = 'create' | 'create-another' | 'edit'
 export const EMPTY_SHIPPING_METHOD_FORM_VALUES: ShippingMethodFormValues = {
   code: '',
   name: { ar: '', en: '' },
-  etaLabel: { ar: '', en: '' },
+  deliveryDuration: null,
   price: 0,
   isPickup: false,
   isActive: true,
@@ -101,7 +101,6 @@ export function ShippingMethodForm({
       ...values,
       code: values.code.trim(),
       name: { ar: values.name.ar.trim(), en: values.name.en.trim() },
-      etaLabel: { ar: values.etaLabel.ar.trim(), en: values.etaLabel.en.trim() },
     }
     try {
       await onSubmit(normalized, intent, methods)
@@ -112,10 +111,7 @@ export function ShippingMethodForm({
         'name[ar]': 'name.ar',
         'name.en': 'name.en',
         'name[en]': 'name.en',
-        'eta_label.ar': 'etaLabel.ar',
-        'eta_label[ar]': 'etaLabel.ar',
-        'eta_label.en': 'etaLabel.en',
-        'eta_label[en]': 'etaLabel.en',
+        delivery_duration: 'deliveryDuration',
         price: 'price',
         is_pickup: 'isPickup',
         is_active: 'isActive',
@@ -172,27 +168,21 @@ export function ShippingMethodForm({
 
       <section
         className="space-y-5 rounded-2xl border border-border bg-surface p-5"
-        aria-labelledby="shipping-method-eta-title"
+        aria-labelledby="shipping-method-duration-title"
       >
-        <h2 id="shipping-method-eta-title" className="font-semibold text-foreground">
-          {t('shippingMethods.sections.eta')}
+        <h2 id="shipping-method-duration-title" className="font-semibold text-foreground">
+          {t('shippingMethods.sections.duration')}
         </h2>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormInput
-            name="etaLabel.ar"
-            label={t('shippingMethods.fields.etaAr')}
-            dir="rtl"
-            required
-            disabled={isSubmitting}
-          />
-          <FormInput
-            name="etaLabel.en"
-            label={t('shippingMethods.fields.etaEn')}
-            dir="ltr"
-            required
-            disabled={isSubmitting}
-          />
-        </div>
+        <FormInput
+          name="deliveryDuration"
+          label={t('shippingMethods.fields.deliveryDuration')}
+          type="number"
+          inputMode="decimal"
+          step="any"
+          dir="ltr"
+          required
+          disabled={isSubmitting}
+        />
       </section>
 
       <section

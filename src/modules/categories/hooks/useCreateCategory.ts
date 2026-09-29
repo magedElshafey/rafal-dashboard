@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { categoriesService } from '@/modules/categories/api/categories.service'
 import { categoriesKeys } from '@/modules/categories/queries/categories.keys'
 import type { CategoryPayload } from '@/modules/categories/types/category.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateCategory() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useCreateCategory() {
       await queryClient.invalidateQueries({ queryKey: categoriesKeys.lists() })
       toast.success(t('categories.feedback.created'))
     },
-    onError: () => toast.error(t('categories.feedback.createError')),
+    onError: (error) => toastApiError(error, t('categories.feedback.createError')),
   })
 }

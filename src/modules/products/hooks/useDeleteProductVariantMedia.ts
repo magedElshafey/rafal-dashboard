@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { productMediaService } from '@/modules/products/api/product-media.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductDetail } from '@/modules/products/types/product.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export type ProductVariantMediaTarget = { variantId: number; mediaId: number }
 
@@ -28,6 +29,6 @@ export function useDeleteProductVariantMedia(productId: number) {
       )
       toast.success(t('products.variants.feedback.imageDeleted'))
     },
-    onError: () => toast.error(t('products.variants.feedback.imageDeleteError')),
+    onError: (error) => toastApiError(error, t('products.variants.feedback.imageDeleteError')),
   })
 }

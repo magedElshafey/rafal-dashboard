@@ -57,7 +57,8 @@
       "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
       "passwordRequired": "كلمة المرور مطلوبة.",
       "passwordConfirmationRequired": "تأكيد كلمة المرور مطلوب.",
-      "passwordMismatch": "يجب أن تتطابق كلمتا المرور."
+      "passwordMismatch": "يجب أن تتطابق كلمتا المرور.",
+      "rolesRequired": "يجب اختيار دور واحد على الأقل."
     },
     "empty": {
       "title": "لا يوجد مشرفون بعد",

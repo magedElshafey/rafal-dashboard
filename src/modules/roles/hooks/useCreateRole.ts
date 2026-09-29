@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { rolesService } from '@/modules/roles/api/roles.service'
 import { rolesKeys } from '@/modules/roles/queries/roles.keys'
 import type { CreateRolePayload } from '@/modules/roles/types/role.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateRole() {
   const queryClient = useQueryClient()
@@ -16,6 +17,6 @@ export function useCreateRole() {
       await queryClient.invalidateQueries({ queryKey: rolesKeys.lists() })
       toast.success(t('roles.feedback.created'))
     },
-    onError: () => toast.error(t('roles.feedback.createError')),
+    onError: (error) => toastApiError(error, t('roles.feedback.createError')),
   })
 }

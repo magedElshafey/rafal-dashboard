@@ -67,9 +67,12 @@ describe('FormEditor', () => {
     expect(screen.getByRole('textbox')).toHaveAttribute('dir', 'ltr')
   })
 
-  it('normalizes visually empty hydrated HTML to an empty RHF string', async () => {
-    render(<Harness initial="<p></p>" />)
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(''))
-    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveTextContent('')
-  })
+  it.each(['<p></p>', '<p><br></p>', '<br>'])(
+    'normalizes visually empty hydrated HTML %s to an empty RHF string',
+    async (initial) => {
+      render(<Harness initial={initial} />)
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(''))
+      expect(screen.getByRole('textbox', { name: 'Description' })).toHaveTextContent('')
+    }
+  )
 })

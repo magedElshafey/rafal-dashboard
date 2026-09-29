@@ -39,7 +39,10 @@
       "createDescription": "Add a role and select its permissions.",
       "editDescription": "Update the role name or permissions."
     },
-    "validation": { "nameRequired": "Role name is required." },
+    "validation": {
+      "nameRequired": "Role name is required.",
+      "permissionsRequired": "Select at least one permission."
+    },
     "empty": {
       "title": "No roles yet",
       "description": "Create the first role to start organizing access."

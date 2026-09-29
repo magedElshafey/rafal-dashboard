@@ -49,6 +49,7 @@ export function AdminForm({ formId, mode, admin, isSubmitting, onDirtyChange, on
         passwordRequired: t('admins.validation.passwordRequired'),
         passwordConfirmationRequired: t('admins.validation.passwordConfirmationRequired'),
         passwordMismatch: t('admins.validation.passwordMismatch'),
+        rolesRequired: t('admins.validation.rolesRequired'),
       }),
     [mode, t]
   )

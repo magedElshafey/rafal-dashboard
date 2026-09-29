@@ -19,7 +19,7 @@ export function StaticPageActions({ page, title, onEdit }: Props) {
         {
           id: 'edit',
           label: t('staticPages.actions.edit'),
-          accessibleLabel: t('staticPages.actions.editNamed', { name: title }),
+          accessibleLabel: t('staticPages.actions.editNamed', { title }),
           icon: Pencil,
           onClick: () => onEdit(page),
         },

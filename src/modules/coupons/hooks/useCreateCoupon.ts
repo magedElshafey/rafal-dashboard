@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { couponsService } from '@/modules/coupons/api/coupons.service'
 import { couponsKeys } from '@/modules/coupons/queries/coupons.keys'
 import type { CouponCreatePayload } from '@/modules/coupons/types/coupon.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateCoupon() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useCreateCoupon() {
       await queryClient.invalidateQueries({ queryKey: couponsKeys.lists() })
       toast.success(t('coupons.feedback.created'))
     },
-    onError: () => toast.error(t('coupons.feedback.createError')),
+    onError: (error) => toastApiError(error, t('coupons.feedback.createError')),
   })
 }

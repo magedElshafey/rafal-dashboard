@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { categoriesService } from '@/modules/categories/api/categories.service'
 import { categoriesKeys } from '@/modules/categories/queries/categories.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteCategory() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useDeleteCategory() {
       await queryClient.invalidateQueries({ queryKey: categoriesKeys.lists() })
       toast.success(t('categories.feedback.deleted'))
     },
-    onError: () => toast.error(t('categories.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('categories.feedback.deleteError')),
   })
 }

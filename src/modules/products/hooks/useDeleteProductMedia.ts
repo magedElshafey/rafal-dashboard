@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { productMediaService } from '@/modules/products/api/product-media.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductDetail } from '@/modules/products/types/product.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteProductMedia(productId: number) {
   const queryClient = useQueryClient()
@@ -18,6 +19,6 @@ export function useDeleteProductMedia(productId: number) {
       await queryClient.invalidateQueries({ queryKey: productsKeys.lists() })
       toast.success(t('products.feedback.imageDeleted'))
     },
-    onError: () => toast.error(t('products.feedback.imageDeleteError')),
+    onError: (error) => toastApiError(error, t('products.feedback.imageDeleteError')),
   })
 }

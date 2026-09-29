@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { staticPagesService } from '@/modules/static-pages/api/static-pages.service'
 import { staticPagesKeys } from '@/modules/static-pages/queries/static-pages.keys'
 import type { StaticPageCreatePayload } from '@/modules/static-pages/types/static-page.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateStaticPage() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useCreateStaticPage() {
       await queryClient.invalidateQueries({ queryKey: staticPagesKeys.lists() })
       toast.success(t('staticPages.feedback.created'))
     },
-    onError: () => toast.error(t('staticPages.feedback.createError')),
+    onError: (error) => toastApiError(error, t('staticPages.feedback.createError')),
   })
 }

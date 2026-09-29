@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { aboutUsService } from '@/modules/about-us/api/about-us.service'
 import { aboutUsKeys } from '@/modules/about-us/queries/about-us.keys'
 import type { AboutUsUpdatePayload } from '@/modules/about-us/types/about-us.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateAboutUs() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useUpdateAboutUs() {
       queryClient.setQueryData(aboutUsKeys.detail(), aboutUs)
       toast.success(t('aboutUs.feedback.updated'))
     },
-    onError: () => toast.error(t('aboutUs.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('aboutUs.feedback.updateError')),
   })
 }

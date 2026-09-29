@@ -11,9 +11,8 @@ import {
 const values: StaticPageFormValues = {
   slug: ' Legacy / Changed ',
   title: { ar: 'عربي', en: 'English' },
-  content: { ar: 'محتوى', en: 'Content' },
+  content: { ar: '<p>محتوى</p>', en: '<p>Content</p>' },
   isPublished: false,
-  isSystem: true,
 }
 
 const page: StaticPage = {
@@ -43,17 +42,34 @@ describe('Static Page utilities', () => {
     expect(normalizeStaticPageSlug(input)).not.toContain('/')
   })
 
-  it('builds granular localized and boolean updates without an untouched slug', () => {
+  it('builds a full update while preserving an untouched authoritative legacy slug', () => {
     expect(
-      buildStaticPageUpdatePayload(values, {
-        title: { en: true },
-        isSystem: true,
+      buildStaticPageUpdatePayload({
+        values,
+        originalPage: page,
+        slugWasEdited: false,
       })
-    ).toEqual({ title: { en: 'English' }, isSystem: true })
+    ).toEqual({
+      slug: 'legacy Slug',
+      title: { ar: 'عربي', en: 'English' },
+      content: { ar: '<p>محتوى</p>', en: '<p>Content</p>' },
+      isPublished: false,
+    })
   })
 
-  it('normalizes an intentionally dirty slug and omits every unrelated field', () => {
-    expect(buildStaticPageUpdatePayload(values, { slug: true })).toEqual({ slug: 'legacy-changed' })
+  it('normalizes an intentionally edited slug while still including every writable field', () => {
+    expect(
+      buildStaticPageUpdatePayload({
+        values: { ...values, slug: ' New / Page? ' },
+        originalPage: page,
+        slugWasEdited: true,
+      })
+    ).toEqual({
+      slug: 'new-page',
+      title: { ar: 'عربي', en: 'English' },
+      content: { ar: '<p>محتوى</p>', en: '<p>Content</p>' },
+      isPublished: false,
+    })
   })
 
   it('initializes missing locales safely and uses display fallback without mutating data', () => {

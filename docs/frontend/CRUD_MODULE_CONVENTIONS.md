@@ -66,7 +66,7 @@ Every network-backed list MUST distinguish:
 - Query/list failures MUST use `QueryStateBoundary` and its shared `QueryStateNotice` presentation.
 - Initial errors MUST replace the data surface and offer Retry. Refetch errors MUST retain existing data and render the inline notice.
 - Retry MUST call the affected query's `refetch` or failed next-page operation only; it MUST NOT reload the page.
-- User-facing text MUST be translated and safe. Raw database, stack, request, and backend error text MUST NOT be rendered.
+- User-facing text MUST be translated and safe. For Create, Update, and Delete mutation failures, a non-blank string from the API's documented `response.data.message` envelope takes precedence; otherwise use the localized feature fallback. Never surface arbitrary `Error.message`, request config, stack, database output, or unexpected response shapes.
 - Technical context MAY be exposed in development-only diagnostics outside the user-facing message, provided it contains no secrets or protected data.
 - Not-found, forbidden, validation, and offline states MUST remain distinct when the API contract distinguishes them.
 
@@ -139,6 +139,7 @@ Every network-backed list MUST distinguish:
 - A pristine form MUST NOT send an update request. Features MUST NOT duplicate manual `JSON.stringify` comparisons.
 - After success, the feature MUST call `reset(successfulValues)` so the new server values become the pristine baseline, then apply its documented close behavior.
 - Server validation errors SHOULD map to fields when the contract permits; other safe errors SHOULD use the standard feedback/error surface.
+- Role Create/Edit requires at least one permission, and Admin Create/Edit requires at least one role. These business rules live in the feature Yup schemas so errors stay associated with their multi-select fields.
 
 ## Delete flow
 

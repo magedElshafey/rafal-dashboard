@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { rolesService } from '@/modules/roles/api/roles.service'
 import { rolesKeys } from '@/modules/roles/queries/roles.keys'
 import type { UpdateRolePayload } from '@/modules/roles/types/role.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateRole(id: number | null) {
   const queryClient = useQueryClient()
@@ -17,6 +18,6 @@ export function useUpdateRole(id: number | null) {
       await queryClient.invalidateQueries({ queryKey: rolesKeys.lists() })
       toast.success(t('roles.feedback.updated'))
     },
-    onError: () => toast.error(t('roles.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('roles.feedback.updateError')),
   })
 }

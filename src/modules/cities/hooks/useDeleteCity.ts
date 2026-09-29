@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { citiesService } from '@/modules/cities/api/cities.service'
 import { citiesKeys } from '@/modules/cities/queries/cities.keys'
 import { regionsKeys } from '@/modules/regions/queries/regions.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteCity() {
   const queryClient = useQueryClient()
@@ -18,6 +19,6 @@ export function useDeleteCity() {
       ])
       toast.success(t('cities.feedback.deleted'))
     },
-    onError: () => toast.error(t('cities.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('cities.feedback.deleteError')),
   })
 }

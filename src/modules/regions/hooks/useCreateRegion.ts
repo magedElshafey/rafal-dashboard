@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { regionsService } from '@/modules/regions/api/regions.service'
 import { regionsKeys } from '@/modules/regions/queries/regions.keys'
 import type { RegionPayload } from '@/modules/regions/types/region.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateRegion() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useCreateRegion() {
       await queryClient.invalidateQueries({ queryKey: regionsKeys.lists() })
       toast.success(t('regions.feedback.created'))
     },
-    onError: () => toast.error(t('regions.feedback.createError')),
+    onError: (error) => toastApiError(error, t('regions.feedback.createError')),
   })
 }

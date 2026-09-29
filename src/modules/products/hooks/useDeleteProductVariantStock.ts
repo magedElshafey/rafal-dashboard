@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { productVariantStocksService } from '@/modules/products/api/product-variant-stocks.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import type { ProductDetail } from '@/modules/products/types/product.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export type DeleteProductVariantStockVariables = { variantId: number; warehouseId: number }
 
@@ -34,6 +35,6 @@ export function useDeleteProductVariantStock(productId: number) {
       )
       toast.success(t('products.variants.stock.feedback.deleted'))
     },
-    onError: () => toast.error(t('products.variants.stock.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('products.variants.stock.feedback.deleteError')),
   })
 }

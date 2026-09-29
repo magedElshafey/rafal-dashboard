@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { productsService } from '@/modules/products/api/products.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
 import { isProductVariantDeleteConflict } from '@/modules/products/utils/product-error.utils'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient()
@@ -17,7 +18,8 @@ export function useDeleteProduct() {
       toast.success(t('products.feedback.deleted'))
     },
     onError: (error) =>
-      toast.error(
+      toastApiError(
+        error,
         t(
           isProductVariantDeleteConflict(error)
             ? 'products.feedback.deleteVariantConflict'

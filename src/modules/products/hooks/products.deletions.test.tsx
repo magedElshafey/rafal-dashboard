@@ -101,7 +101,9 @@ describe('Product deletion cache ownership', () => {
     expect(client.getQueryData(productsKeys.detail(7))).toEqual(product)
     expect(invalidate).not.toHaveBeenCalled()
     await waitFor(() =>
-      expect(toastMocks.error).toHaveBeenCalledWith("Delete this product's variants before deleting the product.")
+      expect(toastMocks.error).toHaveBeenCalledWith(
+        'Cannot delete product: it still has variants. Delete its variants first.'
+      )
     )
   })
 })

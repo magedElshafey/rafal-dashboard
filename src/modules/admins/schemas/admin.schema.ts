@@ -7,6 +7,7 @@ type AdminValidationMessages = {
   passwordRequired: string
   passwordConfirmationRequired: string
   passwordMismatch: string
+  rolesRequired: string
 }
 
 export function createAdminSchema(mode: 'create' | 'edit', messages: AdminValidationMessages) {
@@ -21,6 +22,6 @@ export function createAdminSchema(mode: 'create' | 'edit', messages: AdminValida
             .required(messages.passwordConfirmationRequired)
             .oneOf([yup.ref('password')], messages.passwordMismatch)
         : yup.string().defined(),
-    roles: yup.array(yup.string().required()).defined(),
+    roles: yup.array(yup.string().required()).min(1, messages.rolesRequired).defined(),
   })
 }

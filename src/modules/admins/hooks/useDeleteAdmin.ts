@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { adminsService } from '@/modules/admins/api/admins.service'
 import { adminsKeys } from '@/modules/admins/queries/admins.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteAdmin() {
   const queryClient = useQueryClient()
@@ -22,7 +23,7 @@ export function useDeleteAdmin() {
         isAxiosError(error) &&
         error.response?.status === 403 &&
         error.response.data?.message === 'You cannot delete your own account'
-      toast.error(t(isSelfDeleteError ? 'admins.errors.selfDelete' : 'admins.feedback.deleteError'))
+      toastApiError(error, t(isSelfDeleteError ? 'admins.errors.selfDelete' : 'admins.feedback.deleteError'))
     },
   })
 }

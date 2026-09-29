@@ -16,6 +16,5 @@ export function createStaticPageSchema(messages: Messages) {
     title: yup.object({ ar: optionalText, en: optionalText }),
     content: yup.object({ ar: optionalText, en: optionalText }),
     isPublished: yup.boolean().required(),
-    isSystem: yup.boolean().required(),
   })
 }

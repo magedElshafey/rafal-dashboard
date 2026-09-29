@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { bannersService } from '@/modules/banners/api/banners.service'
 import { bannersKeys } from '@/modules/banners/queries/banners.keys'
 import type { BannerPayload } from '@/modules/banners/types/banner.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateBanner(id: number | null) {
   const queryClient = useQueryClient()
@@ -16,6 +17,6 @@ export function useUpdateBanner(id: number | null) {
       await queryClient.invalidateQueries({ queryKey: bannersKeys.lists() })
       toast.success(t('banners.feedback.updated'))
     },
-    onError: () => toast.error(t('banners.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('banners.feedback.updateError')),
   })
 }

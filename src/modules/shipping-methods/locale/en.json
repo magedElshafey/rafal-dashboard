@@ -10,7 +10,7 @@
     "loadingMore": "Loading more shipping methods",
     "sections": {
       "basic": "Basic Information",
-      "eta": "Delivery Estimate",
+      "duration": "Delivery Duration",
       "pricing": "Pricing & Type",
       "status": "Status & Ordering"
     },
@@ -19,9 +19,7 @@
       "code": "Code",
       "nameAr": "Arabic Name",
       "nameEn": "English Name",
-      "eta": "Delivery Estimate",
-      "etaAr": "Arabic Delivery Estimate",
-      "etaEn": "English Delivery Estimate",
+      "deliveryDuration": "Delivery duration",
       "price": "Price",
       "isPickup": "Pickup from Branch",
       "isActive": "Active",

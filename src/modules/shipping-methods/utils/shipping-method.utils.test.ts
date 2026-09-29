@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ShippingMethodFormValues } from '@/modules/shipping-methods/types/shipping-method.types'
-import { buildShippingMethodUpdatePayload, getLocalizedShippingMethodValue } from './shipping-method.utils'
+import {
+  buildShippingMethodCreatePayload,
+  buildShippingMethodUpdatePayload,
+  getLocalizedShippingMethodValue,
+} from './shipping-method.utils'
 
 const values: ShippingMethodFormValues = {
   code: 'standard',
   name: { ar: 'عادي', en: 'Standard' },
-  etaLabel: { ar: '٣ أيام', en: '3 days' },
+  deliveryDuration: 3,
   price: 25,
   isPickup: false,
   isActive: true,
@@ -19,10 +23,15 @@ describe('Shipping Method utilities', () => {
   })
 
   it('maps nested dirty fields without leaking untouched values', () => {
-    expect(buildShippingMethodUpdatePayload(values, { name: { en: true }, etaLabel: { ar: true } })).toEqual({
+    expect(buildShippingMethodUpdatePayload(values, { name: { en: true }, deliveryDuration: true })).toEqual({
       nameEn: 'Standard',
-      etaLabelAr: '٣ أيام',
+      deliveryDuration: 3,
     })
+  })
+
+  it('requires a numeric delivery duration at the Create payload boundary', () => {
+    expect(buildShippingMethodCreatePayload(values)).toEqual(values)
+    expect(() => buildShippingMethodCreatePayload({ ...values, deliveryDuration: null })).toThrow()
   })
 
   it('includes zero price when Pickup is enabled and leaves zero editable when disabled', () => {

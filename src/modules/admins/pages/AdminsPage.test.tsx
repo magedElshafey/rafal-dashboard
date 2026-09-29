@@ -159,11 +159,11 @@ describe('AdminsPage', () => {
 
   it('loads later admin pages once and stops at the final page', async () => {
     admins = Array.from({ length: 16 }, (_, index) => ({
-        id: index + 1,
-        name: `Admin ${index + 1}`,
-        email: `admin${index + 1}@example.com`,
-        roles: [],
-      }))
+      id: index + 1,
+      name: `Admin ${index + 1}`,
+      email: `admin${index + 1}@example.com`,
+      roles: [],
+    }))
     const list = vi.spyOn(adminsService, 'list')
     renderAdminsPage()
 
@@ -184,6 +184,7 @@ describe('AdminsPage', () => {
     expect(screen.getByText('Email is required.')).toBeInTheDocument()
     expect(screen.getByText('Password is required.')).toBeInTheDocument()
     expect(screen.getByText('Password confirmation is required.')).toBeInTheDocument()
+    expect(screen.getByText('Select at least one role.')).toBeInTheDocument()
 
     await user.type(screen.getByRole('textbox', { name: /^Name$/ }), 'Admin')
     await user.type(screen.getByRole('textbox', { name: /^Email$/ }), 'not-an-email')
@@ -220,6 +221,32 @@ describe('AdminsPage', () => {
     expect(toastMocks.success).toHaveBeenCalledWith('Admin created successfully.')
   })
 
+  it('keeps backend role validation mapped to the field', async () => {
+    const error = Object.assign(new Error('unsafe client detail'), {
+      isAxiosError: true,
+      response: {
+        data: {
+          message: 'The admin could not be saved.',
+          errors: { roles: ['The selected role is unavailable.'] },
+        },
+      },
+    })
+    vi.spyOn(adminsService, 'create').mockRejectedValueOnce(error)
+    const user = userEvent.setup()
+    renderAdminsPage()
+    await screen.findAllByText('admin@admin.com')
+    await user.click(screen.getByRole('button', { name: 'Create Admin' }))
+    await fillCreateFields(user)
+    await user.click(screen.getByRole('button', { name: 'Roles' }))
+    await user.click(await screen.findByRole('option', { name: 'Super Admin' }))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: /^Create$/ }))
+
+    expect(await screen.findByText('The selected role is unavailable.')).toBeInTheDocument()
+    expect(toastMocks.error).toHaveBeenCalledWith('The admin could not be saved.')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('create another keeps the drawer open and clears identity, passwords, roles, and errors', async () => {
     const user = userEvent.setup()
     renderAdminsPage()
@@ -252,6 +279,9 @@ describe('AdminsPage', () => {
     await screen.findAllByText('admin@admin.com')
     await user.click(screen.getByRole('button', { name: 'Create Admin' }))
     await fillCreateFields(user)
+    await user.click(screen.getByRole('button', { name: 'Roles' }))
+    await user.click(await screen.findByRole('option', { name: 'Super Admin' }))
+    await user.keyboard('{Escape}')
     await user.dblClick(screen.getByRole('button', { name: /^Create$/ }))
 
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
@@ -310,6 +340,22 @@ describe('AdminsPage', () => {
     })
   })
 
+  it('blocks Edit after removing the final role', async () => {
+    const update = vi.spyOn(adminsService, 'update')
+    const user = userEvent.setup()
+    renderAdminsPage()
+    await openAdminAction(user, 'Super Admin', 'Edit')
+
+    await screen.findByRole('textbox', { name: /^Name$/ })
+    await user.click(screen.getByRole('button', { name: 'Roles' }))
+    await user.click(await screen.findByRole('option', { name: 'Super Admin' }))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+
+    expect(await screen.findByText('Select at least one role.')).toBeInTheDocument()
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it('shows a safe retry state when edit detail fails', async () => {
     vi.mocked(adminsService.show).mockRejectedValueOnce(new Error('unsafe detail'))
     const user = userEvent.setup()
@@ -357,7 +403,7 @@ describe('AdminsPage', () => {
     const dialog = await screen.findByRole('alertdialog')
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('You cannot delete your own account.'))
+    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('You cannot delete your own account'))
     expect(dialog).toBeInTheDocument()
     expect(window.location.pathname).not.toBe('/403')
   })

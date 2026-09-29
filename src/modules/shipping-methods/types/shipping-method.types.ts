@@ -5,7 +5,7 @@ export type ShippingMethod = {
   id: number
   code: string
   name: LocalizedName
-  etaLabel: LocalizedName
+  deliveryDuration: number
   price: number
   isPickup: boolean
   isActive: boolean
@@ -17,21 +17,22 @@ export type ShippingMethod = {
 export type ShippingMethodFormValues = {
   code: string
   name: LocalizedName
-  etaLabel: LocalizedName
+  deliveryDuration: number | null
   price: number
   isPickup: boolean
   isActive: boolean
   sortOrder: number | null
 }
 
-export type ShippingMethodCreatePayload = ShippingMethodFormValues
+export type ShippingMethodCreatePayload = Omit<ShippingMethodFormValues, 'deliveryDuration'> & {
+  deliveryDuration: number
+}
 
 export type ShippingMethodUpdatePayload = {
   code?: string
   nameAr?: string
   nameEn?: string
-  etaLabelAr?: string
-  etaLabelEn?: string
+  deliveryDuration?: number
   price?: number
   isPickup?: boolean
   isActive?: boolean
@@ -42,7 +43,7 @@ export type RawShippingMethod = {
   id: number
   code: string
   name: LocalizedName
-  eta_label: LocalizedName
+  delivery_duration: number | string
   price: string
   is_pickup: boolean
   is_active: boolean

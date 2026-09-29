@@ -1,6 +1,7 @@
 import type {
   RawStaticPage,
   RawStaticPageResponse,
+  RawStaticPageUpdateResponse,
   StaticPage,
   StaticPageCreatePayload,
   StaticPagesIndexResponse,
@@ -22,6 +23,11 @@ function requireNormalizedSlug(value: string): string {
   const slug = normalizeStaticPageSlug(value)
   if (!slug) throw new Error('Static Page slug is unavailable')
   return slug
+}
+
+function requireStaticPageSlug(value: string): string {
+  if (!value.trim()) throw new Error('Static Page slug is unavailable')
+  return value
 }
 
 export function normalizeStaticPage(raw: RawStaticPage): StaticPage {
@@ -51,19 +57,17 @@ export function serializeStaticPageCreate(payload: StaticPageCreatePayload): For
   body.set('content[ar]', payload.content.ar.trim())
   body.set('content[en]', payload.content.en.trim())
   body.set('is_published', payload.isPublished ? '1' : '0')
-  body.set('is_system', payload.isSystem ? '1' : '0')
   return body
 }
 
 export function serializeStaticPageUpdate(payload: StaticPageUpdatePayload): FormData {
   const body = new FormData()
-  if (payload.slug !== undefined) body.set('slug', requireNormalizedSlug(payload.slug))
-  if (payload.title?.ar !== undefined) body.set('title[ar]', payload.title.ar.trim())
-  if (payload.title?.en !== undefined) body.set('title[en]', payload.title.en.trim())
-  if (payload.content?.ar !== undefined) body.set('content[ar]', payload.content.ar.trim())
-  if (payload.content?.en !== undefined) body.set('content[en]', payload.content.en.trim())
-  if (payload.isPublished !== undefined) body.set('is_published', payload.isPublished ? '1' : '0')
-  if (payload.isSystem !== undefined) body.set('is_system', payload.isSystem ? '1' : '0')
+  body.set('slug', requireStaticPageSlug(payload.slug))
+  body.set('title[ar]', payload.title.ar.trim())
+  body.set('title[en]', payload.title.en.trim())
+  body.set('content[ar]', payload.content.ar.trim())
+  body.set('content[en]', payload.content.en.trim())
+  body.set('is_published', payload.isPublished ? '1' : '0')
   return body
 }
 
@@ -114,14 +118,14 @@ export const staticPagesService = {
     return normalizeStaticPage(response.data.data)
   },
 
-  async update(id: number, payload: StaticPageUpdatePayload): Promise<StaticPage> {
-    const response = await $http.put<RawStaticPageResponse>({
+  async update(id: number, payload: StaticPageUpdatePayload): Promise<StaticPage | null> {
+    const response = await $http.put<RawStaticPageUpdateResponse>({
       url: `/dashboard/pages/${id}`,
       data: serializeStaticPageUpdate(payload),
       isFormData: true,
       suppressSuccessNotification: true,
       suppressErrorNotification: true,
     })
-    return normalizeStaticPage(response.data.data)
+    return response.data.data ? normalizeStaticPage(response.data.data) : null
   },
 }

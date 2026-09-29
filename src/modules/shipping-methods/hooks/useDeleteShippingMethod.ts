@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { shippingMethodsService } from '@/modules/shipping-methods/api/shipping-methods.service'
 import { shippingMethodsKeys } from '@/modules/shipping-methods/queries/shipping-methods.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteShippingMethod() {
   const queryClient = useQueryClient()
@@ -14,6 +15,6 @@ export function useDeleteShippingMethod() {
       await queryClient.invalidateQueries({ queryKey: shippingMethodsKeys.lists() })
       toast.success(t('shippingMethods.feedback.deleted'))
     },
-    onError: () => toast.error(t('shippingMethods.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('shippingMethods.feedback.deleteError')),
   })
 }

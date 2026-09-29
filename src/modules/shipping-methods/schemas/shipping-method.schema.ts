@@ -24,10 +24,7 @@ export function createShippingMethodSchema(mode: 'create' | 'edit', messages: Sh
       ar: yup.string().trim().required(messages.required),
       en: yup.string().trim().required(messages.required),
     }),
-    etaLabel: yup.object({
-      ar: yup.string().trim().required(messages.required),
-      en: yup.string().trim().required(messages.required),
-    }),
+    deliveryDuration: numberField,
     price: numberField.min(0, messages.nonNegative).test('pickup-price', messages.pickupPriceZero, function (value) {
       return !this.parent.isPickup || value === 0
     }),

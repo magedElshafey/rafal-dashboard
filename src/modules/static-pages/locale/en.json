@@ -17,7 +17,11 @@
     },
     "edit": {
       "title": "Edit static page",
-      "description": "Update only the page fields that need to change."
+      "description": "Update the page's localized content and settings."
+    },
+    "invalid": {
+      "title": "Invalid static page",
+      "description": "This edit link does not contain a valid static page ID."
     },
     "sections": {
       "basic": "Page settings",
@@ -31,7 +35,6 @@
       "systemState": "System",
       "updatedAt": "Updated",
       "isPublished": "Publish this page",
-      "isSystem": "System page",
       "titleAr": "Arabic title",
       "titleEn": "English title",
       "contentAr": "Arabic content",
@@ -48,7 +51,8 @@
       "createPage": "Create page",
       "edit": "Edit",
       "forPage": "Actions for {{title}}",
-      "editNamed": "Edit {{name}}",
+      "editNamed": "Edit {{title}}",
+      "backToPages": "Back to Static Pages",
       "create": "Create",
       "creating": "Creating…",
       "save": "Save changes",

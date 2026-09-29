@@ -6,6 +6,7 @@ import { citiesService } from '@/modules/cities/api/cities.service'
 import { citiesKeys } from '@/modules/cities/queries/cities.keys'
 import type { CityUpdatePayload } from '@/modules/cities/types/city.types'
 import { regionsKeys } from '@/modules/regions/queries/regions.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useUpdateCity(id: number | null) {
   const queryClient = useQueryClient()
@@ -23,6 +24,6 @@ export function useUpdateCity(id: number | null) {
       await Promise.all(invalidations)
       toast.success(t('cities.feedback.updated'))
     },
-    onError: () => toast.error(t('cities.feedback.updateError')),
+    onError: (error) => toastApiError(error, t('cities.feedback.updateError')),
   })
 }

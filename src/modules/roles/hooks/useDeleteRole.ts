@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { rolesService } from '@/modules/roles/api/roles.service'
 import { rolesKeys } from '@/modules/roles/queries/roles.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteRole() {
   const queryClient = useQueryClient()
@@ -22,7 +23,7 @@ export function useDeleteRole() {
         isAxiosError(error) &&
         error.response?.status === 403 &&
         error.response.data?.message === 'You cannot delete a role assigned to your own account'
-      toast.error(t(isSelfRoleError ? 'roles.errors.selfDelete' : 'roles.feedback.deleteError'))
+      toastApiError(error, t(isSelfRoleError ? 'roles.errors.selfDelete' : 'roles.feedback.deleteError'))
     },
   })
 }

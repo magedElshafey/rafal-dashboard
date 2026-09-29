@@ -12,7 +12,6 @@ describe('Static Page schema', () => {
         title: { ar: '', en: '' },
         content: { ar: '', en: '' },
         isPublished: false,
-        isSystem: false,
       })
     ).rejects.toThrow('Slug required')
   })
@@ -24,7 +23,6 @@ describe('Static Page schema', () => {
         title: { ar: '', en: '' },
         content: { ar: '', en: '' },
         isPublished: false,
-        isSystem: false,
       })
     ).resolves.toMatchObject({ slug: 'صفحة' })
   })

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { FormWrapper } from '@/components/core/FormWrapper'
-import { FormInput, FormTextArea } from '@/components/form'
+import { FormEditor, FormInput } from '@/components/form'
 import { FormSwitch } from '@/components/form/FormSwitch'
 import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
 import { Button } from '@/components/ui/button'
@@ -30,7 +30,6 @@ export const EMPTY_STATIC_PAGE_FORM_VALUES: StaticPageFormValues = {
   title: { ar: '', en: '' },
   content: { ar: '', en: '' },
   isPublished: false,
-  isSystem: false,
 }
 
 const API_FIELD_ALIASES = {
@@ -44,7 +43,6 @@ const API_FIELD_ALIASES = {
   'content.en': 'content.en',
   'content[en]': 'content.en',
   is_published: 'isPublished',
-  is_system: 'isSystem',
 } as const
 
 type CommonProps = {
@@ -107,7 +105,13 @@ export function StaticPageForm(props: Props) {
       if (props.mode === 'create') {
         await props.onSubmit(buildStaticPageCreatePayload(values))
       } else {
-        const updated = await props.onSubmit(buildStaticPageUpdatePayload(values, methods.formState.dirtyFields))
+        const updated = await props.onSubmit(
+          buildStaticPageUpdatePayload({
+            values,
+            originalPage: props.page,
+            slugWasEdited: methods.getFieldState('slug').isDirty,
+          })
+        )
         methods.reset(toStaticPageFormValues(updated))
       }
     } catch (error) {
@@ -134,20 +138,16 @@ export function StaticPageForm(props: Props) {
       <DashboardCard className="space-y-5" padding="lg">
         <h2 className="text-lg font-semibold text-foreground">{t('staticPages.sections.basic')}</h2>
         <SlugField disabled={props.isSubmitting} />
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormSwitch name="isPublished" label={t('staticPages.fields.isPublished')} disabled={props.isSubmitting} />
-          <FormSwitch name="isSystem" label={t('staticPages.fields.isSystem')} disabled={props.isSubmitting} />
-        </div>
+        <FormSwitch name="isPublished" label={t('staticPages.fields.isPublished')} disabled={props.isSubmitting} />
       </DashboardCard>
 
       <DashboardCard className="space-y-5" padding="lg">
         <h2 className="text-lg font-semibold text-foreground">{t('staticPages.sections.arabic')}</h2>
         <FormInput name="title.ar" label={t('staticPages.fields.titleAr')} dir="rtl" disabled={props.isSubmitting} />
-        <FormTextArea
+        <FormEditor
           name="content.ar"
           label={t('staticPages.fields.contentAr')}
           dir="rtl"
-          rows={10}
           disabled={props.isSubmitting}
         />
       </DashboardCard>
@@ -155,11 +155,10 @@ export function StaticPageForm(props: Props) {
       <DashboardCard className="space-y-5" padding="lg">
         <h2 className="text-lg font-semibold text-foreground">{t('staticPages.sections.english')}</h2>
         <FormInput name="title.en" label={t('staticPages.fields.titleEn')} dir="ltr" disabled={props.isSubmitting} />
-        <FormTextArea
+        <FormEditor
           name="content.en"
           label={t('staticPages.fields.contentEn')}
           dir="ltr"
-          rows={10}
           disabled={props.isSubmitting}
         />
       </DashboardCard>

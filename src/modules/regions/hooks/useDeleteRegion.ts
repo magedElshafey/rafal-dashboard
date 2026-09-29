@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { regionsService } from '@/modules/regions/api/regions.service'
 import { regionsKeys } from '@/modules/regions/queries/regions.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteRegion() {
   const queryClient = useQueryClient()
@@ -14,6 +15,6 @@ export function useDeleteRegion() {
       await queryClient.invalidateQueries({ queryKey: regionsKeys.lists() })
       toast.success(t('regions.feedback.deleted'))
     },
-    onError: () => toast.error(t('regions.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('regions.feedback.deleteError')),
   })
 }

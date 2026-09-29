@@ -42,13 +42,14 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <StaticPagesPage />
       </MemoryRouter>
     </QueryClientProvider>
   )
+  return { client, view }
 }
 
 describe('StaticPagesPage', () => {
@@ -85,7 +86,7 @@ describe('StaticPagesPage', () => {
     expect(await screen.findByText('No static pages yet')).toBeInTheDocument()
   })
 
-  it('renders desktop and mobile data with locale fallback, states, and Edit only', async () => {
+  it('renders safe desktop/mobile data and exposes only fully resolved Edit actions', async () => {
     vi.spyOn(staticPagesService, 'list').mockResolvedValue(paginated([page(1)]))
     renderPage()
 
@@ -94,9 +95,11 @@ describe('StaticPagesPage', () => {
     expect(screen.getAllByText('System').length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText('page-1')).toHaveLength(2)
     expect(screen.getAllByRole('button', { name: 'Edit صفحة 1' })).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument()
+    expect(screen.queryByText(/{{|}}/)).not.toBeInTheDocument()
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
     expect(screen.queryByText('محتوى')).not.toBeInTheDocument()
   })
 

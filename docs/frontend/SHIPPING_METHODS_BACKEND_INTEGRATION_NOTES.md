@@ -10,8 +10,10 @@ Omitting `sort_order` on Update keeps its existing value, and no clearing syntax
 
 API response prices are strings such as `"25.00"`; the service normalizes them to frontend domain numbers. Frontend booleans remain `boolean`, while FormData writes use the shared `0 | 1` API convention as text values.
 
+Delivery duration is one required, non-localized numeric value in the UI and domain model. The API boundary reads and writes the single canonical `delivery_duration` key. Finite floating-point values are accepted. No unit, integer-only rule, non-negative rule, minimum, or maximum is assumed without backend confirmation.
+
 Branch pickup is identified by `is_pickup`, not by price. Enabling pickup sets and sends `price = 0`; disabling pickup leaves the current zero price editable and does not restore hidden state.
 
 There is no Show endpoint. The paginated Index response contains the complete editable contract, so Edit is intentionally row-backed and does not issue a detail request. Search and filters are not supported and are not rendered.
 
-Current required-text, non-negative finite-price, optional integer-sort-order, and pickup zero-price rules are defensive frontend validation decisions. Additional backend validation, including code uniqueness, has not been confirmed.
+Current required-text, finite delivery-duration, non-negative finite-price, optional integer-sort-order, and pickup zero-price rules are defensive frontend validation decisions. Additional backend validation, including code uniqueness, has not been confirmed.

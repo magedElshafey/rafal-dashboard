@@ -21,18 +21,10 @@ export type StaticPageFormValues = {
   title: { ar: string; en: string }
   content: { ar: string; en: string }
   isPublished: boolean
-  isSystem: boolean
 }
 
 export type StaticPageCreatePayload = StaticPageFormValues
-
-export type StaticPageUpdatePayload = {
-  slug?: string
-  title?: Partial<{ ar: string; en: string }>
-  content?: Partial<{ ar: string; en: string }>
-  isPublished?: boolean
-  isSystem?: boolean
-}
+export type StaticPageUpdatePayload = StaticPageFormValues
 
 export type RawStaticPage = {
   id: number
@@ -50,4 +42,10 @@ export type RawStaticPageResponse = {
   success: boolean
   message: string
   data: RawStaticPage
+}
+
+export type RawStaticPageUpdateResponse = {
+  success: boolean
+  message: string
+  data?: RawStaticPage
 }

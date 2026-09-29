@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { couponsService } from '@/modules/coupons/api/coupons.service'
 import { couponsKeys } from '@/modules/coupons/queries/coupons.keys'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useDeleteCoupon() {
   const queryClient = useQueryClient()
@@ -14,6 +15,6 @@ export function useDeleteCoupon() {
       await queryClient.invalidateQueries({ queryKey: couponsKeys.lists() })
       toast.success(t('coupons.feedback.deleted'))
     },
-    onError: () => toast.error(t('coupons.feedback.deleteError')),
+    onError: (error) => toastApiError(error, t('coupons.feedback.deleteError')),
   })
 }

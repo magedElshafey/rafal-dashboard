@@ -1,13 +1,16 @@
+import { FileWarning } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
+import { EmptyState } from '@/components/shared/empty-state'
 import { QueryStateBoundary } from '@/components/shared/query-state'
-import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
+import { Button } from '@/components/ui/button'
 import { StaticPageForm } from '@/modules/static-pages/components/StaticPageForm'
 import { StaticPageFormSkeleton } from '@/modules/static-pages/components/StaticPageFormSkeleton'
 import { useStaticPage } from '@/modules/static-pages/hooks/useStaticPage'
 import { useUpdateStaticPage } from '@/modules/static-pages/hooks/useUpdateStaticPage'
+import { Routes } from '@/routes/routes'
 
 function StaticPageEditPage() {
   const { t } = useTranslation()
@@ -21,7 +24,16 @@ function StaticPageEditPage() {
     <main className="min-w-0">
       <DashboardPageHeader title={t('staticPages.edit.title')} description={t('staticPages.edit.description')} />
       {id === null ? (
-        <QueryStateNotice kind="loading-error" isRetrying={false} onRetry={() => undefined} />
+        <EmptyState
+          icon={<FileWarning />}
+          title={t('staticPages.invalid.title')}
+          description={t('staticPages.invalid.description')}
+          primaryAction={
+            <Button asChild>
+              <Link to={Routes.staticPages}>{t('staticPages.actions.backToPages')}</Link>
+            </Button>
+          }
+        />
       ) : (
         <QueryStateBoundary
           loadingFallback={<StaticPageFormSkeleton />}

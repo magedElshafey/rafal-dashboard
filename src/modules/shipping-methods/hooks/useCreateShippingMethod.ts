@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { shippingMethodsService } from '@/modules/shipping-methods/api/shipping-methods.service'
 import { shippingMethodsKeys } from '@/modules/shipping-methods/queries/shipping-methods.keys'
 import type { ShippingMethodCreatePayload } from '@/modules/shipping-methods/types/shipping-method.types'
+import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
 export function useCreateShippingMethod() {
   const queryClient = useQueryClient()
@@ -15,6 +16,6 @@ export function useCreateShippingMethod() {
       await queryClient.invalidateQueries({ queryKey: shippingMethodsKeys.lists() })
       toast.success(t('shippingMethods.feedback.created'))
     },
-    onError: () => toast.error(t('shippingMethods.feedback.createError')),
+    onError: (error) => toastApiError(error, t('shippingMethods.feedback.createError')),
   })
 }

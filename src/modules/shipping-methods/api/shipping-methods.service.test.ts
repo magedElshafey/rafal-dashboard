@@ -14,7 +14,7 @@ const rawMethod = {
   id: 1,
   code: 'standard',
   name: { ar: 'شحن عادي', en: 'Standard Shipping' },
-  eta_label: { ar: '٣-٥ أيام عمل', en: '3-5 business days' },
+  delivery_duration: '3',
   price: '25.00',
   is_pickup: false,
   is_active: true,
@@ -47,7 +47,7 @@ describe('shippingMethodsService', () => {
       id: 1,
       code: 'standard',
       name: rawMethod.name,
-      etaLabel: rawMethod.eta_label,
+      deliveryDuration: 3,
       price: 25,
       isPickup: false,
       isActive: true,
@@ -62,7 +62,7 @@ describe('shippingMethodsService', () => {
     const body = serializeShippingMethodCreate({
       code: ' standard ',
       name: { ar: ' شحن عادي ', en: ' Standard Shipping ' },
-      etaLabel: { ar: ' ٣-٥ أيام ', en: ' 3-5 days ' },
+      deliveryDuration: 3,
       price: 25.5,
       isPickup: false,
       isActive: true,
@@ -72,13 +72,14 @@ describe('shippingMethodsService', () => {
       ['code', 'standard'],
       ['name[ar]', 'شحن عادي'],
       ['name[en]', 'Standard Shipping'],
-      ['eta_label[ar]', '٣-٥ أيام'],
-      ['eta_label[en]', '3-5 days'],
+      ['delivery_duration', '3'],
       ['is_pickup', '0'],
       ['price', '25.5'],
       ['sort_order', '0'],
       ['is_active', '1'],
     ])
+    expect([...body.keys()]).not.toContain('eta_label[ar]')
+    expect([...body.keys()]).not.toContain('eta_label[en]')
     expect(body.has('slug')).toBe(false)
   })
 
@@ -86,8 +87,7 @@ describe('shippingMethodsService', () => {
     [{ code: ' next ' }, [['code', 'next']]],
     [{ nameAr: ' عربي ' }, [['name[ar]', 'عربي']]],
     [{ nameEn: ' English ' }, [['name[en]', 'English']]],
-    [{ etaLabelAr: ' يومان ' }, [['eta_label[ar]', 'يومان']]],
-    [{ etaLabelEn: ' 2 days ' }, [['eta_label[en]', '2 days']]],
+    [{ deliveryDuration: 2.5 }, [['delivery_duration', '2.5']]],
     [{ price: 12.5 }, [['price', '12.5']]],
     [{ isActive: false }, [['is_active', '0']]],
     [{ sortOrder: -2 }, [['sort_order', '-2']]],
@@ -108,7 +108,7 @@ describe('shippingMethodsService', () => {
       serializeShippingMethodCreate({
         code: 'pickup',
         name: { ar: 'استلام', en: 'Pickup' },
-        etaLabel: { ar: 'اليوم', en: 'Today' },
+        deliveryDuration: 1,
         price: 5,
         isPickup: true,
         isActive: true,
@@ -124,13 +124,13 @@ describe('shippingMethodsService', () => {
     await shippingMethodsService.create({
       code: 'standard',
       name: rawMethod.name,
-      etaLabel: rawMethod.eta_label,
+      deliveryDuration: 3,
       price: 25,
       isPickup: false,
       isActive: true,
       sortOrder: 1,
     })
-    await shippingMethodsService.update(1, { etaLabelEn: '4 days' })
+    await shippingMethodsService.update(1, { deliveryDuration: 4 })
     await shippingMethodsService.delete(1)
     expect(httpMocks.post.mock.calls[0][0]).toMatchObject({
       url: '/dashboard/shipping-methods',
@@ -140,7 +140,7 @@ describe('shippingMethodsService', () => {
       url: '/dashboard/shipping-methods/1',
       isFormData: true,
     })
-    expect([...httpMocks.put.mock.calls[0][0].data.entries()]).toEqual([['eta_label[en]', '4 days']])
+    expect([...httpMocks.put.mock.calls[0][0].data.entries()]).toEqual([['delivery_duration', '4']])
     expect(httpMocks.delete).toHaveBeenCalledWith({
       url: '/dashboard/shipping-methods/1',
       suppressSuccessNotification: true,
