@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
-import { aboutUsService, serializeAboutUsUpdate } from '@/modules/about-us/api/about-us.service'
+import { aboutUsService, normalizeAboutUs, serializeAboutUsUpdate } from '@/modules/about-us/api/about-us.service'
 import type { RawAboutUs } from '@/modules/about-us/types/about-us.types'
 
 const rawAboutUs: RawAboutUs = {
@@ -26,6 +26,26 @@ const rawAboutUs: RawAboutUs = {
   updated_at: '2026-09-28T00:00:00Z',
 }
 
+const rawArabicOnlyAboutUs = {
+  id: 1,
+  hero_title: { ar: 'تعديل' },
+  hero_subtitle: { ar: 'تعديل النص' },
+  hero_image_url: null,
+  story: { ar: 'تعديل القصة' },
+  vision: { ar: 'تعديل الرؤية' },
+  mission: { ar: 'الهدف' },
+  features: [
+    {
+      key: 'e55bac8d-5ad6-4f05-80a9-6132b4d4b3bd',
+      title: { ar: 'فيشتر ar' },
+      subtitle: { ar: 'فيتشر en' },
+      icon_url: null,
+    },
+  ],
+  created_at: '2026-09-26T19:47:28+00:00',
+  updated_at: '2026-09-28T11:24:34+00:00',
+}
+
 describe('aboutUsService', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -44,6 +64,55 @@ describe('aboutUsService', () => {
       signal,
       suppressErrorNotification: true,
     })
+  })
+
+  it('normalizes the real successful response when localized objects contain only Arabic', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'About Us retrieved successfully',
+        data: rawArabicOnlyAboutUs,
+      },
+    })
+
+    await expect(aboutUsService.get()).resolves.toEqual({
+      id: 1,
+      heroTitle: { ar: 'تعديل', en: null },
+      heroSubtitle: { ar: 'تعديل النص', en: null },
+      heroImageUrl: null,
+      story: { ar: 'تعديل القصة', en: null },
+      vision: { ar: 'تعديل الرؤية', en: null },
+      mission: { ar: 'الهدف', en: null },
+      features: [
+        {
+          key: 'e55bac8d-5ad6-4f05-80a9-6132b4d4b3bd',
+          title: { ar: 'فيشتر ar', en: null },
+          subtitle: { ar: 'فيتشر en', en: null },
+          iconUrl: null,
+        },
+      ],
+      createdAt: '2026-09-26T19:47:28+00:00',
+      updatedAt: '2026-09-28T11:24:34+00:00',
+    })
+  })
+
+  it('preserves an English-only localized value without fabricating Arabic', () => {
+    expect(normalizeAboutUs({ ...rawAboutUs, hero_title: { en: 'About Us' } }).heroTitle).toEqual({
+      ar: null,
+      en: 'About Us',
+    })
+  })
+
+  it('rejects a malformed localized array instead of accepting arbitrary data', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: { ...rawAboutUs, hero_title: [] },
+      },
+    })
+
+    await expect(aboutUsService.get()).rejects.toThrow('About Us data is unavailable')
   })
 
   it('rejects missing singleton data instead of fabricating content', async () => {

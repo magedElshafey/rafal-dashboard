@@ -1,21 +1,31 @@
 import type { ImageUploadValue } from '@/components/form/image-upload'
 import type { LocalizedName } from '@/types/localized-name.types'
 
+export type AboutUsLocalizedText = {
+  ar: string | null
+  en: string | null
+}
+
+export type RawAboutUsLocalizedText = {
+  ar?: string | null
+  en?: string | null
+}
+
 export type AboutUsFeature = {
   key: string
-  title: LocalizedName
-  subtitle: LocalizedName
+  title: AboutUsLocalizedText
+  subtitle: AboutUsLocalizedText
   iconUrl: string | null
 }
 
 export type AboutUs = {
   id: number
-  heroTitle: LocalizedName
-  heroSubtitle: LocalizedName
+  heroTitle: AboutUsLocalizedText
+  heroSubtitle: AboutUsLocalizedText
   heroImageUrl: string | null
-  story: LocalizedName
-  vision: LocalizedName
-  mission: LocalizedName
+  story: AboutUsLocalizedText
+  vision: AboutUsLocalizedText
+  mission: AboutUsLocalizedText
   features: AboutUsFeature[]
   createdAt: string
   updatedAt: string
@@ -59,19 +69,19 @@ export type AboutUsUpdatePayload = {
 
 export type RawAboutUsFeature = {
   key: string
-  title: LocalizedName
-  subtitle: LocalizedName
+  title: RawAboutUsLocalizedText
+  subtitle: RawAboutUsLocalizedText
   icon_url: string | null
 }
 
 export type RawAboutUs = {
   id: number
-  hero_title: LocalizedName
-  hero_subtitle: LocalizedName
+  hero_title: RawAboutUsLocalizedText
+  hero_subtitle: RawAboutUsLocalizedText
   hero_image_url: string | null
-  story: LocalizedName
-  vision: LocalizedName
-  mission: LocalizedName
+  story: RawAboutUsLocalizedText
+  vision: RawAboutUsLocalizedText
+  mission: RawAboutUsLocalizedText
   features: RawAboutUsFeature[]
   created_at: string
   updated_at: string

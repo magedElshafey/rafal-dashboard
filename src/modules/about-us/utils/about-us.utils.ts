@@ -5,6 +5,7 @@ import type {
   AboutUs,
   AboutUsFeatureFormValues,
   AboutUsFormValues,
+  AboutUsLocalizedText,
   AboutUsUpdatePayload,
 } from '@/modules/about-us/types/about-us.types'
 import type { LocalizedName } from '@/types/localized-name.types'
@@ -23,19 +24,23 @@ export function createEmptyAboutUsFeature(): AboutUsFeatureFormValues {
   }
 }
 
+function toFormLocalized(value: AboutUsLocalizedText): LocalizedName {
+  return { ar: value.ar ?? '', en: value.en ?? '' }
+}
+
 export function toAboutUsFormValues(aboutUs: AboutUs): AboutUsFormValues {
   return {
-    heroTitle: { ...aboutUs.heroTitle },
-    heroSubtitle: { ...aboutUs.heroSubtitle },
+    heroTitle: toFormLocalized(aboutUs.heroTitle),
+    heroSubtitle: toFormLocalized(aboutUs.heroSubtitle),
     heroImageUrl: aboutUs.heroImageUrl,
     hero: createEmptyImageUploadValue(),
-    story: { ...aboutUs.story },
-    vision: { ...aboutUs.vision },
-    mission: { ...aboutUs.mission },
+    story: toFormLocalized(aboutUs.story),
+    vision: toFormLocalized(aboutUs.vision),
+    mission: toFormLocalized(aboutUs.mission),
     features: aboutUs.features.map((feature) => ({
       key: feature.key,
-      title: { ...feature.title },
-      subtitle: { ...feature.subtitle },
+      title: toFormLocalized(feature.title),
+      subtitle: toFormLocalized(feature.subtitle),
       iconUrl: feature.iconUrl,
       icon: createEmptyImageUploadValue(),
     })),

@@ -1,5 +1,6 @@
 import type {
   AboutUs,
+  AboutUsLocalizedText,
   AboutUsUpdatePayload,
   RawAboutUs,
   RawAboutUsResponse,
@@ -11,11 +12,21 @@ function normalizeMediaUrl(value: string | null): string | null {
   return typeof value === 'string' && value.trim() ? value : null
 }
 
-function normalizeLocalized(value: LocalizedName): LocalizedName {
-  if (typeof value?.ar !== 'string' || typeof value?.en !== 'string') {
+function normalizeLocalized(value: unknown): AboutUsLocalizedText {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('About Us data is unavailable')
   }
-  return { ar: value.ar, en: value.en }
+  const localized = value as Record<string, unknown>
+  if (
+    (localized.ar !== undefined && localized.ar !== null && typeof localized.ar !== 'string') ||
+    (localized.en !== undefined && localized.en !== null && typeof localized.en !== 'string')
+  ) {
+    throw new Error('About Us data is unavailable')
+  }
+  return {
+    ar: typeof localized.ar === 'string' ? localized.ar : null,
+    en: typeof localized.en === 'string' ? localized.en : null,
+  }
 }
 
 export function normalizeAboutUs(raw: RawAboutUs): AboutUs {
@@ -31,7 +42,9 @@ export function normalizeAboutUs(raw: RawAboutUs): AboutUs {
     vision: normalizeLocalized(raw.vision),
     mission: normalizeLocalized(raw.mission),
     features: raw.features.map((feature) => {
-      if (typeof feature.key !== 'string' || !feature.key) throw new Error('About Us data is unavailable')
+      if (!feature || typeof feature !== 'object' || typeof feature.key !== 'string' || !feature.key) {
+        throw new Error('About Us data is unavailable')
+      }
       return {
         key: feature.key,
         title: normalizeLocalized(feature.title),

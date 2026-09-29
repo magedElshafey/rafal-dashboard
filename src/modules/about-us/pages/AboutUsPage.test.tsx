@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { aboutUsService } from '@/modules/about-us/api/about-us.service'
-import type { AboutUs, AboutUsUpdatePayload } from '@/modules/about-us/types/about-us.types'
+import type { AboutUs, AboutUsLocalizedText, AboutUsUpdatePayload } from '@/modules/about-us/types/about-us.types'
 import AboutUsPage from '@/modules/about-us/pages/AboutUsPage'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -38,10 +38,33 @@ const initialAboutUs: AboutUs = {
   updatedAt: '2026-09-28T00:00:00Z',
 }
 
+const arabicOnlyAboutUs: AboutUs = {
+  id: 1,
+  heroTitle: { ar: 'تعديل', en: null },
+  heroSubtitle: { ar: 'تعديل النص', en: null },
+  heroImageUrl: null,
+  story: { ar: 'تعديل القصة', en: null },
+  vision: { ar: 'تعديل الرؤية', en: null },
+  mission: { ar: 'الهدف', en: null },
+  features: [
+    {
+      key: 'e55bac8d-5ad6-4f05-80a9-6132b4d4b3bd',
+      title: { ar: 'فيشتر ar', en: null },
+      subtitle: { ar: 'فيتشر en', en: null },
+      iconUrl: null,
+    },
+  ],
+  createdAt: '2026-09-26T19:47:28+00:00',
+  updatedAt: '2026-09-28T11:24:34+00:00',
+}
+
 let aboutUs: AboutUs
 
-function mergeLocalized(current: { ar: string; en: string }, next?: Partial<{ ar: string; en: string }>) {
-  return { ...current, ...next }
+function mergeLocalized(current: AboutUsLocalizedText, next?: AboutUsUpdatePayload['heroTitle']): AboutUsLocalizedText {
+  return {
+    ar: next?.ar !== undefined ? next.ar : current.ar,
+    en: next?.en !== undefined ? next.en : current.en,
+  }
 }
 
 function applyUpdate(payload: AboutUsUpdatePayload): AboutUs {
@@ -103,6 +126,58 @@ describe('AboutUsPage', () => {
     expect(screen.getAllByRole('textbox', { name: 'Feature Title — English' })).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
     expect(screen.getAllByText(/permanent removal is unavailable/i).length).toBeGreaterThan(0)
+  })
+
+  it('renders and updates an Arabic-only response without fabricating missing English values', async () => {
+    aboutUs = structuredClone(arabicOnlyAboutUs)
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const update = vi.mocked(aboutUsService.update)
+    const user = userEvent.setup()
+    renderPage()
+
+    expect(await screen.findByRole('textbox', { name: 'Hero Title — Arabic' })).toHaveValue('تعديل')
+    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Hero Title — English' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Hero Subtitle — Arabic' })).toHaveValue('تعديل النص')
+    expect(screen.getByRole('textbox', { name: 'Hero Subtitle — English' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Story — Arabic' })).toHaveValue('تعديل القصة')
+    expect(screen.getByRole('textbox', { name: 'Story — English' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Vision — Arabic' })).toHaveValue('تعديل الرؤية')
+    expect(screen.getByRole('textbox', { name: 'Vision — English' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Mission — Arabic' })).toHaveValue('الهدف')
+    expect(screen.getByRole('textbox', { name: 'Mission — English' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Feature Title — Arabic' })).toHaveValue('فيشتر ar')
+    expect(screen.getByRole('textbox', { name: 'Feature Title — English' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Feature Subtitle — Arabic' })).toHaveValue('فيتشر en')
+    expect(screen.getByRole('textbox', { name: 'Feature Subtitle — English' })).toHaveValue('')
+
+    await user.type(screen.getByRole('textbox', { name: 'Hero Title — English' }), 'About Us')
+    await user.type(screen.getByRole('textbox', { name: 'Hero Subtitle — English' }), 'Subtitle')
+    await user.type(screen.getByRole('textbox', { name: 'Story — English' }), 'Our story')
+    await user.type(screen.getByRole('textbox', { name: 'Vision — English' }), 'Our vision')
+    await user.type(screen.getByRole('textbox', { name: 'Mission — English' }), 'Our mission')
+    await user.type(screen.getByRole('textbox', { name: 'Feature Title — English' }), 'Feature')
+    await user.type(screen.getByRole('textbox', { name: 'Feature Subtitle — English' }), 'Feature subtitle')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1))
+    expect(update).toHaveBeenCalledWith({
+      heroTitle: { en: 'About Us' },
+      heroSubtitle: { en: 'Subtitle' },
+      story: { en: 'Our story' },
+      vision: { en: 'Our vision' },
+      mission: { en: 'Our mission' },
+      features: [
+        {
+          key: 'e55bac8d-5ad6-4f05-80a9-6132b4d4b3bd',
+          title: { ar: 'فيشتر ar', en: 'Feature' },
+          subtitle: { ar: 'فيتشر en', en: 'Feature subtitle' },
+        },
+      ],
+    })
+    expect(JSON.stringify(update.mock.calls[0][0])).not.toContain('undefined')
+    expect(consoleError.mock.calls.flat().join(' ')).not.toMatch(/uncontrolled|controlled input/i)
   })
 
   it('shows a safe retryable load error instead of an empty fabricated form', async () => {

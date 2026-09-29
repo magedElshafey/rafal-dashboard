@@ -46,6 +46,26 @@ describe('About Us utilities', () => {
     expect(values.features[0].icon.files).toEqual([])
   })
 
+  it('hydrates missing read locales as empty form strings without translation fallback', () => {
+    const values = toAboutUsFormValues({
+      ...aboutUs,
+      heroTitle: { ar: 'من نحن', en: null },
+      mission: { ar: null, en: 'Our mission' },
+      features: [
+        {
+          ...aboutUs.features[0],
+          title: { ar: 'الأولى', en: null },
+          subtitle: { ar: null, en: 'First subtitle' },
+        },
+      ],
+    })
+
+    expect(values.heroTitle).toEqual({ ar: 'من نحن', en: '' })
+    expect(values.mission).toEqual({ ar: '', en: 'Our mission' })
+    expect(values.features[0].title).toEqual({ ar: 'الأولى', en: '' })
+    expect(values.features[0].subtitle).toEqual({ ar: '', en: 'First subtitle' })
+  })
+
   it('maps only one dirty localized value and omits every unchanged top-level section', () => {
     const values = formValues()
     values.mission.en = ' Updated mission '
