@@ -7,7 +7,7 @@ import '@/config/i18'
 import i18n from '@/config/i18'
 import { couponsService } from '@/modules/coupons/api/coupons.service'
 import { couponsKeys } from '@/modules/coupons/queries/coupons.keys'
-import type { Coupon } from '@/modules/coupons/types/coupon.types'
+import type { Coupon, CouponUpdatePayload } from '@/modules/coupons/types/coupon.types'
 import CouponsPage from '@/modules/coupons/pages/CouponsPage'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -43,6 +43,24 @@ const coupon = (overrides: Partial<Coupon> = {}): Coupon => ({
   usagesCount: 0,
   createdAt: '2026-09-28T00:00:00Z',
   updatedAt: '2026-09-28T00:00:00Z',
+  ...overrides,
+})
+
+const fullUpdatePayload = (overrides: Partial<CouponUpdatePayload> = {}): CouponUpdatePayload => ({
+  code: 'WELCOME',
+  name: { ar: 'ترحيب', en: 'Welcome' },
+  description: { ar: null, en: 'First order' },
+  type: 'percent',
+  value: 10,
+  maxDiscountAmount: 150,
+  minOrderAmount: null,
+  startsAt: null,
+  endsAt: null,
+  isPublic: true,
+  isActive: true,
+  usageLimitTotal: null,
+  usageLimitPerCustomer: 1,
+  newCustomersOnly: true,
   ...overrides,
 })
 
@@ -157,13 +175,26 @@ describe('CouponsPage', () => {
     expect(code).toHaveValue('DIRTY')
 
     await user.click(screen.getByRole('button', { name: 'Update' }))
-    await waitFor(() => expect(update).toHaveBeenCalledWith(1, { code: 'DIRTY' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, fullUpdatePayload({ code: 'DIRTY' })))
     expect(code).toHaveValue('DIRTY')
-    expect(screen.getByText('Only changed fields will be sent when this coupon is updated.')).toBeInTheDocument()
+    expect(screen.getByText('All current coupon values will be sent when this coupon is updated.')).toBeInTheDocument()
     expect(screen.queryByText('raw backend detail')).not.toBeInTheDocument()
   })
 
-  it('clears and hides max discount when switching from percent to fixed', async () => {
+  it('keeps a pristine Edit disabled and sends no request', async () => {
+    const update = vi.mocked(couponsService.update)
+    renderPage()
+    const user = userEvent.setup()
+    await screen.findAllByText('Welcome')
+    await openAction(user, 'Edit')
+    const submit = screen.getByRole('button', { name: 'Update' })
+    expect(submit).toBeDisabled()
+    await user.click(submit)
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('clears max discount and sends the full body when switching from percent to fixed', async () => {
+    const update = vi.mocked(couponsService.update)
     renderPage()
     const user = userEvent.setup()
     await screen.findAllByText('Welcome')
@@ -172,6 +203,26 @@ describe('CouponsPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Type' }))
     await user.click(await screen.findByRole('option', { name: 'Fixed' }))
     expect(screen.queryByRole('spinbutton', { name: 'Max Discount Amount' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(1, fullUpdatePayload({ type: 'fixed', maxDiscountAmount: null }))
+    )
+  })
+
+  it('sends the full current body when switching from fixed to percent', async () => {
+    coupons = [coupon({ type: 'fixed', value: 25, maxDiscountAmount: null })]
+    const update = vi.mocked(couponsService.update)
+    renderPage()
+    const user = userEvent.setup()
+    await screen.findAllByText('Welcome')
+    await openAction(user, 'Edit')
+    await user.click(screen.getByRole('combobox', { name: 'Type' }))
+    await user.click(await screen.findByRole('option', { name: 'Percent' }))
+    expect(screen.getByRole('spinbutton', { name: 'Max Discount Amount' })).toHaveValue(null)
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(1, fullUpdatePayload({ type: 'percent', value: 25, maxDiscountAmount: null }))
+    )
   })
 
   it('requires confirmation, preserves a failed Delete, and prevents duplicate pending Deletes', async () => {

@@ -67,22 +67,20 @@ export function serializeCouponCreate(payload: CouponCreatePayload) {
 
 export function serializeCouponUpdate(payload: CouponUpdatePayload) {
   return {
-    ...(payload.code !== undefined ? { code: payload.code.trim() } : {}),
-    ...(payload.name !== undefined ? { name: { ...payload.name } } : {}),
-    ...(payload.description !== undefined ? { description: { ...payload.description } } : {}),
-    ...(payload.type !== undefined ? { type: payload.type } : {}),
-    ...(payload.value !== undefined ? { value: payload.value } : {}),
-    ...(payload.maxDiscountAmount !== undefined && payload.type !== 'fixed'
-      ? { max_discount_amount: payload.maxDiscountAmount }
-      : {}),
-    ...(payload.minOrderAmount !== undefined ? { min_order_amount: payload.minOrderAmount } : {}),
-    ...(payload.startsAt !== undefined ? { starts_at: payload.startsAt } : {}),
-    ...(payload.endsAt !== undefined ? { ends_at: payload.endsAt } : {}),
-    ...(payload.isPublic !== undefined ? { is_public: toApiBoolean(payload.isPublic) } : {}),
-    ...(payload.isActive !== undefined ? { is_active: toApiBoolean(payload.isActive) } : {}),
-    ...(payload.usageLimitTotal !== undefined ? { usage_limit_total: payload.usageLimitTotal } : {}),
-    ...(payload.usageLimitPerCustomer !== undefined ? { usage_limit_per_customer: payload.usageLimitPerCustomer } : {}),
-    ...(payload.newCustomersOnly !== undefined ? { new_customers_only: toApiBoolean(payload.newCustomersOnly) } : {}),
+    code: payload.code.trim(),
+    name: { ar: payload.name.ar.trim(), en: payload.name.en.trim() },
+    description: { ...payload.description },
+    type: payload.type,
+    value: payload.value,
+    max_discount_amount: payload.type === 'fixed' ? null : payload.maxDiscountAmount,
+    min_order_amount: payload.minOrderAmount,
+    starts_at: payload.startsAt,
+    ends_at: payload.endsAt,
+    is_public: toApiBoolean(payload.isPublic),
+    is_active: toApiBoolean(payload.isActive),
+    usage_limit_total: payload.usageLimitTotal,
+    usage_limit_per_customer: payload.usageLimitPerCustomer,
+    new_customers_only: toApiBoolean(payload.newCustomersOnly),
   }
 }
 

@@ -63,22 +63,7 @@ export type CouponCreatePayload = {
   newCustomersOnly: boolean
 }
 
-export type CouponUpdatePayload = {
-  code?: string
-  name?: Partial<LocalizedName>
-  description?: Partial<LocalizedNullableText>
-  type?: CouponType
-  value?: number
-  maxDiscountAmount?: number | null
-  minOrderAmount?: number | null
-  startsAt?: string | null
-  endsAt?: string | null
-  isPublic?: boolean
-  isActive?: boolean
-  usageLimitTotal?: number | null
-  usageLimitPerCustomer?: number | null
-  newCustomersOnly?: boolean
-}
+export type CouponUpdatePayload = CouponCreatePayload
 
 export type RawCoupon = {
   id: number

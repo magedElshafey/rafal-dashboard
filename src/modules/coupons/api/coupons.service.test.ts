@@ -9,7 +9,7 @@ import {
   serializeCouponUpdate,
   couponsService,
 } from '@/modules/coupons/api/coupons.service'
-import type { CouponCreatePayload, RawCoupon } from '@/modules/coupons/types/coupon.types'
+import type { CouponCreatePayload, CouponUpdatePayload, RawCoupon } from '@/modules/coupons/types/coupon.types'
 
 const rawCoupon: RawCoupon = {
   id: 1,
@@ -47,6 +47,12 @@ const createPayload: CouponCreatePayload = {
   usageLimitTotal: null,
   usageLimitPerCustomer: 1,
   newCustomersOnly: true,
+}
+
+const updatePayload: CouponUpdatePayload = {
+  ...createPayload,
+  startsAt: '2026-10-01 10:30:00',
+  endsAt: null,
 }
 
 describe('couponsService', () => {
@@ -91,15 +97,11 @@ describe('couponsService', () => {
     })
   })
 
-  it('uses JSON objects for exact Create and partial Update writes with numeric booleans', async () => {
+  it('uses JSON objects for exact Create and full Update writes with numeric booleans', async () => {
     httpMocks.post.mockResolvedValue({ data: { success: true, message: 'created', data: rawCoupon } })
     httpMocks.put.mockResolvedValue({ data: { success: true, message: 'updated', data: rawCoupon } })
     await couponsService.create(createPayload)
-    await couponsService.update(1, {
-      description: { en: null },
-      isPublic: false,
-      newCustomersOnly: true,
-    })
+    await couponsService.update(1, updatePayload)
 
     expect(httpMocks.post).toHaveBeenCalledWith({
       url: '/dashboard/coupons',
@@ -117,17 +119,43 @@ describe('couponsService', () => {
     })
     expect(httpMocks.put).toHaveBeenCalledWith({
       url: '/dashboard/coupons/1',
-      data: { description: { en: null }, is_public: 0, new_customers_only: 1 },
+      data: {
+        code: 'WELCOME',
+        name: { ar: 'ترحيب', en: 'Welcome' },
+        description: { ar: null, en: 'First order' },
+        type: 'percent',
+        value: 10,
+        max_discount_amount: 150,
+        min_order_amount: null,
+        starts_at: '2026-10-01 10:30:00',
+        ends_at: null,
+        is_public: 1,
+        is_active: 0,
+        usage_limit_total: null,
+        usage_limit_per_customer: 1,
+        new_customers_only: 1,
+      },
       suppressSuccessNotification: true,
       suppressErrorNotification: true,
     })
     expect(httpMocks.put.mock.calls[0][0].data).not.toBeInstanceOf(FormData)
   })
 
-  it('omits max_discount_amount for fixed writes and sends Delete without a body', async () => {
+  it('keeps Create unchanged while a full fixed Update sends canonical null max discount', async () => {
     const fixed = { ...createPayload, type: 'fixed' as const, maxDiscountAmount: null }
     expect(serializeCouponCreate(fixed)).not.toHaveProperty('max_discount_amount')
-    expect(serializeCouponUpdate({ type: 'fixed' })).toEqual({ type: 'fixed' })
+    expect(serializeCouponUpdate(fixed)).toMatchObject({
+      code: 'WELCOME',
+      type: 'fixed',
+      value: 10,
+      max_discount_amount: null,
+      min_order_amount: null,
+      is_active: 0,
+      usage_limit_total: null,
+    })
+  })
+
+  it('sends Delete without a body', async () => {
     httpMocks.delete.mockResolvedValue({ data: { success: true, message: 'deleted' } })
     await couponsService.delete(9)
     expect(httpMocks.delete).toHaveBeenCalledWith({

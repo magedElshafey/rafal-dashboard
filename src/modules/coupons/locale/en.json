@@ -61,7 +61,7 @@
     },
     "form": {
       "createDescription": "Set the discount, optional schedule, availability, and usage limits.",
-      "editDescription": "Only changed fields will be sent when this coupon is updated."
+      "editDescription": "All current coupon values will be sent when this coupon is updated."
     },
     "actions": {
       "label": "Actions",

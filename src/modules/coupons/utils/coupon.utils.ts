@@ -1,5 +1,3 @@
-import type { FieldNamesMarkedBoolean } from 'react-hook-form'
-
 import type {
   Coupon,
   CouponCreatePayload,
@@ -58,30 +56,6 @@ export function buildCouponCreatePayload(values: CouponFormValues): CouponCreate
   }
 }
 
-export function buildCouponUpdatePayload(
-  values: CouponFormValues,
-  dirty: Partial<Readonly<FieldNamesMarkedBoolean<CouponFormValues>>>
-): CouponUpdatePayload {
-  const payload: CouponUpdatePayload = {}
-  if (dirty.code) payload.code = values.code.trim()
-  if (dirty.name?.ar) payload.name = { ...payload.name, ar: values.name.ar.trim() }
-  if (dirty.name?.en) payload.name = { ...payload.name, en: values.name.en.trim() }
-  if (dirty.description?.ar) {
-    payload.description = { ...payload.description, ar: emptyToNull(values.description.ar) }
-  }
-  if (dirty.description?.en) {
-    payload.description = { ...payload.description, en: emptyToNull(values.description.en) }
-  }
-  if (dirty.type) payload.type = values.type
-  if (dirty.value) payload.value = values.value
-  if (dirty.maxDiscountAmount && values.type === 'percent') payload.maxDiscountAmount = values.maxDiscountAmount
-  if (dirty.minOrderAmount) payload.minOrderAmount = values.minOrderAmount
-  if (dirty.startsAt) payload.startsAt = toCouponApiDateTime(values.startsAt)
-  if (dirty.endsAt) payload.endsAt = toCouponApiDateTime(values.endsAt)
-  if (dirty.isPublic) payload.isPublic = values.isPublic
-  if (dirty.isActive) payload.isActive = values.isActive
-  if (dirty.usageLimitTotal) payload.usageLimitTotal = values.usageLimitTotal
-  if (dirty.usageLimitPerCustomer) payload.usageLimitPerCustomer = values.usageLimitPerCustomer
-  if (dirty.newCustomersOnly) payload.newCustomersOnly = values.newCustomersOnly
-  return payload
+export function buildCouponUpdatePayload(values: CouponFormValues): CouponUpdatePayload {
+  return buildCouponCreatePayload(values)
 }

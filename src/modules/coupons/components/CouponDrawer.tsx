@@ -50,7 +50,7 @@ export function CouponDrawer({ open, mode, coupon, onOpenChange }: Props) {
         if (intent === 'create-another') window.requestAnimationFrame(() => methods.setFocus('code'))
         else onOpenChange(false)
       } else {
-        const response = await updateCoupon.mutateAsync(buildCouponUpdatePayload(values, methods.formState.dirtyFields))
+        const response = await updateCoupon.mutateAsync(buildCouponUpdatePayload(values))
         methods.reset(toCouponFormValues(response.data))
         onOpenChange(false)
       }
