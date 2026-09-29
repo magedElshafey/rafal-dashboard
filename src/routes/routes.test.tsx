@@ -58,6 +58,14 @@ describe('core routes', () => {
     expect(privatePaths).not.toContain('/dashboard/reviews/:id')
   })
 
+  it('defines only the Testimonials Index route', () => {
+    const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
+
+    expect(AppRoutes.testimonials).toBe('/dashboard/testimonials')
+    expect(privatePaths).toContain('/dashboard/testimonials')
+    expect(privatePaths).not.toContain('/dashboard/testimonials/:id')
+  })
+
   it('defines the Static Pages Index, Create, and Edit routes without unsupported actions', () => {
     const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
 

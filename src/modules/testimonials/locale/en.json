@@ -1,0 +1,82 @@
+{
+  "testimonials": {
+    "title": "Testimonials",
+    "description": "Manage the customer testimonials displayed by the storefront.",
+    "listTitle": "Testimonial management",
+    "total_one": "{{count}} testimonial",
+    "total_other": "{{count}} testimonials",
+    "createTestimonial": "Create Testimonial",
+    "editTestimonial": "Edit Testimonial",
+    "loadingMore": "Loading more testimonials",
+    "ratingValue": "Rating: {{rating}}",
+    "empty": {
+      "title": "No testimonials yet",
+      "description": "Create a testimonial to share customer feedback."
+    },
+    "sections": {
+      "basic": "Basic information",
+      "comment": "Comment",
+      "settings": "Settings",
+      "avatar": "Avatar"
+    },
+    "fields": {
+      "testimonial": "Testimonial",
+      "nameAr": "Arabic Name",
+      "nameEn": "English Name",
+      "titleAr": "Arabic Title",
+      "titleEn": "English Title",
+      "commentAr": "Arabic Comment",
+      "commentEn": "English Comment",
+      "rating": "Rating",
+      "sortOrder": "Sort Order",
+      "published": "Published",
+      "status": "Status",
+      "avatar": "Avatar",
+      "updatedAt": "Updated"
+    },
+    "status": {
+      "published": "Published",
+      "unpublished": "Unpublished"
+    },
+    "avatar": {
+      "alt": "Avatar for {{name}}",
+      "fallback": "No avatar for {{name}}",
+      "replacementOnly": "The saved avatar can be replaced, but it cannot currently be removed."
+    },
+    "form": {
+      "createDescription": "Add localized testimonial content, display settings, and an optional avatar.",
+      "editDescription": "All current testimonial values are sent when this testimonial is updated."
+    },
+    "actions": {
+      "label": "Actions",
+      "forTestimonial": "Actions for {{name}}, testimonial {{id}}",
+      "edit": "Edit",
+      "editNamed": "Edit {{name}}, testimonial {{id}}",
+      "delete": "Delete",
+      "deleteNamed": "Delete {{name}}, testimonial {{id}}",
+      "deleting": "Deleting…",
+      "create": "Create",
+      "createAnother": "Create & Create Another",
+      "update": "Update",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "delete": {
+      "title": "Delete testimonial?",
+      "description": "Delete the testimonial from {{name}} ({{title}}), ID {{id}}? This action cannot be undone."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "validNumber": "Enter a valid number.",
+      "integer": "Enter a whole number."
+    },
+    "feedback": {
+      "created": "Testimonial created successfully.",
+      "updated": "Testimonial updated successfully.",
+      "deleted": "Testimonial deleted successfully.",
+      "createError": "Testimonial could not be created.",
+      "updateError": "Testimonial could not be updated.",
+      "deleteError": "Testimonial could not be deleted."
+    }
+  }
+}

@@ -19,6 +19,7 @@ export const Routes = {
   customerDetail: '/dashboard/customers/:id',
   customerDetailPath: (id: number) => `/dashboard/customers/${id}`,
   reviews: '/dashboard/reviews',
+  testimonials: '/dashboard/testimonials',
   staticPages: '/dashboard/pages',
   staticPageNew: '/dashboard/pages/new',
   staticPageEdit: '/dashboard/pages/:id/edit',

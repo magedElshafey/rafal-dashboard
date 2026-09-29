@@ -1,0 +1,86 @@
+{
+  "testimonials": {
+    "title": "آراء العملاء",
+    "description": "إدارة آراء العملاء المعروضة في المتجر.",
+    "listTitle": "إدارة آراء العملاء",
+    "total_zero": "لا توجد آراء",
+    "total_one": "رأي واحد",
+    "total_two": "رأيان",
+    "total_few": "{{count}} آراء",
+    "total_many": "{{count}} رأيًا",
+    "total_other": "{{count}} رأي",
+    "createTestimonial": "إنشاء رأي عميل",
+    "editTestimonial": "تعديل رأي العميل",
+    "loadingMore": "جارٍ تحميل المزيد من آراء العملاء",
+    "ratingValue": "التقييم: {{rating}}",
+    "empty": {
+      "title": "لا توجد آراء عملاء بعد",
+      "description": "أنشئ رأي عميل لمشاركة تجربته."
+    },
+    "sections": {
+      "basic": "المعلومات الأساسية",
+      "comment": "التعليق",
+      "settings": "الإعدادات",
+      "avatar": "الصورة الشخصية"
+    },
+    "fields": {
+      "testimonial": "رأي العميل",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "titleAr": "الصفة بالعربية",
+      "titleEn": "الصفة بالإنجليزية",
+      "commentAr": "التعليق بالعربية",
+      "commentEn": "التعليق بالإنجليزية",
+      "rating": "التقييم",
+      "sortOrder": "ترتيب العرض",
+      "published": "منشور",
+      "status": "الحالة",
+      "avatar": "الصورة الشخصية",
+      "updatedAt": "آخر تحديث"
+    },
+    "status": {
+      "published": "منشور",
+      "unpublished": "غير منشور"
+    },
+    "avatar": {
+      "alt": "الصورة الشخصية لـ {{name}}",
+      "fallback": "لا توجد صورة شخصية لـ {{name}}",
+      "replacementOnly": "يمكن استبدال الصورة المحفوظة، لكن لا يمكن حذفها حاليًا."
+    },
+    "form": {
+      "createDescription": "أضف محتوى الرأي باللغتين وإعدادات العرض وصورة شخصية اختيارية.",
+      "editDescription": "سيتم إرسال جميع قيم رأي العميل الحالية عند تحديثه."
+    },
+    "actions": {
+      "label": "الإجراءات",
+      "forTestimonial": "إجراءات رأي {{name}}، رقم {{id}}",
+      "edit": "تعديل",
+      "editNamed": "تعديل رأي {{name}}، رقم {{id}}",
+      "delete": "حذف",
+      "deleteNamed": "حذف رأي {{name}}، رقم {{id}}",
+      "deleting": "جارٍ الحذف…",
+      "create": "إنشاء",
+      "createAnother": "إنشاء وإضافة آخر",
+      "update": "تحديث",
+      "cancel": "إلغاء",
+      "close": "إغلاق"
+    },
+    "delete": {
+      "title": "حذف رأي العميل؟",
+      "description": "هل تريد حذف رأي {{name}} ({{title}})، رقم {{id}}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "validNumber": "أدخل رقمًا صالحًا.",
+      "integer": "أدخل عددًا صحيحًا."
+    },
+    "feedback": {
+      "created": "تم إنشاء رأي العميل بنجاح.",
+      "updated": "تم تحديث رأي العميل بنجاح.",
+      "deleted": "تم حذف رأي العميل بنجاح.",
+      "createError": "تعذر إنشاء رأي العميل.",
+      "updateError": "تعذر تحديث رأي العميل.",
+      "deleteError": "تعذر حذف رأي العميل."
+    }
+  }
+}

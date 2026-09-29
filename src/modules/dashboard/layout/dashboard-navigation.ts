@@ -14,6 +14,7 @@ import {
   Info,
   UserRound,
   MessageSquareText,
+  MessageSquareQuote,
   FileText,
 } from 'lucide-react'
 
@@ -55,6 +56,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.reviews,
     labelKey: 'dashboard.sidebar.reviews',
     icon: MessageSquareText,
+    match: 'prefix',
+  },
+  {
+    to: Routes.testimonials,
+    labelKey: 'dashboard.sidebar.testimonials',
+    icon: MessageSquareQuote,
     match: 'prefix',
   },
   {
