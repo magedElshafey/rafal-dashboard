@@ -112,7 +112,7 @@ export function TestimonialForm({
         <h2 id="testimonial-basic-title" className="font-semibold text-foreground">
           {t('testimonials.sections.basic')}
         </h2>
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5">
           <FormInput
             name="name.ar"
             label={t('testimonials.fields.nameAr')}
@@ -152,7 +152,7 @@ export function TestimonialForm({
         <h2 id="testimonial-comment-title" className="font-semibold text-foreground">
           {t('testimonials.sections.comment')}
         </h2>
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5">
           <FormTextArea
             name="comment.ar"
             label={t('testimonials.fields.commentAr')}
