@@ -137,12 +137,12 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         disabled={isSubmitting}
         required
       />
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5">
         <FormInput name="name.ar" label={t('categories.fields.nameAr')} dir="rtl" required autoFocus />
         <FormInput name="name.en" label={t('categories.fields.nameEn')} dir="ltr" required />
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5">
         <FormTextArea name="description.ar" label={t('categories.fields.descriptionAr')} dir="rtl" />
         <FormTextArea name="description.en" label={t('categories.fields.descriptionEn')} dir="ltr" />
       </div>
@@ -168,7 +168,7 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         errorMessage={t('categories.parent.error')}
         retryLabel={t('categories.parent.retry')}
       />
-      <div className="grid items-start gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-5">
         <FormSortOrder
           name="sort_order"
           label={t('categories.fields.sortOrder')}
