@@ -4,15 +4,16 @@ const httpMocks = vi.hoisted(() => ({ post: vi.fn(), put: vi.fn(), delete: vi.fn
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import {
-  normalizeProductVariant,
+  normalizeDashboardProductVariant,
+  normalizeVariantAttributes,
   productVariantsHttpTransport,
   productVariantsService,
   serializeProductVariantCreate,
   serializeProductVariantUpdate,
 } from './product-variants.service'
-import type { RawProductVariant } from '../types/product-variant.types'
+import type { RawDashboardProductVariant } from '../types/product-variant.types'
 
-const rawVariant = (overrides: Partial<RawProductVariant> = {}): RawProductVariant => ({
+const rawVariant = (overrides: Partial<RawDashboardProductVariant> = {}): RawDashboardProductVariant => ({
   id: '12',
   sku: 'VAR-12',
   attributes: { color: 'gold' },
@@ -28,20 +29,55 @@ describe('Product Variant service', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it.each([
-    ['flat', { color: 'gold' }],
-    ['null', null],
-    ['array', ['gold', 2]],
-    ['nested', { dimensions: { width: 2 }, tags: ['new'] }],
-  ])('preserves %s legacy JSON attributes safely', (_label, attributes) => {
-    expect(normalizeProductVariant(rawVariant({ attributes }))).toMatchObject({
+    ['one arbitrary key', { any_thing_else: 'Test value' }],
+    ['multiple arbitrary keys', { stone_type: 'diamond', chain_length: '45cm' }],
+    ['default null', null],
+    ['empty object', {}],
+    ['legacy empty array', []],
+  ])('normalizes %s attributes safely', (_label, attributes) => {
+    expect(normalizeDashboardProductVariant(rawVariant({ attributes }))).toMatchObject({
       id: 12,
-      attributes,
+      attributes: attributes === null || Array.isArray(attributes) ? {} : attributes,
       priceOverride: 25.5,
       isActive: true,
       isDefault: true,
       warehouseStocks: [{ id: 7, warehouseId: 4, quantity: 0 }],
     })
   })
+
+  it.each([['gold'], { nested: { value: 1 } }, { count: 2 }])(
+    'rejects malformed attribute data without weakening the dynamic map contract',
+    (attributes) => {
+      expect(() => normalizeDashboardProductVariant(rawVariant({ attributes }))).toThrow(
+        'Product Variant attributes are unavailable'
+      )
+    }
+  )
+
+  it('preserves the observed flat attributes including an existing Unicode key', () => {
+    const unicodeKey = 'تيست_تيست_تيست'
+    const attributes = {
+      size: '16',
+      color: '#1D5259',
+      any_thing: 'فسيبسي',
+      [unicodeKey]: '11117',
+    }
+
+    const normalized = normalizeVariantAttributes(attributes)
+
+    expect(normalized).toEqual(attributes)
+    expect(normalized[unicodeKey]).toBe('11117')
+  })
+
+  it.each(['__proto__', 'prototype', 'constructor'])(
+    'rejects the dangerous backend attribute key %s without constructing an unsafe map',
+    (key) => {
+      const attributes = JSON.parse(`{"${key}":"unsafe"}`) as unknown
+
+      expect(() => normalizeVariantAttributes(attributes)).toThrow('Product Variant attributes are unavailable')
+      expect(Object.prototype).not.toHaveProperty('unsafe')
+    }
+  )
 
   it('creates JSON when no images exist and never includes Stock', () => {
     expect(
@@ -121,5 +157,38 @@ describe('Product Variant service', () => {
       suppressSuccessNotification: true,
       suppressErrorNotification: true,
     })
+  })
+
+  it('resolves the confirmed HTTP 201 Create envelope with an arbitrary attribute key', async () => {
+    httpMocks.post.mockResolvedValue({
+      status: 201,
+      data: {
+        success: true,
+        message: 'Variant created successfully',
+        data: {
+          id: 16,
+          sku: 'NCK-SLV-002-SILVER',
+          attributes: { any_thing_else: 'Test value' },
+          price_override: null,
+          is_active: true,
+          images: [],
+          warehouse_stocks: [],
+        },
+      },
+    })
+
+    await expect(
+      productVariantsService.create(7, {
+        sku: 'NCK-SLV-002-SILVER',
+        attributes: { any_thing_else: 'Test value' },
+        priceOverride: null,
+        isActive: true,
+        images: [],
+      })
+    ).resolves.toMatchObject({
+      id: 16,
+      attributes: { any_thing_else: 'Test value' },
+    })
+    expect(httpMocks.post).toHaveBeenCalledTimes(1)
   })
 })

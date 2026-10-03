@@ -3,34 +3,84 @@ import type {
   ProductVariantCreatePayload,
   ProductVariantFormValues,
   ProductVariantUpdatePayload,
-  JsonValue,
+  VariantAttributes,
   VariantAttributeRow,
 } from '@/modules/products/types/product-variant.types'
 
-export type VariantAttributesPresentation =
-  { kind: 'empty' } | { kind: 'flat'; entries: Array<[string, string]> } | { kind: 'complex' }
+export type VariantAttributesPresentation = { kind: 'empty' } | { kind: 'flat'; entries: Array<[string, string]> }
 
-export function getVariantAttributesPresentation(attributes: JsonValue): VariantAttributesPresentation {
-  if (attributes === null) return { kind: 'empty' }
-  if (Array.isArray(attributes)) return attributes.length === 0 ? { kind: 'empty' } : { kind: 'complex' }
-  if (typeof attributes !== 'object') return { kind: 'complex' }
+export function getVariantAttributesPresentation(attributes: VariantAttributes): VariantAttributesPresentation {
   const entries = Object.entries(attributes)
   if (entries.length === 0) return { kind: 'empty' }
-  if (entries.every((entry): entry is [string, string] => typeof entry[1] === 'string')) {
-    return { kind: 'flat', entries }
+  return { kind: 'flat', entries }
+}
+
+export function normalizeVariantAttributeKey(input: string) {
+  return input
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\p{P}\p{S}]+/gu, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+const CANONICAL_VARIANT_ATTRIBUTE_KEY = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/
+const DANGEROUS_VARIANT_ATTRIBUTE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+
+export function isCanonicalVariantAttributeKey(key: string) {
+  return CANONICAL_VARIANT_ATTRIBUTE_KEY.test(key)
+}
+
+export function isDangerousVariantAttributeKey(key: string) {
+  return DANGEROUS_VARIANT_ATTRIBUTE_KEYS.has(key.normalize('NFKC').trim().toLowerCase())
+}
+
+export function hasNewVariantAttributeKeyCollision(rows: VariantAttributeRow[]) {
+  const seen = new Map<string, { hasNew: boolean }>()
+  for (const row of rows) {
+    if (!row.key.trim()) continue
+    const canonicalKey = normalizeVariantAttributeKey(row.key)
+    const existing = seen.get(canonicalKey)
+    if (!row.isPersisted) {
+      if (existing) return true
+      seen.set(canonicalKey, { hasNew: true })
+    } else if (existing?.hasNew) {
+      return true
+    } else if (!existing) {
+      seen.set(canonicalKey, { hasNew: false })
+    }
   }
-  return { kind: 'complex' }
+  return false
+}
+
+export function isSixDigitHexColor(value: string) {
+  return /^#[0-9a-f]{6}$/i.test(value)
+}
+
+export function humanizeVariantAttributeKey(key: string) {
+  return key
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 export function normalizeVariantAttributeRows(rows: VariantAttributeRow[]) {
+  if (hasNewVariantAttributeKeyCollision(rows)) throw new Error('Variant attribute keys must be unique')
   const attributes: Record<string, string> = {}
   rows.forEach((row) => {
-    const key = row.key.trim()
-    const value = row.value.trim()
+    const key = row.isPersisted ? row.key : normalizeVariantAttributeKey(row.key)
+    const isUnchangedPersisted = row.isPersisted && row.originalValue !== undefined && row.value === row.originalValue
+    const value = isUnchangedPersisted ? row.value : row.value.trim()
     if (!key && !value) return
     if (!key || !value) throw new Error('Variant attributes require both a key and value')
+    if (isDangerousVariantAttributeKey(row.key)) throw new Error('Variant attribute key is unsafe')
+    if (!row.isPersisted && !isCanonicalVariantAttributeKey(key)) {
+      throw new Error('Variant attribute key is invalid')
+    }
     if (Object.prototype.hasOwnProperty.call(attributes, key)) throw new Error('Variant attribute keys must be unique')
-    attributes[key] = value
+    attributes[key] = key === 'color' && isSixDigitHexColor(value) ? value.toUpperCase() : value
   })
   return attributes
 }
@@ -51,7 +101,7 @@ export function productVariantToFormValues(variant: ProductVariant): ProductVari
     sku: variant.sku,
     attributes:
       presentation.kind === 'flat'
-        ? presentation.entries.map(([key, value]) => ({ key, value }))
+        ? presentation.entries.map(([key, value]) => ({ key, value, isPersisted: true, originalValue: value }))
         : [{ key: '', value: '' }],
     priceOverride: variant.priceOverride,
     isActive: variant.isActive,
@@ -70,10 +120,26 @@ export function buildProductVariantUpdatePayload(
   if (values.isActive !== original.isActive) payload.isActive = values.isActive
   if (values.images.files.length > 0) payload.images = [...values.images.files]
 
-  const next = normalizeVariantAttributeRows(values.attributes)
   const current = getVariantAttributesPresentation(original.attributes)
   const currentFlat = current.kind === 'flat' ? Object.fromEntries(current.entries) : {}
-  const changed = Object.fromEntries(Object.entries(next).filter(([key, value]) => currentFlat[key] !== value))
+  if (hasNewVariantAttributeKeyCollision(values.attributes)) {
+    throw new Error('Variant attribute keys must be unique')
+  }
+  const changed: VariantAttributes = {}
+  values.attributes.forEach((row) => {
+    const key = row.isPersisted ? row.key : normalizeVariantAttributeKey(row.key)
+    const value = row.value.trim()
+    if (!key && !value) return
+    if (!key || !value) throw new Error('Variant attributes require both a key and value')
+    if (isDangerousVariantAttributeKey(row.key)) throw new Error('Variant attribute key is unsafe')
+    if (!row.isPersisted && !isCanonicalVariantAttributeKey(key)) {
+      throw new Error('Variant attribute key is invalid')
+    }
+    const originalValue = row.isPersisted ? (row.originalValue ?? currentFlat[key]) : undefined
+    if (row.isPersisted && row.value === originalValue) return
+    const normalizedValue = key === 'color' && isSixDigitHexColor(value) ? value.toUpperCase() : value
+    if (currentFlat[key] !== normalizedValue) changed[key] = normalizedValue
+  })
   if (Object.keys(changed).length > 0) payload.attributes = changed
   return payload
 }

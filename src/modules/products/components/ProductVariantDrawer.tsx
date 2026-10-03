@@ -65,7 +65,6 @@ export function ProductVariantDrawer({ productId, open, variant, onOpenChange }:
         isSubmitting={createVariant.isPending || updateVariant.isPending}
         defaultValues={initialValues}
         lockedAttributeCount={attributes?.kind === 'flat' ? attributes.entries.length : 0}
-        hasComplexAttributes={attributes?.kind === 'complex'}
         onSubmit={handleSubmit}
       />
     </EntityFormDrawer>

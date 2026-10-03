@@ -100,7 +100,7 @@ describe('ProductsPage', () => {
         discount_percentage: '15',
         is_new_arrival: true,
         variants: [{}, {}],
-        images: ['https://example.test/product.jpg'],
+        images: [{ id: 42, url: 'https://example.test/product.jpg' }],
         sort_order: 7,
       }),
       rawProduct(2, {
@@ -132,6 +132,8 @@ describe('ProductsPage', () => {
     expect(document.querySelector('[data-slot="responsive-data-mobile-cards"]')).toBeInTheDocument()
 
     const loadedImage = screen.getAllByRole('img', { name: 'Image of Discounted Product' })[0]
+    expect(loadedImage).toHaveAttribute('src', 'https://example.test/product.jpg')
+    expect(loadedImage).not.toHaveAttribute('src', '[object Object]')
     fireEvent.error(loadedImage)
     expect(screen.getAllByRole('img', { name: 'No product image' }).length).toBeGreaterThanOrEqual(3)
     expect(screen.getAllByRole('img', { name: 'No product image' })[0]).toHaveClass('bg-muted', 'text-muted-foreground')

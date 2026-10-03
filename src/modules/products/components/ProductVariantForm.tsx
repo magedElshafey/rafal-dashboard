@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
-import { useFieldArray, useFormContext, useFormState, type UseFormReturn } from 'react-hook-form'
+import { useFieldArray, useFormContext, useFormState, useWatch, type UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { FormWrapper } from '@/components/core/FormWrapper'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { createProductVariantSchema } from '@/modules/products/schemas/product-variant.schema'
 import { PRODUCT_IMAGE_MAX_SIZE } from '@/modules/products/schemas/product-create.schema'
 import type { ProductVariantFormValues } from '@/modules/products/types/product-variant.types'
+import { isSixDigitHexColor, normalizeVariantAttributeKey } from '@/modules/products/utils/product-variant.utils'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
 export const EMPTY_PRODUCT_VARIANT_FORM: ProductVariantFormValues = {
@@ -25,8 +26,35 @@ type Props = {
   isSubmitting: boolean
   defaultValues?: ProductVariantFormValues
   lockedAttributeCount?: number
-  hasComplexAttributes?: boolean
   onSubmit: (values: ProductVariantFormValues, methods: UseFormReturn<ProductVariantFormValues>) => Promise<void>
+}
+
+function VariantAttributeValue({ index, disabled }: { index: number; disabled: boolean }) {
+  const { t } = useTranslation()
+  const { control } = useFormContext<ProductVariantFormValues>()
+  const key = useWatch({ control, name: `attributes.${index}.key` }) ?? ''
+  const value = useWatch({ control, name: `attributes.${index}.value` }) ?? ''
+  const isPersisted = useWatch({ control, name: `attributes.${index}.isPersisted` }) ?? false
+  const originalValue = useWatch({ control, name: `attributes.${index}.originalValue` })
+  const normalizedKey = isPersisted ? key : normalizeVariantAttributeKey(key)
+  const isLegacyPersistedColor =
+    normalizedKey === 'color' && isPersisted && originalValue !== undefined && !isSixDigitHexColor(originalValue)
+  const usesColorPicker = normalizedKey === 'color' && !isLegacyPersistedColor && (!value || isSixDigitHexColor(value))
+
+  return (
+    <div className="space-y-2">
+      <FormInput
+        name={`attributes.${index}.value`}
+        label={t('products.variants.fields.attributeValue')}
+        type={usesColorPicker ? 'color' : 'text'}
+        dir="ltr"
+        disabled={disabled}
+      />
+      {usesColorPicker && value ? (
+        <output className="block font-mono text-xs text-muted-foreground">{value.toUpperCase()}</output>
+      ) : null}
+    </div>
+  )
 }
 
 function VariantAttributesEditor({ disabled, lockedCount }: { disabled: boolean; lockedCount: number }) {
@@ -46,11 +74,7 @@ function VariantAttributesEditor({ disabled, lockedCount }: { disabled: boolean;
             label={t('products.variants.fields.attributeKey')}
             disabled={disabled || index < lockedCount}
           />
-          <FormInput
-            name={`attributes.${index}.value`}
-            label={t('products.variants.fields.attributeValue')}
-            disabled={disabled}
-          />
+          <VariantAttributeValue index={index} disabled={disabled} />
           <Button
             type="button"
             size="icon"
@@ -82,7 +106,6 @@ export function ProductVariantForm({
   isSubmitting,
   defaultValues = EMPTY_PRODUCT_VARIANT_FORM,
   lockedAttributeCount = 0,
-  hasComplexAttributes = false,
   onSubmit,
 }: Props) {
   const { t } = useTranslation()
@@ -95,6 +118,8 @@ export function ProductVariantForm({
         nonNegative: t('products.validation.nonNegative'),
         attributeIncomplete: t('products.variants.validation.attributeIncomplete'),
         attributeDuplicate: t('products.variants.validation.attributeDuplicate'),
+        attributeInvalidKey: t('products.variants.validation.attributeInvalidKey'),
+        attributeInvalidColor: t('products.variants.validation.attributeInvalidColor'),
         imageType: t('products.validation.imageType'),
         imageSize: t('products.validation.imageSize'),
       }),
@@ -133,9 +158,6 @@ export function ProductVariantForm({
         required
         autoFocus
       />
-      {hasComplexAttributes ? (
-        <p className="text-sm text-muted-foreground">{t('products.variants.complexAttributesEditHelp')}</p>
-      ) : null}
       <VariantAttributesEditor disabled={isSubmitting} lockedCount={lockedAttributeCount} />
       <FormInput
         name="priceOverride"

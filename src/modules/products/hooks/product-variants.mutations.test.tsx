@@ -69,7 +69,11 @@ function setup(initialProduct = product) {
 }
 
 describe('Product Variant mutation cache ownership', () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    toastMocks.success.mockClear()
+    toastMocks.error.mockClear()
+  })
 
   it('appends the authoritative created Variant and invalidates Product lists once', async () => {
     const created = variant(3)
@@ -94,6 +98,8 @@ describe('Product Variant mutation cache ownership', () => {
     ])
     expect(invalidate).toHaveBeenCalledTimes(1)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: productsKeys.lists() })
+    expect(toastMocks.success).toHaveBeenCalledTimes(1)
+    expect(toastMocks.error).not.toHaveBeenCalled()
   })
 
   it('removes only the targeted Variant and invalidates Product lists once', async () => {

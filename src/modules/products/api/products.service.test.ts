@@ -70,6 +70,56 @@ const rawDetail = (overrides: Partial<RawProductDetail> = {}): RawProductDetail 
   ...overrides,
 })
 
+const realDashboardProductShow: RawProductDetail = {
+  id: 26,
+  category_id: 5,
+  sku: 'RAF-dcb-308633',
+  name: { ar: 'منتج', en: 'product without variant' },
+  description: {
+    ar: '<p>product without variant</p>',
+    en: '<p>product without variant</p>',
+  },
+  slug: 'mntg',
+  base_price: '149.00',
+  base_price_incl_vat: '186.25',
+  discount_percentage: null,
+  discount_end_at: null,
+  is_personalizable: false,
+  personalization_max_length: null,
+  personalization_fee: null,
+  personalization_languages: ['ar', 'en'],
+  hide_price_on_packaging: true,
+  is_new_arrival: true,
+  is_active: true,
+  sort_order: 2,
+  simulated_viewers_count: 2880,
+  simulated_orders_count: 71091,
+  category: { id: 5, name: { ar: 'هدايا', en: 'Gifts' }, slug: 'gifts' },
+  variants: [
+    {
+      id: 39,
+      sku: 'RAF-dcb-308633',
+      attributes: null,
+      price_override: null,
+      is_active: true,
+      is_default: true,
+      images: [],
+      warehouse_stocks: [
+        { id: 153, warehouse_id: 1, quantity: 3 },
+        { id: 154, warehouse_id: 2, quantity: 4 },
+        { id: 155, warehouse_id: 3, quantity: 4 },
+        { id: 156, warehouse_id: 4, quantity: 4 },
+        { id: 158, warehouse_id: 5, quantity: 4 },
+        { id: 157, warehouse_id: 6, quantity: 5 },
+        { id: 159, warehouse_id: 7, quantity: 6 },
+      ],
+    },
+  ],
+  images: [{ id: 42, url: 'https://api.rafal.shop/storage/42/TST-RING-001-main-01.png' }],
+  created_at: '2026-10-03T17:39:48+00:00',
+  updated_at: '2026-10-03T17:39:48+00:00',
+}
+
 describe('products service', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -91,7 +141,10 @@ describe('products service', () => {
     const product = rawProduct({
       base_price: '50.00',
       discount_percentage: '12.5',
-      images: ['url-a', 'url-b'],
+      images: [
+        { id: 42, url: 'url-a' },
+        { id: '43', url: 'url-b' },
+      ],
       variants: [{ opaque: true }, { another: 'record' }],
     })
     mockIndex(product)
@@ -114,7 +167,10 @@ describe('products service', () => {
       simulatedViewersCount: 10,
       simulatedOrdersCount: 3,
       variantCount: 2,
-      primaryImageUrl: 'url-a',
+      images: [
+        { id: 42, url: 'url-a' },
+        { id: 43, url: 'url-b' },
+      ],
       createdAt: product.created_at,
       updatedAt: product.updated_at,
     })
@@ -137,8 +193,16 @@ describe('products service', () => {
     expect(result.items[0]).toMatchObject({
       basePrice: 50,
       discountPercentage: null,
-      primaryImageUrl: null,
+      images: [],
       variantCount: 0,
+    })
+  })
+
+  it('normalizes legacy string-only Index media only at the Index boundary', async () => {
+    mockIndex(rawProduct({ images: ['https://example.com/legacy.jpg'] }))
+
+    await expect(productsService.list(1)).resolves.toMatchObject({
+      items: [{ images: [{ id: -1, url: 'https://example.com/legacy.jpg' }] }],
     })
   })
 
@@ -279,6 +343,37 @@ describe('products service', () => {
       category: { id: 4, name: { ar: 'فئة', en: 'Category' }, slug: 'read-only-category' },
       description: { ar: '<p><strong>فضة</strong></p>', en: '<ul><li>Silver</li></ul>' },
       images: [{ id: 12, url: 'https://example.com/product.jpg' }],
+    })
+  })
+
+  it('normalizes the real Dashboard Product Show response containing a default Variant', async () => {
+    httpMocks.get.mockResolvedValueOnce({
+      data: { success: true, message: 'Product retrieved successfully', data: realDashboardProductShow },
+    })
+
+    const result = await productsService.show(26)
+
+    expect(result).toMatchObject({
+      id: 26,
+      images: [{ id: 42, url: 'https://api.rafal.shop/storage/42/TST-RING-001-main-01.png' }],
+      variants: [
+        {
+          id: 39,
+          attributes: {},
+          priceOverride: null,
+          isActive: true,
+          isDefault: true,
+          warehouseStocks: [
+            { id: 153, warehouseId: 1, quantity: 3 },
+            { id: 154, warehouseId: 2, quantity: 4 },
+            { id: 155, warehouseId: 3, quantity: 4 },
+            { id: 156, warehouseId: 4, quantity: 4 },
+            { id: 158, warehouseId: 5, quantity: 4 },
+            { id: 157, warehouseId: 6, quantity: 5 },
+            { id: 159, warehouseId: 7, quantity: 6 },
+          ],
+        },
+      ],
     })
   })
 

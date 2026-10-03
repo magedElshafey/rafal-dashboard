@@ -1,4 +1,4 @@
-import { normalizeProductVariant } from '@/modules/products/api/product-variants.service'
+import { normalizeDashboardProductVariant } from '@/modules/products/api/product-variants.service'
 import type {
   ProductCreatePayload,
   ProductCreateResponse,
@@ -113,6 +113,11 @@ function nullableFiniteNumber(value: number | string | null, field: string) {
   return value === null ? null : finiteNumber(value, field)
 }
 
+function normalizeProductMedia(image: { id: number | string; url: string }) {
+  if (typeof image.url !== 'string' || image.url.trim() === '') throw new Error('Product image is unavailable')
+  return { id: finiteNumber(image.id, 'image id'), url: image.url }
+}
+
 function apiBoolean(value: boolean | 0 | 1 | '0' | '1', field: string) {
   if (value === true || value === 1 || value === '1') return true
   if (value === false || value === 0 || value === '0') return false
@@ -150,8 +155,8 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
           ...(raw.category.slug ? { slug: raw.category.slug } : {}),
         }
       : null,
-    variants: raw.variants.map(normalizeProductVariant),
-    images: raw.images.map((image) => ({ id: finiteNumber(image.id, 'image id'), url: image.url })),
+    variants: raw.variants.map(normalizeDashboardProductVariant),
+    images: raw.images.map(normalizeProductMedia),
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   }
@@ -245,6 +250,10 @@ export function normalizeProductListItem(raw: RawProductListItem): ProductListIt
     }
   }
 
+  const images = raw.images.map((image, index) =>
+    typeof image === 'string' ? { id: -(index + 1), url: image } : normalizeProductMedia(image)
+  )
+
   return {
     id: finiteNumber(raw.id, 'id'),
     categoryId: raw.category_id === null ? null : finiteNumber(raw.category_id, 'category'),
@@ -261,7 +270,7 @@ export function normalizeProductListItem(raw: RawProductListItem): ProductListIt
     simulatedViewersCount: finiteNumber(raw.simulated_viewers_count, 'simulated viewers count'),
     simulatedOrdersCount: finiteNumber(raw.simulated_orders_count, 'simulated orders count'),
     variantCount: raw.variants.length,
-    primaryImageUrl: raw.images[0] ?? null,
+    images,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   }

@@ -132,8 +132,6 @@
       "usesBasePrice": "يستخدم السعر الأساسي للمنتج",
       "priceHelp": "اترك السعر المخصص فارغًا لاستخدام السعر الأساسي للمنتج.",
       "noAttributes": "لا توجد سمات",
-      "complexAttributes": "سمات مركبة",
-      "complexAttributesEditHelp": "سيتم الاحتفاظ بالسمات المركبة الحالية. يمكنك إضافة مفاتيح بسيطة، لكن الحذف يتطلب دعم الخادم.",
       "existingImages": "صور الخيار الحالية",
       "imageAlt": "الصورة {{id}} للخيار {{sku}}",
       "fields": {
@@ -162,7 +160,9 @@
       },
       "validation": {
         "attributeIncomplete": "أدخل مفتاح السمة وقيمتها معًا.",
-        "attributeDuplicate": "يجب أن تكون مفاتيح السمات فريدة."
+        "attributeDuplicate": "يجب أن تكون مفاتيح السمات فريدة بعد توحيدها.",
+        "attributeInvalidKey": "أدخل مفتاح سمة يحتوي على أحرف أو أرقام.",
+        "attributeInvalidColor": "أدخل لون HEX مكوّنًا من ستة أرقام مثل #C8102E."
       },
       "feedback": {
         "created": "تم إنشاء الخيار بنجاح.",

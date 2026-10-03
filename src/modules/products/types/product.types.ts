@@ -1,7 +1,12 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 import type { LocalizedName } from '@/types/localized-name.types'
 import type { ImageUploadValue } from '@/components/form/image-upload'
-import type { JsonValue, ProductVariant, RawProductVariant } from '@/modules/products/types/product-variant.types'
+import type {
+  JsonValue,
+  ProductVariant,
+  RawDashboardProductVariant,
+} from '@/modules/products/types/product-variant.types'
+import type { ProductMedia, RawProductMedia } from '@/modules/products/types/product-media.types'
 
 export type ProductListItem = {
   id: number
@@ -19,7 +24,7 @@ export type ProductListItem = {
   simulatedViewersCount: number
   simulatedOrdersCount: number
   variantCount: number
-  primaryImageUrl: string | null
+  images: ProductMedia[]
   createdAt: string
   updatedAt: string
 }
@@ -40,7 +45,7 @@ export type RawProductListItem = {
   simulated_viewers_count: number | string
   simulated_orders_count: number | string
   variants: unknown[]
-  images: string[]
+  images: Array<RawProductMedia | string>
   created_at: string
   updated_at: string
 }
@@ -89,8 +94,8 @@ export type RawProductDetail = {
   simulated_viewers_count: number | string
   simulated_orders_count: number | string
   category?: { id: number | string; name: LocalizedName; slug?: string } | null
-  variants: RawProductVariant[]
-  images: Array<{ id: number | string; url: string }>
+  variants: RawDashboardProductVariant[]
+  images: RawProductMedia[]
   created_at: string
   updated_at: string
 }
@@ -118,7 +123,7 @@ export type ProductDetail = {
   simulatedOrdersCount: number
   category?: { id: number; name: LocalizedName; slug?: string } | null
   variants: ProductVariant[]
-  images: Array<{ id: number; url: string }>
+  images: ProductMedia[]
   createdAt: string
   updatedAt: string
 }

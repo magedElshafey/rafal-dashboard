@@ -1,6 +1,8 @@
 import type { ImageUploadValue } from '@/components/form/image-upload'
+import type { ProductMedia, RawProductMedia } from '@/modules/products/types/product-media.types'
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+export type VariantAttributes = Record<string, string>
 
 export type RawVariantWarehouseStock = {
   id?: number | string
@@ -14,29 +16,34 @@ export type VariantWarehouseStock = {
   quantity: number
 }
 
-export type RawProductVariant = {
+export type RawDashboardProductVariant = {
   id: number | string
   sku: string
-  attributes: JsonValue
+  attributes: unknown
   price_override: number | string | null
   is_active: boolean | 0 | 1 | '0' | '1'
   is_default?: boolean | 0 | 1 | '0' | '1'
-  images: Array<{ id: number | string; url: string }>
+  images: RawProductMedia[]
   warehouse_stocks: RawVariantWarehouseStock[]
 }
 
 export type ProductVariant = {
   id: number
   sku: string
-  attributes: JsonValue
+  attributes: VariantAttributes
   priceOverride: number | null
   isActive: boolean
   isDefault?: boolean
-  images: Array<{ id: number; url: string }>
+  images: ProductMedia[]
   warehouseStocks: VariantWarehouseStock[]
 }
 
-export type VariantAttributeRow = { key: string; value: string }
+export type VariantAttributeRow = {
+  key: string
+  value: string
+  isPersisted?: boolean
+  originalValue?: string
+}
 
 export type ProductVariantFormValues = {
   sku: string
@@ -71,7 +78,7 @@ export type ProductVariantAttributeDefinition = {
   values: VariantOptionValue[]
 }
 
-export type ProductVariantResponse = { success: boolean; message: string; data: RawProductVariant }
+export type ProductVariantResponse = { success: boolean; message: string; data: RawDashboardProductVariant }
 export type ProductVariantDeleteResponse = { success: boolean; message: string }
 
 export type VariantWarehouseStockResponse = {

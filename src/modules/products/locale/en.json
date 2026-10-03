@@ -124,8 +124,6 @@
       "usesBasePrice": "Uses Product Base Price",
       "priceHelp": "Leave the override empty to use the Product Base Price.",
       "noAttributes": "No attributes",
-      "complexAttributes": "Complex attributes",
-      "complexAttributesEditHelp": "Existing complex attributes are preserved. You may add simple keys, but deletion requires backend support.",
       "existingImages": "Existing variant images",
       "imageAlt": "Image {{id}} for variant {{sku}}",
       "fields": {
@@ -154,7 +152,9 @@
       },
       "validation": {
         "attributeIncomplete": "Enter both an attribute key and value.",
-        "attributeDuplicate": "Attribute keys must be unique."
+        "attributeDuplicate": "Attribute keys must be unique after normalization.",
+        "attributeInvalidKey": "Enter an attribute key containing letters or numbers.",
+        "attributeInvalidColor": "Enter a six-digit HEX color such as #C8102E."
       },
       "feedback": {
         "created": "Variant created successfully.",

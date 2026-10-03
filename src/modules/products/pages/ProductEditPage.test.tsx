@@ -7,10 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { productMediaService } from '@/modules/products/api/product-media.service'
-import { productsService } from '@/modules/products/api/products.service'
+import { normalizeProductDetail, productsService } from '@/modules/products/api/products.service'
 import ProductEditPage from '@/modules/products/pages/ProductEditPage'
 import { productsKeys } from '@/modules/products/queries/products.keys'
-import type { ProductDetail } from '@/modules/products/types/product.types'
+import type { ProductDetail, RawProductDetail } from '@/modules/products/types/product.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -54,6 +54,56 @@ const product: ProductDetail = {
   updatedAt: 'updated',
 }
 
+const realDashboardProductShow: RawProductDetail = {
+  id: 26,
+  category_id: 5,
+  sku: 'RAF-dcb-308633',
+  name: { ar: 'منتج', en: 'product without variant' },
+  description: {
+    ar: '<p>product without variant</p>',
+    en: '<p>product without variant</p>',
+  },
+  slug: 'mntg',
+  base_price: '149.00',
+  base_price_incl_vat: '186.25',
+  discount_percentage: null,
+  discount_end_at: null,
+  is_personalizable: false,
+  personalization_max_length: null,
+  personalization_fee: null,
+  personalization_languages: ['ar', 'en'],
+  hide_price_on_packaging: true,
+  is_new_arrival: true,
+  is_active: true,
+  sort_order: 2,
+  simulated_viewers_count: 2880,
+  simulated_orders_count: 71091,
+  category: { id: 5, name: { ar: 'هدايا', en: 'Gifts' }, slug: 'gifts' },
+  variants: [
+    {
+      id: 39,
+      sku: 'RAF-dcb-308633',
+      attributes: null,
+      price_override: null,
+      is_active: true,
+      is_default: true,
+      images: [],
+      warehouse_stocks: [
+        { id: 153, warehouse_id: 1, quantity: 3 },
+        { id: 154, warehouse_id: 2, quantity: 4 },
+        { id: 155, warehouse_id: 3, quantity: 4 },
+        { id: 156, warehouse_id: 4, quantity: 4 },
+        { id: 158, warehouse_id: 5, quantity: 4 },
+        { id: 157, warehouse_id: 6, quantity: 5 },
+        { id: 159, warehouse_id: 7, quantity: 6 },
+      ],
+    },
+  ],
+  images: [{ id: 42, url: 'https://api.rafal.shop/storage/42/TST-RING-001-main-01.png' }],
+  created_at: '2026-10-03T17:39:48+00:00',
+  updated_at: '2026-10-03T17:39:48+00:00',
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
@@ -89,6 +139,22 @@ describe('ProductEditPage', () => {
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
     expect(screen.getByRole('img', { name: 'Existing product image 12' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete existing product image 12' })).toBeInTheDocument()
+  })
+
+  it('renders the real Dashboard Product Show response with its default Variant', async () => {
+    vi.mocked(productsService.show).mockResolvedValue(normalizeProductDetail(realDashboardProductShow))
+
+    renderPage()
+
+    expect(await screen.findByRole('textbox', { name: 'SKU' })).toHaveValue('RAF-dcb-308633')
+    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Existing product image 42' })).toHaveAttribute(
+      'src',
+      'https://api.rafal.shop/storage/42/TST-RING-001-main-01.png'
+    )
+    expect(screen.getByText('Default')).toBeInTheDocument()
+    expect(screen.getByText('No attributes')).toBeInTheDocument()
+    expect(screen.queryByText(/default:\s*default/i)).not.toBeInTheDocument()
   })
 
   it('sends only one dirty field and resets to the authoritative response after success', async () => {

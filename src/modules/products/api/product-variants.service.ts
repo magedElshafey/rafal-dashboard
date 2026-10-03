@@ -4,11 +4,12 @@ import type {
   ProductVariantUpdatePayload,
   ProductVariantDeleteResponse,
   ProductVariantResponse,
-  JsonValue,
-  RawProductVariant,
+  RawDashboardProductVariant,
   RawVariantWarehouseStock,
+  VariantAttributes,
   VariantWarehouseStock,
 } from '@/modules/products/types/product-variant.types'
+import { isDangerousVariantAttributeKey } from '@/modules/products/utils/product-variant.utils'
 import { $http } from '@/utils/http'
 
 function finiteNumber(value: number | string, field: string) {
@@ -26,30 +27,39 @@ export function normalizeVariantWarehouseStock(raw: RawVariantWarehouseStock): V
   return { id: raw.id === undefined ? null : finiteNumber(raw.id, 'stock id'), warehouseId, quantity }
 }
 
-function apiBoolean(value: RawProductVariant['is_active']) {
+function apiBoolean(value: RawDashboardProductVariant['is_active']) {
   if (value === true || value === 1 || value === '1') return true
   if (value === false || value === 0 || value === '0') return false
   throw new Error('Product Variant active flag is unavailable')
 }
 
-function normalizeJsonValue(value: unknown): JsonValue {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (Array.isArray(value)) return value.map(normalizeJsonValue)
-  if (typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeJsonValue(item)]))
+export function normalizeVariantAttributes(value: unknown): VariantAttributes {
+  if (value === null) return {}
+  if (Array.isArray(value)) {
+    if (value.length === 0) return {}
+    throw new Error('Product Variant attributes are unavailable')
   }
-  throw new Error('Product Variant attributes are unavailable')
+  if (typeof value !== 'object') {
+    throw new Error('Product Variant attributes are unavailable')
+  }
+
+  const entries = Object.entries(value)
+  if (
+    entries.some(([key, item]) => key.length === 0 || isDangerousVariantAttributeKey(key) || typeof item !== 'string')
+  ) {
+    throw new Error('Product Variant attributes are unavailable')
+  }
+  return Object.fromEntries(entries)
 }
 
-export function normalizeProductVariant(raw: RawProductVariant): ProductVariant {
+export function normalizeDashboardProductVariant(raw: RawDashboardProductVariant): ProductVariant {
   if (!Array.isArray(raw.images) || !Array.isArray(raw.warehouse_stocks)) {
     throw new Error('Product Variant data is unavailable')
   }
   return {
     id: finiteNumber(raw.id, 'id'),
     sku: raw.sku,
-    attributes: normalizeJsonValue(raw.attributes),
+    attributes: normalizeVariantAttributes(raw.attributes),
     priceOverride: raw.price_override === null ? null : finiteNumber(raw.price_override, 'price override'),
     isActive: apiBoolean(raw.is_active),
     isDefault: raw.is_default === undefined ? false : apiBoolean(raw.is_default),
@@ -139,12 +149,12 @@ export const productVariantsHttpTransport = {
 
 export const productVariantsService = {
   async create(productId: number, payload: ProductVariantCreatePayload) {
-    return normalizeProductVariant(
+    return normalizeDashboardProductVariant(
       (await productVariantsHttpTransport.createVariant(productId, serializeProductVariantCreate(payload))).data
     )
   },
   async update(productId: number, variantId: number, payload: ProductVariantUpdatePayload) {
-    return normalizeProductVariant(
+    return normalizeDashboardProductVariant(
       (await productVariantsHttpTransport.updateVariant(productId, variantId, serializeProductVariantUpdate(payload)))
         .data
     )

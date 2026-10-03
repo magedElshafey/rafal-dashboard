@@ -65,7 +65,7 @@ export function ProductsList({ products, onEdit, onDelete, actionsDisabled = fal
               <ResponsiveDataTableRow key={product.id}>
                 <ResponsiveDataTableCell className="max-w-72 whitespace-normal">
                   <div className="flex min-w-0 items-center gap-3">
-                    <ProductImage url={product.primaryImageUrl} name={name} />
+                    <ProductImage url={product.images[0]?.url ?? null} name={name} />
                     <bdi dir="auto" className="min-w-0 break-words font-medium text-content-primary">
                       {name}
                     </bdi>
@@ -128,7 +128,7 @@ export function ProductsList({ products, onEdit, onDelete, actionsDisabled = fal
                   </ResponsiveDataFact>
                 </>
               }
-              footer={<ProductImage url={product.primaryImageUrl} name={name} className="size-20" />}
+              footer={<ProductImage url={product.images[0]?.url ?? null} name={name} className="size-20" />}
             />
           )
         })}

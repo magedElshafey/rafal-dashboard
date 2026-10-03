@@ -15,7 +15,11 @@ import {
   type ProductVariantMediaTarget,
 } from '@/modules/products/hooks/useDeleteProductVariantMedia'
 import type { ProductDetail } from '@/modules/products/types/product.types'
-import { getVariantAttributesPresentation } from '@/modules/products/utils/product-variant.utils'
+import {
+  getVariantAttributesPresentation,
+  humanizeVariantAttributeKey,
+  isSixDigitHexColor,
+} from '@/modules/products/utils/product-variant.utils'
 import { useWarehouses } from '@/modules/warehouses/hooks/useWarehouses'
 
 type Props = { product: ProductDetail }
@@ -138,12 +142,25 @@ export function ProductVariantsSection({ product }: Props) {
                     <dt className="text-muted-foreground">{t('products.variants.fields.attributes')}</dt>
                     <dd className="text-foreground">
                       {attributes.kind === 'flat'
-                        ? attributes.entries.map(([key, value]) => `${key}: ${value}`).join(', ')
-                        : t(
-                            attributes.kind === 'empty'
-                              ? 'products.variants.noAttributes'
-                              : 'products.variants.complexAttributes'
-                          )}
+                        ? attributes.entries.map(([key, value], index) => (
+                            <span key={key}>
+                              {index > 0 ? ', ' : null}
+                              {humanizeVariantAttributeKey(key)}:{' '}
+                              {key === 'color' && isSixDigitHexColor(value) ? (
+                                <span className="inline-flex items-center gap-1 font-mono" dir="ltr">
+                                  <span
+                                    aria-hidden="true"
+                                    className="inline-block size-3 rounded-full border border-border"
+                                    style={{ backgroundColor: value }}
+                                  />
+                                  {value}
+                                </span>
+                              ) : (
+                                value
+                              )}
+                            </span>
+                          ))
+                        : t('products.variants.noAttributes')}
                     </dd>
                   </div>
                   <div>
