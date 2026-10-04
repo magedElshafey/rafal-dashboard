@@ -1,0 +1,19 @@
+{
+  "is_anonymous": false,
+  "message": null,
+  "wrap": true,
+  "wrap_fee": "15.00",
+  "buyer": {
+    "type": "guest",
+    "name": "sayed",
+    "email": "tet@test.com",
+    "phone": "01091043665"
+  },
+  "recipient": {
+    "name": "sayed",
+    "phone": "01091043660",
+    "city": { "id": 1, "name": "الرياض" },
+    "district": "الحي السادس",
+    "street_details": "شارع الهرم"
+  }
+}

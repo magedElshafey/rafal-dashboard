@@ -1,0 +1,99 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 21,
+    "order_number": "RF-10021",
+    "display_number": "#RF-10021",
+    "status": "confirmed",
+    "customer": {
+      "type": "guest",
+      "name": "maged elshafey",
+      "email": "magedelshafey98@gmail.com",
+      "phone": "0551234567"
+    },
+    "shipping_address": {
+      "recipient_name": "maged elshafey",
+      "recipient_phone": "0551234567",
+      "city": {
+        "id": 4,
+        "name": "Makkah"
+      },
+      "district": "Tenetur consectetur",
+      "street_details": "الهايشة"
+    },
+    "items": [
+      {
+        "id": 32,
+        "product_name": "montag 1",
+        "variant_sku": "RAF-dcb-3086232",
+        "variant_attributes": {
+          "color": "#03C4DD"
+        },
+        "quantity": 3,
+        "unit_price": "1062.50",
+        "discount_amount": "0.00",
+        "line_total": "3187.50"
+      }
+    ],
+    "money": {
+      "subtotal": "3187.50",
+      "discount_total": "0.00",
+      "shipping_fee": "0.00",
+      "personalization_total": "0.00",
+      "gift_wrap_fee": "15.00",
+      "taxable_amount": "3202.50",
+      "vat": {
+        "rate": "25.00",
+        "amount": "800.63"
+      },
+      "total": "4003.13",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "card",
+      "status": "paid",
+      "reference": "STUB-c0fff594-2dc7-4036-9283-2f3ad181a677",
+      "paid_at": "2026-10-04T05:27:28+00:00"
+    },
+    "warehouse": {
+      "id": 2,
+      "name": "Jeddah West Warehouse"
+    },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-10-04T05:27:15+00:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "pending_verification",
+        "note": "Awaiting email verification",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-10-04T05:27:15+00:00"
+      },
+      {
+        "from_status": "pending_verification",
+        "to_status": "confirmed",
+        "note": "Email verified, payment confirmed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-10-04T05:27:28+00:00"
+      }
+    ],
+    "allowed_transitions": ["processing", "cancelled"],
+    "placed_at": "2026-10-04T05:27:15+00:00",
+    "cancelled_at": null,
+    "created_at": "2026-10-04T05:27:15+00:00",
+    "updated_at": "2026-10-04T05:27:28+00:00"
+  }
+}

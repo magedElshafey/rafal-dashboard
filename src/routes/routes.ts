@@ -3,6 +3,9 @@ export const Routes = {
 
   login: '/login',
   dashboard: '/dashboard',
+  orders: '/dashboard/orders',
+  orderDetail: '/dashboard/orders/:id',
+  orderDetailPath: (id: number) => `/dashboard/orders/${id}`,
   roles: '/dashboard/roles',
   admins: '/dashboard/admins',
   banners: '/dashboard/banners',

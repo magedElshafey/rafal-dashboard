@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "message": "Order statuses retrieved successfully",
+  "data": [
+    {
+      "value": "new",
+      "label": "New",
+      "customer_status": "processing"
+    },
+    {
+      "value": "confirmed",
+      "label": "Confirmed",
+      "customer_status": "processing"
+    },
+    {
+      "value": "processing",
+      "label": "Processing",
+      "customer_status": "processing"
+    },
+    {
+      "value": "shipped",
+      "label": "Shipped",
+      "customer_status": "processing"
+    },
+    {
+      "value": "delivered",
+      "label": "Delivered",
+      "customer_status": "completed"
+    },
+    {
+      "value": "returned",
+      "label": "Returned",
+      "customer_status": "cancelled"
+    },
+    {
+      "value": "cancelled",
+      "label": "Cancelled",
+      "customer_status": "cancelled"
+    },
+    {
+      "value": "payment_failed",
+      "label": "Payment Failed",
+      "customer_status": "cancelled"
+    },
+    {
+      "value": "pending_verification",
+      "label": "Pending Verification",
+      "customer_status": "processing"
+    }
+  ]
+}

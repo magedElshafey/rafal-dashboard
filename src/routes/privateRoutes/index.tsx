@@ -7,6 +7,8 @@ import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
 import { Routes } from '@/routes/routes'
 
 const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
+const OrdersPage = lazy(() => import('@/modules/orders/pages/OrdersPage'))
+const OrderDetailPage = lazy(() => import('@/modules/orders/pages/OrderDetailPage'))
 const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
 const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
@@ -44,6 +46,8 @@ export const PrivateRoutes: RouteObject[] = [
     ),
     children: [
       { path: Routes.dashboard, Component: DashboardPage },
+      { path: Routes.orders, Component: OrdersPage },
+      { path: Routes.orderDetail, Component: OrderDetailPage },
       { path: Routes.roles, Component: RolesPage },
       { path: Routes.admins, Component: AdminsPage },
       { path: Routes.banners, Component: BannersPage },

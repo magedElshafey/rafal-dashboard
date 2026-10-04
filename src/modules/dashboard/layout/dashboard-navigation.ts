@@ -34,6 +34,7 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: LayoutDashboard,
     match: 'exact',
   },
+  { to: Routes.orders, labelKey: 'orders.title', icon: Package, match: 'prefix' },
   {
     to: Routes.roles,
     labelKey: 'dashboard.sidebar.roles',

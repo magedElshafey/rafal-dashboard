@@ -1,0 +1,34 @@
+{
+  "success": true,
+  "message": "Orders retrieved successfully",
+  "data": [
+    {
+      "id": 21,
+      "order_number": "RF-10021",
+      "display_number": "#RF-10021",
+      "status": "confirmed",
+      "customer": {
+        "type": "guest",
+        "name": "maged elshafey",
+        "email": "magedelshafey98@gmail.com",
+        "phone": "0551234567"
+      },
+      "items_count": 1,
+      "total": "4003.13",
+      "currency": "SAR",
+      "payment_status": "paid",
+      "is_gift": false,
+      "warehouse": {
+        "id": 2,
+        "name": "Jeddah West Warehouse"
+      },
+      "placed_at": "2026-10-04T05:27:15+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 2,
+    "per_page": 15,
+    "total": 21
+  }
+}

@@ -8,6 +8,16 @@ import { Routes as AppRoutes } from '@/routes/routes'
 import { useAuth } from '@/store/auth'
 
 describe('core routes', () => {
+  it('registers only Orders Index and full-page Detail as lazy routes', () => {
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(children.find((route) => route.path === AppRoutes.orders)?.Component).toBeDefined()
+    expect(children.find((route) => route.path === AppRoutes.orderDetail)?.Component).toBeDefined()
+    expect(AppRoutes.orderDetailPath(21)).toBe('/dashboard/orders/21')
+    expect(children.filter((route) => route.path?.startsWith('/dashboard/orders')).map((route) => route.path)).toEqual([
+      '/dashboard/orders',
+      '/dashboard/orders/:id',
+    ])
+  })
   beforeEach(() => {
     useAuth.setState({ token: null, admin: null, isAuthenticated: false })
   })
