@@ -40,6 +40,7 @@ export type OrderItem = {
   unitPrice: string
   discountAmount: string
   lineTotal: string
+  personalization: { text: string; language: string; fee: string } | null
 }
 export type OrderMoney = {
   subtotal: string

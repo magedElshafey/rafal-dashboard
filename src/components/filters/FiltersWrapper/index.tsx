@@ -226,16 +226,18 @@ const FiltersWrapper = ({
           )}
 
           {shouldRenderFilterTrigger && (
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleFilterClick}
               className={cn(
-                'flex   items-center justify-center gap-1  rounded-lg  bg-black-50  text-sm text-neutral-800 font-semibold cursor-pointer min-h-12 w-full  px-5 md:w-auto',
+                'min-h-12 w-full rounded-lg border border-border bg-muted px-5 text-foreground hover:bg-accent focus-visible:ring-ring/20 md:w-auto',
                 buttonClassName
               )}
             >
+              <Funnel aria-hidden="true" />
               {resolvedFilterLabel}
-            </button>
+            </Button>
           )}
         </div>
       )}

@@ -79,7 +79,7 @@ const FilterSelect = <T,>({
   return (
     <div>
       {label && (
-        <Label className="mb-2 text-neutral-800" htmlFor={`${name}-select`}>
+        <Label className="mb-2 text-foreground" htmlFor={`${name}-select`}>
           {label}
         </Label>
       )}

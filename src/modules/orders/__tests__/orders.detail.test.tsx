@@ -14,6 +14,8 @@ import gift from './order-gift.fixture.json'
 import statuses from './statuses.fixture.json'
 import en from '../locale/en.json'
 import ar from '../locale/ar.json'
+import { cancelledOrder20, confirmedOrder18, processingOrder19 } from './order-detail-runtime.fixtures'
+import { formatDateTime } from '@/utils/date/date.helpers'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -209,6 +211,37 @@ describe('Order Show', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: '#RF-10021' })).toBeInTheDocument()
   })
+  it.each([
+    [18, 'Confirmed', confirmedOrder18],
+    [19, 'Processing', processingOrder19],
+    [20, 'Cancelled', cancelledOrder20],
+  ])('renders real Order %i (%s) without entering the load-error state', async (id, statusLabel, response) => {
+    canonical = response
+    renderOrders(<OrderDetailPage />, `/dashboard/orders/${id}`)
+    expect(await screen.findByRole('heading', { name: response.data.display_number, level: 1 })).toBeInTheDocument()
+    expect(screen.getAllByText(statusLabel).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Unable to load content')).not.toBeInTheDocument()
+  })
+  it('renders the full terminal cancelled Order with safe customer, attributes and personalization facts', async () => {
+    canonical = cancelledOrder20
+    renderOrders(<OrderDetailPage />, '/dashboard/orders/20')
+    await screen.findByRole('heading', { name: '#RF-10020', level: 1 })
+    expect(screen.getAllByText('magedelshafey98@gmail.com').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('White Musk Perfume')).toHaveLength(2)
+    expect(screen.getAllByText('Historic White Variant')).toHaveLength(2)
+    expect(screen.getAllByText('gold')).toHaveLength(2)
+    expect(screen.getAllByText('#03C4DD')).toHaveLength(2)
+    expect(screen.getAllByText('توتا')).toHaveLength(2)
+    expect(screen.getAllByText('19.84 SAR')).toHaveLength(2)
+    const cancelledRow = screen.getByText('Cancelled at').parentElement
+    if (!cancelledRow) throw new Error('Missing cancelled timestamp row')
+    expect(
+      within(cancelledRow).getByText(formatDateTime(cancelledOrder20.data.cancelled_at, { locale: 'en' }))
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Update status' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Next status' })).not.toBeInTheDocument()
+    expect(http.patch).not.toHaveBeenCalled()
+  })
   it('supports Arabic, RTL and complete locale key parity', async () => {
     const keys = (value: object, prefix = ''): string[] =>
       Object.entries(value).flatMap(([key, entry]) =>
@@ -244,7 +277,7 @@ describe('status transitions', () => {
     canonical = { ...show, data: { ...show.data, allowed_transitions: [] } }
     renderOrders(<OrderDetailPage />, '/dashboard/orders/21')
     await screen.findByRole('heading', { name: '#RF-10021' })
-    expect(screen.getByRole('button', { name: 'Update status' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Update status' })).not.toBeInTheDocument()
   })
   it('prevents duplicate PATCH, updates exact detail/history/transitions and invalidates only Orders lists', async () => {
     let resolve: (value: unknown) => void = () => {}

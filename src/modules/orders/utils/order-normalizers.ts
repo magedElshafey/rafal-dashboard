@@ -58,6 +58,7 @@ export function normalizeOrderDetail(value: unknown): OrderDetail {
       unitPrice: item.unit_price,
       discountAmount: item.discount_amount,
       lineTotal: item.line_total,
+      personalization: item.personalization,
     })),
     money: {
       subtotal: money.subtotal,

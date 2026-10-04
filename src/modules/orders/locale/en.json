@@ -60,6 +60,12 @@
     "unitPrice": "Unit price",
     "discount": "Discount",
     "lineTotal": "Line total",
+    "personalization": {
+      "title": "Personalization",
+      "text": "Personalization text",
+      "language": "Language",
+      "fee": "Fee"
+    },
     "gift": {
       "anonymous": "Anonymous",
       "message": "Gift message",

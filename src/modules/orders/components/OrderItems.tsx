@@ -36,12 +36,37 @@ export function VariantAttributes({ attributes }: { attributes: Record<string, s
 }
 export function OrderItems({ items, currency }: { items: OrderItem[]; currency: string }) {
   const { t, i18n } = useTranslation()
-  const fields = ['product', 'sku', 'attributes', 'quantity', 'unitPrice', 'discount', 'lineTotal']
-  const columns = fields.map((id) => ({ id, header: t(`orders.${id}`) }))
+  const fields = ['product', 'sku', 'attributes', 'personalization', 'quantity', 'unitPrice', 'discount', 'lineTotal']
+  const label = (id: string) => t(id === 'personalization' ? 'orders.personalization.title' : `orders.${id}`)
+  const columns = fields.map((id) => ({ id, header: label(id) }))
   const values = (item: OrderItem) => [
     <bdi>{item.productName}</bdi>,
     <bdi>{item.variantSku}</bdi>,
     <VariantAttributes attributes={item.variantAttributes} />,
+    item.personalization ? (
+      <dl className="space-y-1">
+        <div>
+          <dt className="text-muted-foreground">{t('orders.personalization.text')}</dt>
+          <dd>
+            <bdi>{item.personalization.text}</bdi>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t('orders.personalization.language')}</dt>
+          <dd>
+            <bdi>{item.personalization.language}</bdi>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t('orders.personalization.fee')}</dt>
+          <dd>
+            <bdi>{orderMoneyLabel(item.personalization.fee, currency, i18n.language)}</bdi>
+          </dd>
+        </div>
+      </dl>
+    ) : (
+      <span className="text-muted-foreground">{t('orders.unavailable')}</span>
+    ),
     item.quantity,
     ...[item.unitPrice, item.discountAmount, item.lineTotal].map((value) => (
       <bdi>{orderMoneyLabel(value, currency, i18n.language)}</bdi>
@@ -70,7 +95,7 @@ export function OrderItems({ items, currency }: { items: OrderItem[]; currency: 
             facts={values(item)
               .slice(1)
               .map((value, index) => (
-                <ResponsiveDataFact key={fields[index + 1]} label={t(`orders.${fields[index + 1]}`)}>
+                <ResponsiveDataFact key={fields[index + 1]} label={label(fields[index + 1])}>
                   {value}
                 </ResponsiveDataFact>
               ))}

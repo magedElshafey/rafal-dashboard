@@ -50,9 +50,6 @@ function OrdersContent() {
       >
         <OrderFilters />
       </FiltersWrapper>
-      <Button variant="outline" onClick={reset}>
-        {t('orders.reset')}
-      </Button>
       {!validDates && <p role="alert">{t('orders.invalidDates')}</p>}
       <QueryStateBoundary
         isLoading={query.isLoading}

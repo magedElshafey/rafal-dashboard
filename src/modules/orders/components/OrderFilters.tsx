@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import FilterSelect from '@/components/filters/FilterSelect'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
 import { useQuery } from '@/store/queryContext/useQueryContext'
 import { useWarehouses } from '@/modules/warehouses/hooks/useWarehouses'
@@ -15,6 +16,10 @@ export function OrderFilters() {
   const warehouses = useWarehouses()
   const invalid = !validOrdersDateRange(readOrdersFilters(forwardQuery))
   const all = t('orders.all')
+  const booleanOptions = [
+    { value: '1', label: t('orders.yes') },
+    { value: '0', label: t('orders.no') },
+  ]
   return (
     <div className="space-y-4">
       <FilterSelect
@@ -64,30 +69,30 @@ export function OrderFilters() {
         />
       )}
       {(['is_gift', 'is_guest'] as const).map((name) => (
-        <label key={name} className="block text-sm">
-          {t(name === 'is_gift' ? 'orders.fields.gift' : 'orders.guest')}
-          <select
-            className="mt-2 w-full rounded-md border bg-background p-3 focus-visible:ring-2"
-            value={forwardQuery?.[name] ?? ''}
-            onChange={(event) => forwardAddQuery({ [name]: event.target.value })}
-          >
-            <option value="">{all}</option>
-            <option value="1">{t('orders.yes')}</option>
-            <option value="0">{t('orders.no')}</option>
-          </select>
-        </label>
+        <FilterSelect
+          key={name}
+          name={name}
+          label={t(name === 'is_gift' ? 'orders.fields.gift' : 'orders.guest')}
+          placeholder={all}
+          data={booleanOptions}
+          valueKey="value"
+          labelKey="label"
+        />
       ))}
       {(['date_from', 'date_to'] as const).map((name) => (
-        <label key={name} className="block text-sm">
-          {t(name === 'date_from' ? 'orders.dateFrom' : 'orders.dateTo')}
+        <div key={name}>
+          <Label className="mb-2 text-foreground" htmlFor={`orders-${name}`}>
+            {t(name === 'date_from' ? 'orders.dateFrom' : 'orders.dateTo')}
+          </Label>
           <Input
+            id={`orders-${name}`}
             type="date"
             value={forwardQuery?.[name] ?? ''}
             aria-invalid={invalid}
             aria-describedby={invalid ? 'orders-date-error' : undefined}
             onChange={(event) => forwardAddQuery({ [name]: event.target.value })}
           />
-        </label>
+        </div>
       ))}
       {invalid && (
         <p id="orders-date-error" role="alert">

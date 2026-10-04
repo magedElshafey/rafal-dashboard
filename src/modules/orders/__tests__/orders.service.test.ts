@@ -9,6 +9,7 @@ import { orderTransitionFeedback } from '../utils/order-errors'
 import show from './order-detail.fixture.json'
 import index from './orders-index.fixture.json'
 import statuses from './statuses.fixture.json'
+import { cancelledOrder20, confirmedOrder18, processingOrder19 } from './order-detail-runtime.fixtures'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: http }))
@@ -84,6 +85,7 @@ describe('real Orders read contracts', () => {
           unitPrice: '1062.50',
           discountAmount: '0.00',
           lineTotal: '3187.50',
+          personalization: null,
         },
       ],
       money: {
@@ -182,6 +184,47 @@ describe('real Orders read contracts', () => {
     ])
       expect(attributesSchema.safeParse(value).success).toBe(false)
     expect(Object.prototype).not.toHaveProperty('polluted')
+  })
+  it('normalizes only the confirmed empty-array compatibility shape for variant attributes', () => {
+    expect(attributesSchema.parse([])).toEqual({})
+    expect(attributesSchema.parse({})).toEqual({})
+    expect(attributesSchema.parse({ size: 'S' })).toEqual({ size: 'S' })
+    expect(attributesSchema.parse({ color: 'gold' })).toEqual({ color: 'gold' })
+    expect(attributesSchema.safeParse(['invalid']).success).toBe(false)
+    expect(attributesSchema.safeParse([{ size: 'M' }]).success).toBe(false)
+  })
+  it.each([
+    [18, 'confirmed', confirmedOrder18],
+    [19, 'processing', processingOrder19],
+    [20, 'cancelled', cancelledOrder20],
+  ])('normalizes real Order %i in %s state through the Show service', async (id, status, response) => {
+    http.get.mockResolvedValue({ data: response })
+    const detail = await ordersService.show(id)
+    expect(detail).toMatchObject({ id, status })
+    expect(detail.items.every((item) => !Array.isArray(item.variantAttributes))).toBe(true)
+  })
+  it('preserves optional item personalization and rejects malformed confirmed shapes', () => {
+    const detail = normalizeOrderDetail(cancelledOrder20.data)
+    expect(detail.items[0].personalization).toBeNull()
+    expect(detail.items[1].personalization).toEqual({ text: 'توتا', language: 'ar', fee: '19.84' })
+    expect(detail.items[4].personalization).toEqual({ text: 'تيست', language: 'ar', fee: '11.48' })
+    expect(() =>
+      normalizeOrderDetail({
+        ...confirmedOrder18.data,
+        items: [
+          {
+            ...confirmedOrder18.data.items[0],
+            personalization: { text: 'x', language: 'ar', fee: 19.84 },
+          },
+        ],
+      })
+    ).toThrow()
+    expect(() =>
+      normalizeOrderDetail({
+        ...confirmedOrder18.data,
+        items: [{ ...confirmedOrder18.data.items[0], personalization: ['invalid'] }],
+      })
+    ).toThrow()
   })
   it('preserves financial precision and backend currency without recomputation', () => {
     expect(orderMoneyLabel('9007199254740993.123', 'USD', 'en')).toBe('9,007,199,254,740,993.123 USD')

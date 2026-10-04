@@ -19,7 +19,12 @@ const identity = {
 
 // Validate before constructing a record: Zod's record parser can discard __proto__.
 export const attributesSchema = z.unknown().transform((value, ctx): Record<string, string> => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return {}
+    ctx.addIssue({ code: 'custom', message: 'Invalid attributes' })
+    return z.NEVER
+  }
+  if (!value || typeof value !== 'object') {
     ctx.addIssue({ code: 'custom', message: 'Invalid attributes' })
     return z.NEVER
   }
@@ -33,6 +38,12 @@ export const attributesSchema = z.unknown().transform((value, ctx): Record<strin
   const result: Record<string, string> = {}
   for (const [key, entry] of entries) if (typeof entry === 'string') result[key] = entry
   return result
+})
+
+const rawOrderItemPersonalizationSchema = z.object({
+  text: z.string(),
+  language: text,
+  fee: decimal,
 })
 
 export const rawOrderStatusSchema = z.object({ value: text, label: text, customer_status: text })
@@ -80,6 +91,10 @@ export const rawOrderDetailSchema = z.object({
       unit_price: decimal,
       discount_amount: decimal,
       line_total: decimal,
+      personalization: rawOrderItemPersonalizationSchema
+        .nullable()
+        .optional()
+        .transform((value) => value ?? null),
     })
   ),
   money: z.object({

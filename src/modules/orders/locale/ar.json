@@ -60,6 +60,12 @@
     "unitPrice": "سعر الوحدة",
     "discount": "الخصم",
     "lineTotal": "إجمالي الصنف",
+    "personalization": {
+      "title": "\u0627\u0644\u062a\u062e\u0635\u064a\u0635",
+      "text": "\u0646\u0635 \u0627\u0644\u062a\u062e\u0635\u064a\u0635",
+      "language": "\u0627\u0644\u0644\u063a\u0629",
+      "fee": "\u0627\u0644\u0631\u0633\u0648\u0645"
+    },
     "gift": {
       "anonymous": "هدية مجهولة المرسل",
       "message": "رسالة الهدية",

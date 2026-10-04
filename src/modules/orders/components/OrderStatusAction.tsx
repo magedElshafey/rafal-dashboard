@@ -36,6 +36,7 @@ export function OrderStatusAction({
       lock.current = false
     }
   }
+  if (!order.allowedTransitions.length) return null
   return (
     <Dialog
       open={open}
@@ -49,7 +50,7 @@ export function OrderStatusAction({
       }}
     >
       <DialogTrigger asChild>
-        <Button disabled={!order.allowedTransitions.length || refreshing}>{t('orders.updateStatus')}</Button>
+        <Button disabled={refreshing}>{t('orders.updateStatus')}</Button>
       </DialogTrigger>
       <DialogContent showCloseButton={false} dir={t('orders.direction')}>
         <DialogTitle>{t('orders.updateStatus')}</DialogTitle>

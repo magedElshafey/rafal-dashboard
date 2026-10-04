@@ -10,7 +10,9 @@ Orders use the real backend through shared `$http`: page → TanStack Query hook
 - Warehouse options reuse `useWarehouses` and the shared paginated `FilterSelect`, without per-row requests.
 - Current real payment evidence confirms only `paid` and `pending`. Filter configuration is isolated; domain parsing accepts future nonempty strings.
 - Show includes shipping_address, items, money, coupon, payment, warehouse, status_history, allowed_transitions and timestamps. Money is backend-authoritative: subtotal, discount_total, shipping_fee, personalization_total, gift_wrap_fee, taxable_amount, nested `vat: { rate, amount }`, total and currency. Amount strings retain precision during display; no VAT/totals are recomputed.
-- Item variant_attributes preserve exact string keys, including Unicode, and string values. Nested/non-string values and prototype-manipulation keys are rejected. Only exact `color` with six-digit HEX receives a swatch; its text remains visible. Legacy colors are text only.
+- Item `variant_attributes` accepts an exact string map or an empty array for no attributes; both normalize to `Record<string, string>`. Non-empty arrays, nested/non-string values, and prototype-manipulation keys are rejected. Exact string keys, including Unicode, are preserved. Only exact `color` with six-digit HEX receives a swatch; its text remains visible. Legacy colors are text only.
+- Optional Item `personalization` is `{ text, language, fee }` and is normalized to that object or `null`; its decimal fee remains backend-authoritative and is displayed in the Order currency.
+- A registered customer name may be blank. Display falls back from a nonblank name to email, phone, then the localized unavailable label.
 - Identity, quantities, money, workflow status and transition fields are validated before reaching JSX. Secondary nullable text has isolated fallbacks. Unknown coupon payloads are retained without guessed display fields.
 - Offset-aware timestamps use the shared date/time formatter and its browser-local timezone convention.
 

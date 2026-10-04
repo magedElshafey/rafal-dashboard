@@ -194,7 +194,8 @@ describe('URL search and server filters', () => {
       page: 1,
     })
     fireEvent.change(screen.getByRole('textbox', { name: 'Search orders' }), { target: { value: 'pending input' } })
-    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     await waitFor(() => expect(indexCalls().at(-1)?.query).toEqual({ page: 1 }))
     expect(screen.getByRole('textbox', { name: 'Search orders' })).toHaveValue('')
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/dashboard\/orders$/)
@@ -203,7 +204,8 @@ describe('URL search and server filters', () => {
     renderOrders(<OrdersPage />, '/dashboard/orders?date_from=2026-10-05&date_to=2026-10-04')
     expect(screen.getByRole('alert')).toHaveTextContent('Enter valid dates')
     expect(indexCalls()).toHaveLength(0)
-    await userEvent.click(screen.getAllByRole('button', { name: 'Clear filters' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     await screen.findAllByText('#RF-10021')
     expect(indexCalls()).toHaveLength(1)
   })
@@ -220,8 +222,10 @@ describe('URL search and server filters', () => {
     await user.click(screen.getByRole('option', { name: 'Pending' }))
     await user.click(screen.getByRole('combobox', { name: 'Warehouse' }))
     await user.click(await screen.findByRole('option', { name: 'Jeddah West Warehouse' }))
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Gift' }), '0')
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Guest order' }), '1')
+    await user.click(screen.getByRole('combobox', { name: 'Gift' }))
+    await user.click(screen.getByRole('option', { name: 'No' }))
+    await user.click(screen.getByRole('combobox', { name: 'Guest order' }))
+    await user.click(screen.getByRole('option', { name: 'Yes' }))
     fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-10-01' } })
     fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-10-04' } })
     await user.click(screen.getByRole('button', { name: 'Apply' }))
@@ -242,9 +246,38 @@ describe('URL search and server filters', () => {
   it('restores URL filters on browser back navigation', async () => {
     renderOrders(<OrdersPage />, '/dashboard/orders?is_gift=0')
     await screen.findAllByText('#RF-10021')
-    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     await waitFor(() => expect(indexCalls().at(-1)?.query).toEqual({ page: 1 }))
     await userEvent.click(screen.getByRole('button', { name: 'Test back' }))
     await waitFor(() => expect(indexCalls().at(-1)?.query).toEqual({ is_gift: 0, page: 1 }))
+  })
+  it('uses the shared semantic filter-control contract and omits the standalone clear button', async () => {
+    const user = userEvent.setup()
+    const { container } = renderOrders(<OrdersPage />)
+    await screen.findAllByText('#RF-10021')
+    const trigger = screen.getByRole('button', { name: 'Filter' })
+    expect(trigger).toHaveClass('border-border', 'bg-muted', 'text-foreground', 'focus-visible:ring-ring/20')
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+    await user.click(trigger)
+    for (const label of ['Status', 'Payment status', 'Warehouse', 'Gift', 'Guest order', 'From date', 'To date'])
+      expect(screen.getByLabelText(label)).toBeInTheDocument()
+    for (const control of screen
+      .getAllByRole('combobox')
+      .filter((item) => item.getAttribute('data-slot') === 'select-trigger'))
+      expect(control).toHaveClass('h-14', 'rounded-2xl', 'border-black-50', 'bg-black-50', 'text-content-primary')
+    for (const label of ['From date', 'To date'])
+      expect(screen.getByLabelText(label).closest('[data-slot=input-container]')).toHaveClass(
+        'h-14',
+        'rounded-2xl',
+        'border-black-50',
+        'bg-black-50'
+      )
+    await user.click(screen.getByRole('combobox', { name: 'Status' }))
+    expect(container.ownerDocument.querySelector('[data-slot=select-content]')).toHaveClass(
+      'border-border-subtle',
+      'bg-surface-card',
+      'text-content-primary'
+    )
   })
 })
