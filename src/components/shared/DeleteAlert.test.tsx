@@ -8,6 +8,26 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => k
 import DeleteAlert, { type DeleteAlertRef } from './DeleteAlert'
 
 describe('DeleteAlert', () => {
+  it('notifies controlled callers once when closing with Cancel or Escape', async () => {
+    const ref = createRef<DeleteAlertRef>()
+    const onOpenChange = vi.fn()
+    render(
+      <DeleteAlert
+        ref={ref}
+        title="Delete message?"
+        body="This cannot be undone"
+        onDelete={vi.fn()}
+        onOpenChange={onOpenChange}
+      />
+    )
+    act(() => ref.current?.handleOpen(true))
+    await userEvent.click(screen.getByRole('button', { name: 'button.cancel' }))
+    expect(onOpenChange.mock.calls).toEqual([[true], [false]])
+    act(() => ref.current?.handleOpen(true))
+    await userEvent.keyboard('{Escape}')
+    expect(onOpenChange.mock.calls).toEqual([[true], [false], [true], [false]])
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
   it('never calls delete before confirmation and cancel closes without deleting', async () => {
     const user = userEvent.setup()
     const ref = createRef<DeleteAlertRef>()

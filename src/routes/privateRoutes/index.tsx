@@ -10,6 +10,8 @@ const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage
 const OrdersPage = lazy(() => import('@/modules/orders/pages/OrdersPage'))
 const OrderDetailPage = lazy(() => import('@/modules/orders/pages/OrderDetailPage'))
 const ReturnRequestsPage = lazy(() => import('@/modules/return-requests/pages/ReturnRequestsPage'))
+const ContactMessagesPage = lazy(() => import('@/modules/contact-messages/pages/ContactMessagesPage'))
+const ContactMessageDetailPage = lazy(() => import('@/modules/contact-messages/pages/ContactMessageDetailPage'))
 const ReturnRequestDetailPage = lazy(() => import('@/modules/return-requests/pages/ReturnRequestDetailPage'))
 const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
@@ -51,6 +53,8 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.orders, Component: OrdersPage },
       { path: Routes.orderDetail, Component: OrderDetailPage },
       { path: Routes.returnRequests, Component: ReturnRequestsPage },
+      { path: Routes.contactMessages, Component: ContactMessagesPage },
+      { path: Routes.contactMessageDetail, Component: ContactMessageDetailPage },
       { path: Routes.returnRequestDetail, Component: ReturnRequestDetailPage },
       { path: Routes.roles, Component: RolesPage },
       { path: Routes.admins, Component: AdminsPage },

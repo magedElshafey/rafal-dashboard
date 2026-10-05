@@ -32,11 +32,23 @@ interface DeleteAlertProps {
 
   onDelete: () => void | Promise<void>
   onCancel?: () => void
+  onOpenChange?: (open: boolean) => void
 }
 
 const DeleteAlert = forwardRef<DeleteAlertRef, DeleteAlertProps>(
   (
-    { title, body, isPending = false, disabled = false, confirmLabel, cancelLabel, pendingLabel, onDelete, onCancel },
+    {
+      title,
+      body,
+      isPending = false,
+      disabled = false,
+      confirmLabel,
+      cancelLabel,
+      pendingLabel,
+      onDelete,
+      onCancel,
+      onOpenChange,
+    },
     ref
   ) => {
     const { t } = useTranslation()
@@ -53,8 +65,9 @@ const DeleteAlert = forwardRef<DeleteAlertRef, DeleteAlertProps>(
         }
 
         setOpen(value)
+        onOpenChange?.(value)
       },
-      [isPending]
+      [isPending, onOpenChange]
     )
 
     /**
@@ -63,7 +76,8 @@ const DeleteAlert = forwardRef<DeleteAlertRef, DeleteAlertProps>(
      */
     const close = useCallback(() => {
       setOpen(false)
-    }, [])
+      onOpenChange?.(false)
+    }, [onOpenChange])
 
     useImperativeHandle(
       ref,

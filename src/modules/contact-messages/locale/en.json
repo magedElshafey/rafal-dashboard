@@ -1,0 +1,54 @@
+{
+  "contactMessages": {
+    "title": "Contact Messages",
+    "detailTitle": "Contact Message #{{id}}",
+    "newCount": "New Messages: {{count}}",
+    "total": "Messages: {{count}}",
+    "guest": "Guest",
+    "registered": "Registered User",
+    "unavailable": "Unavailable",
+    "contactInformation": "Contact Information",
+    "dates": "Dates",
+    "back": "Back to contact messages",
+    "invalidId": "This contact message ID is invalid.",
+    "viewNamed": "View contact message {{id}}",
+    "deleteNamed": "Delete contact message {{id}}",
+    "delete": "Delete",
+    "changeStatus": "Change Status",
+    "chooseStatus": "Choose a status",
+    "saveStatus": "Save Status",
+    "saving": "Saving…",
+    "deleteTitle": "Delete contact message #{{id}}?",
+    "deleteDescription": "This message will be permanently deleted. This action cannot be undone.",
+    "confirmDelete": "Confirm Delete",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "empty": "No contact messages",
+    "emptyDescription": "Messages submitted through Contact Us will appear here.",
+    "loadingMore": "Loading more messages",
+    "fields": {
+      "name": "Contact Name",
+      "contact": "Contact Method",
+      "email": "Email",
+      "phone": "Phone",
+      "subject": "Subject",
+      "message": "Message",
+      "status": "Status",
+      "account": "Source / Account",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "actions": "Actions"
+    },
+    "status": {
+      "new": "New",
+      "read": "Read",
+      "resolved": "Resolved"
+    },
+    "feedback": {
+      "updated": "Contact message status updated successfully",
+      "deleted": "Contact message deleted successfully",
+      "statusError": "Could not update the status. Please try again.",
+      "deleteError": "Could not delete the message. Please try again."
+    }
+  }
+}

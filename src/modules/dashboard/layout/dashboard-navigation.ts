@@ -17,6 +17,7 @@ import {
   MessageSquareQuote,
   FileText,
   RotateCcw,
+  Mail,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -37,6 +38,7 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
   },
   { to: Routes.orders, labelKey: 'orders.title', icon: Package, match: 'prefix' },
   { to: Routes.returnRequests, labelKey: 'returnRequests.title', icon: RotateCcw, match: 'prefix' },
+  { to: Routes.contactMessages, labelKey: 'contactMessages.title', icon: Mail, match: 'prefix' },
   {
     to: Routes.roles,
     labelKey: 'dashboard.sidebar.roles',

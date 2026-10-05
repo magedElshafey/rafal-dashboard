@@ -1,0 +1,83 @@
+{
+  "success": true,
+  "message": "Contact messages retrieved successfully",
+  "data": [
+    {
+      "id": 49,
+      "name": "test",
+      "email": "test@test.com",
+      "phone": "01091043660",
+      "subject": "test",
+      "message": "test tets tes",
+      "status": "new",
+      "status_label": "New",
+      "user": null,
+      "created_at": "2026-10-04T17:41:45+00:00",
+      "updated_at": "2026-10-04T17:41:45+00:00"
+    },
+    {
+      "id": 41,
+      "name": "عمر عبدالله",
+      "email": "thelma.osinski@hotmail.com",
+      "phone": null,
+      "subject": "استفسار عن المنتجات",
+      "message": "أريد الاستفسار عن توفر منتج معين في المخزن",
+      "status": "new",
+      "status_label": "New",
+      "user": null,
+      "created_at": "2026-10-01T20:34:14+00:00",
+      "updated_at": "2026-10-01T20:34:14+00:00"
+    },
+    {
+      "id": 42,
+      "name": "أحمد محمد",
+      "email": null,
+      "phone": "0512683968",
+      "subject": "استرجاع منتج",
+      "message": "متى يصل الطلب إذا اخترت الشحن السريع؟",
+      "status": "read",
+      "status_label": "Read",
+      "user": null,
+      "created_at": "2026-10-01T20:34:14+00:00",
+      "updated_at": "2026-10-01T20:34:14+00:00"
+    },
+    {
+      "id": 43,
+      "name": "خالد محمود",
+      "email": "marlon33@heidenreich.org",
+      "phone": null,
+      "subject": "استفسار عن المنتجات",
+      "message": "ما هي سياسة الاسترجاع والاستبدال؟",
+      "status": "resolved",
+      "status_label": "Resolved",
+      "user": null,
+      "created_at": "2026-10-01T20:34:14+00:00",
+      "updated_at": "2026-10-01T20:34:14+00:00"
+    },
+    {
+      "id": 45,
+      "name": "ليلى إبراهيم",
+      "email": null,
+      "phone": "0525939704",
+      "subject": "استفسار عن الضمان",
+      "message": "ما هي سياسة الاسترجاع والاستبدال؟",
+      "status": "new",
+      "status_label": "New",
+      "user": {
+        "id": 1,
+        "first_name": "abdullah",
+        "last_name": "essam",
+        "email": "abdullah.essam@gmail.com"
+      },
+      "created_at": "2026-10-01T20:34:14+00:00",
+      "updated_at": "2026-10-01T20:34:14+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 15,
+    "total": 9,
+    "new_count": 4
+  }
+}

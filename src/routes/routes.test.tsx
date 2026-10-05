@@ -6,8 +6,22 @@ import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
 import { PrivateRoutes } from '@/routes/privateRoutes'
 import { Routes as AppRoutes } from '@/routes/routes'
 import { useAuth } from '@/store/auth'
+import { dashboardNavigation } from '@/modules/dashboard/layout/dashboard-navigation'
 
 describe('core routes', () => {
+  it('registers only Contact Messages Index and full-page Detail routes', () => {
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(children.find((route) => route.path === AppRoutes.contactMessages)?.Component).toBeDefined()
+    expect(children.find((route) => route.path === AppRoutes.contactMessageDetail)?.Component).toBeDefined()
+    expect(AppRoutes.contactMessageDetailPath(49)).toBe('/dashboard/contact-messages/49')
+    expect(dashboardNavigation.find((item) => item.to === AppRoutes.contactMessages)).toMatchObject({
+      labelKey: 'contactMessages.title',
+      match: 'prefix',
+    })
+    expect(
+      children.filter((route) => route.path?.startsWith('/dashboard/contact-messages')).map((route) => route.path)
+    ).toEqual(['/dashboard/contact-messages', '/dashboard/contact-messages/:id'])
+  })
   it('registers only Orders Index and full-page Detail as lazy routes', () => {
     const children = PrivateRoutes.flatMap((route) => route.children ?? [])
     expect(children.find((route) => route.path === AppRoutes.orders)?.Component).toBeDefined()

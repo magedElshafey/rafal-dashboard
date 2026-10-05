@@ -4,6 +4,8 @@ import * as ordersEn from '@/modules/orders/locale/en.json'
 import * as returnRequestsAr from '@/modules/return-requests/locale/ar.json'
 import * as returnRequestsEn from '@/modules/return-requests/locale/en.json'
 import * as en from '@/lang/en.json'
+import * as contactMessagesAr from '@/modules/contact-messages/locale/ar.json'
+import * as contactMessagesEn from '@/modules/contact-messages/locale/en.json'
 import * as authAr from '@/modules/auth/locale/ar.json'
 import * as authEn from '@/modules/auth/locale/en.json'
 import * as dashboardAr from '@/modules/dashboard/locale/ar.json'
@@ -49,6 +51,7 @@ export const resources = {
   en: {
     translation: {
       ...en,
+      ...contactMessagesEn,
       ...ordersEn,
       ...returnRequestsEn,
       ...formEn,
@@ -76,6 +79,7 @@ export const resources = {
   ar: {
     translation: {
       ...ar,
+      ...contactMessagesAr,
       ...ordersAr,
       ...returnRequestsAr,
       ...formAr,
