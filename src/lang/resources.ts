@@ -1,6 +1,8 @@
 import * as ar from '@/lang/ar.json'
 import * as ordersAr from '@/modules/orders/locale/ar.json'
 import * as ordersEn from '@/modules/orders/locale/en.json'
+import * as returnRequestsAr from '@/modules/return-requests/locale/ar.json'
+import * as returnRequestsEn from '@/modules/return-requests/locale/en.json'
 import * as en from '@/lang/en.json'
 import * as authAr from '@/modules/auth/locale/ar.json'
 import * as authEn from '@/modules/auth/locale/en.json'
@@ -48,6 +50,7 @@ export const resources = {
     translation: {
       ...en,
       ...ordersEn,
+      ...returnRequestsEn,
       ...formEn,
       ...authEn,
       ...dashboardEn,
@@ -74,6 +77,7 @@ export const resources = {
     translation: {
       ...ar,
       ...ordersAr,
+      ...returnRequestsAr,
       ...formAr,
       ...authAr,
       ...dashboardAr,

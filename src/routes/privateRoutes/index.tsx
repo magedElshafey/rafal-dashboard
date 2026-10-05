@@ -9,6 +9,8 @@ import { Routes } from '@/routes/routes'
 const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
 const OrdersPage = lazy(() => import('@/modules/orders/pages/OrdersPage'))
 const OrderDetailPage = lazy(() => import('@/modules/orders/pages/OrderDetailPage'))
+const ReturnRequestsPage = lazy(() => import('@/modules/return-requests/pages/ReturnRequestsPage'))
+const ReturnRequestDetailPage = lazy(() => import('@/modules/return-requests/pages/ReturnRequestDetailPage'))
 const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
 const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
@@ -48,6 +50,8 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.dashboard, Component: DashboardPage },
       { path: Routes.orders, Component: OrdersPage },
       { path: Routes.orderDetail, Component: OrderDetailPage },
+      { path: Routes.returnRequests, Component: ReturnRequestsPage },
+      { path: Routes.returnRequestDetail, Component: ReturnRequestDetailPage },
       { path: Routes.roles, Component: RolesPage },
       { path: Routes.admins, Component: AdminsPage },
       { path: Routes.banners, Component: BannersPage },

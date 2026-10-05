@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "message": "Return requests retrieved successfully",
+  "data": [
+    {
+      "id": 31,
+      "order": {
+        "id": 47,
+        "order_number": "RF-10047",
+        "status": "delivered"
+      },
+      "user": {
+        "id": 1,
+        "name": "",
+        "email": "abdullah.essam@gmail.com"
+      },
+      "status": "pending",
+      "reason": "damaged",
+      "reason_label": "Damaged",
+      "comment": "no comment",
+      "decision_note": null,
+      "decided_at": null,
+      "created_at": "2026-09-26T17:49:57+00:00",
+      "updated_at": "2026-09-26T17:49:57+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 15
+  }
+}

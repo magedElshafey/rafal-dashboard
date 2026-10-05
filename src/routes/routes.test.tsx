@@ -18,6 +18,12 @@ describe('core routes', () => {
       '/dashboard/orders/:id',
     ])
   })
+  it('registers Return Requests Index and full-page Detail as lazy routes', () => {
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(children.find((route) => route.path === AppRoutes.returnRequests)?.Component).toBeDefined()
+    expect(children.find((route) => route.path === AppRoutes.returnRequestDetail)?.Component).toBeDefined()
+    expect(AppRoutes.returnRequestDetailPath(31)).toBe('/dashboard/return-requests/31')
+  })
   beforeEach(() => {
     useAuth.setState({ token: null, admin: null, isAuthenticated: false })
   })

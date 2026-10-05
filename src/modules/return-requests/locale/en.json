@@ -1,0 +1,74 @@
+{
+  "returnRequests": {
+    "direction": "ltr",
+    "title": "Return Requests",
+    "details": "Return Request Details",
+    "requestTitle": "Return Request #{{id}}",
+    "listTitle": "Return Requests ({{count}})",
+    "empty": "No return requests",
+    "emptyDescription": "Return requests will appear here when customers submit them.",
+    "view": "View details",
+    "viewNamed": "View return request {{id}}",
+    "back": "Back to return requests",
+    "invalidId": "This return request ID is invalid.",
+    "unavailable": "Unavailable",
+    "loading": "Loading return requests",
+    "error": "Unable to load return requests",
+    "retry": "Try again",
+    "fields": {
+      "id": "Request ID",
+      "order": "Order Number",
+      "user": "Customer",
+      "status": "Status",
+      "reason": "Reason",
+      "comment": "Customer Comment",
+      "decision": "Decision",
+      "decisionNote": "Decision Note",
+      "decidedBy": "Decided By",
+      "adminEmail": "Admin Email",
+      "decidedAt": "Decided At",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "actions": "Actions",
+      "orderStatus": "Order Status",
+      "name": "Name",
+      "email": "Email"
+    },
+    "sections": {
+      "request": "Return Request",
+      "order": "Order",
+      "customer": "Customer",
+      "reason": "Return Reason",
+      "decision": "Decision",
+      "dates": "Dates"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved"
+    },
+    "reason": {
+      "damaged": "Damaged"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "confirmApproval": "Confirm Approval",
+      "confirmRejection": "Confirm Rejection",
+      "approveDescription": "Approve return request #{{id}}. The backend will update the related order transaction.",
+      "rejectDescription": "Reject return request #{{id}}. A decision note is required.",
+      "optionalDecisionNote": "Optional decision note",
+      "requiredDecisionNote": "Required decision note",
+      "cancel": "Cancel",
+      "submitting": "Submitting…"
+    },
+    "validation": {
+      "decisionNoteRequired": "Decision note is required."
+    },
+    "feedback": {
+      "approved": "Return request approved successfully",
+      "rejected": "Return request rejected successfully",
+      "approveError": "Could not approve the return request. Please try again.",
+      "rejectError": "Could not reject the return request. Please try again."
+    }
+  }
+}
