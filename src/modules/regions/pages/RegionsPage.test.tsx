@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -38,17 +39,17 @@ const region = (id: number, overrides: Partial<Region> = {}): Region => ({
 let regions: Region[] = []
 
 function installServiceFixtures() {
-  const perPage = 15
   vi.spyOn(regionsService, 'list').mockImplementation(async (page) => {
-    const start = (page - 1) * perPage
-    const items = regions.slice(start, start + perPage)
-    const totalPages = Math.max(1, Math.ceil(regions.length / perPage))
+    const pageSize = 15
+    const start = (page - 1) * pageSize
+    const items = regions.slice(start, start + pageSize)
+    const totalPages = Math.max(1, Math.ceil(regions.length / pageSize))
     return {
       items,
       paginate: {
         current_page: page,
         total_pages: totalPages,
-        per_page: perPage,
+        per_page: pageSize,
         total: regions.length,
         count: items.length,
         next_page_url: page < totalPages ? String(page + 1) : null,
@@ -88,7 +89,7 @@ function installServiceFixtures() {
   })
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/regions') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
@@ -96,7 +97,9 @@ function renderPage() {
     client,
     ...render(
       <QueryClientProvider client={client}>
-        <RegionsPage />
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <RegionsPage />
+        </MemoryRouter>
       </QueryClientProvider>
     ),
   }
@@ -138,6 +141,41 @@ describe('RegionsPage', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
     expect(screen.getAllByText('42')).toHaveLength(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+    expect(list.mock.calls.map(([page]) => page)).toEqual([1, 2])
+    expect(list.mock.calls.every(([, , filters]) => filters?.isActive === null)).toBe(true)
+  })
+
+  it('retains filters on next pages, restarts pagination after Apply, and resets to the unfiltered list', async () => {
+    regions = Array.from({ length: 16 }, (_, index) => region(index + 1))
+    const list = vi.mocked(regionsService.list)
+    const user = userEvent.setup()
+
+    renderPage('/dashboard/regions?page=4&is_active=0&per_page=15')
+
+    expect(await screen.findAllByText('Region 16')).toHaveLength(2)
+    await waitFor(() => expect(list.mock.calls.some(([page]) => page === 2)).toBe(true))
+    expect(list.mock.calls.filter(([page]) => page <= 2).every(([, , filters]) => filters?.isActive === false)).toBe(
+      true
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('combobox', { name: 'Active' }))
+    await user.click(screen.getByRole('option', { name: 'Yes' }))
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.isActive === true && page === 1)).toBe(true)
+    )
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.isActive === true && page === 2)).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.isActive === null && page === 1)).toBe(true)
+    )
   })
 
   it('shows a safe retry and the shared empty state', async () => {

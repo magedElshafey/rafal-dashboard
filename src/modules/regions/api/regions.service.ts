@@ -2,10 +2,12 @@ import type {
   DeleteRegionResponse,
   RawRegion,
   RawRegionResponse,
+  RegionsFilters,
   RegionPayload,
   RegionResponse,
   RegionsIndexResponse,
 } from '@/modules/regions/types/region.types'
+import { emptyRegionsFilters, serializeRegionsFilters } from '@/modules/regions/utils/region-filters'
 import { $http } from '@/utils/http'
 
 export function serializeRegion(payload: RegionPayload) {
@@ -30,11 +32,11 @@ function normalizeResponse(response: RawRegionResponse): RegionResponse {
 }
 
 const regionsHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(page: number, signal?: AbortSignal, filters: RegionsFilters = emptyRegionsFilters) {
     return (
       await $http.get<RegionsIndexResponse>({
         url: '/dashboard/regions',
-        query: { page },
+        query: { ...serializeRegionsFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })
@@ -74,8 +76,12 @@ const regionsHttpTransport = {
 }
 
 export const regionsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ReturnType<typeof normalizeRegion>>> {
-    const response = await regionsHttpTransport.list(page, signal)
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: RegionsFilters = emptyRegionsFilters
+  ): Promise<PaginatedData<ReturnType<typeof normalizeRegion>>> {
+    const response = await regionsHttpTransport.list(page, signal, filters)
     const items = response.data.map(normalizeRegion)
     return {
       items,

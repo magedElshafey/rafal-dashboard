@@ -5,6 +5,7 @@ const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(),
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { regionsService, serializeRegion } from './regions.service'
+import { emptyRegionsFilters } from '../utils/region-filters'
 
 const rawRegion = {
   id: 1,
@@ -54,7 +55,13 @@ describe('regions service boundary', () => {
     httpMocks.put.mockResolvedValue({ data: itemResponse })
     httpMocks.delete.mockResolvedValue({ data: { success: true, message: 'deleted' } })
 
-    await expect(regionsService.list(1)).resolves.toMatchObject({
+    const filters = {
+      ...emptyRegionsFilters,
+      isActive: false,
+      sortBy: 'code' as const,
+      sortDir: 'desc' as const,
+    }
+    await expect(regionsService.list(1, undefined, filters)).resolves.toMatchObject({
       items: [expect.objectContaining({ id: 1, cities_count: 0 })],
       paginate: { total: 1 },
     })
@@ -64,7 +71,7 @@ describe('regions service boundary', () => {
 
     expect(httpMocks.get).toHaveBeenCalledWith({
       url: '/dashboard/regions',
-      query: { page: 1 },
+      query: { is_active: 0, sort_by: 'code', sort_dir: 'desc', page: 1 },
       signal: undefined,
       suppressErrorNotification: true,
     })

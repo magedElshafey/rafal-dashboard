@@ -30,3 +30,12 @@ export type RegionsIndexResponse = PaginatedDashboardResponse<RawRegion>
 export type RawRegionResponse = { success: boolean; message: string; data: RawRegion }
 export type RegionResponse = { success: boolean; message: string; data: Region }
 export type DeleteRegionResponse = Omit<RegionResponse, 'data'>
+
+export type RegionSortBy = 'sort_order' | 'name' | 'code' | 'created_at'
+export type RegionSortDir = 'asc' | 'desc'
+
+export type RegionsFilters = {
+  isActive: boolean | null
+  sortBy: RegionSortBy | null
+  sortDir: RegionSortDir | null
+}

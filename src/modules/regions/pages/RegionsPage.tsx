@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapPinned, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -20,11 +21,17 @@ import { useDeleteRegion } from '@/modules/regions/hooks/useDeleteRegion'
 import { useRegions } from '@/modules/regions/hooks/useRegions'
 import type { Region } from '@/modules/regions/types/region.types'
 import { getLocalizedRegionName } from '@/modules/regions/utils/region.utils'
+import { RegionFilters } from '@/modules/regions/components/RegionFilters'
+import { readRegionsFilters, regionFilterNames } from '@/modules/regions/utils/region-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function RegionsPage() {
+function RegionsContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const query = useRegions()
+  const filters = readRegionsFilters(forwardQuery)
+  const query = useRegions(filters)
   const deleteRegion = useDeleteRegion()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
@@ -35,7 +42,7 @@ function RegionsPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -76,8 +83,16 @@ function RegionsPage() {
 
   const deleteName = regionToDelete ? getLocalizedRegionName(regionToDelete.name, i18n.language) : ''
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('regions.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={regionFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('regions.filters.title')}
+      >
+        <RegionFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -143,4 +158,10 @@ function RegionsPage() {
   )
 }
 
-export default RegionsPage
+export default function RegionsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <RegionsContent />
+    </QueryProvider>
+  )
+}
