@@ -6,8 +6,13 @@ import type {
   ShippingMethodCreatePayload,
   ShippingMethodResponse,
   ShippingMethodsIndexResponse,
+  ShippingMethodsFilters,
   ShippingMethodUpdatePayload,
 } from '@/modules/shipping-methods/types/shipping-method.types'
+import {
+  emptyShippingMethodsFilters,
+  serializeShippingMethodsFilters,
+} from '@/modules/shipping-methods/utils/shipping-method-filters'
 import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
 
@@ -69,11 +74,11 @@ function normalizeResponse(response: RawShippingMethodResponse): ShippingMethodR
 }
 
 const shippingMethodsHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(page: number, signal?: AbortSignal, filters: ShippingMethodsFilters = emptyShippingMethodsFilters) {
     return (
       await $http.get<ShippingMethodsIndexResponse>({
         url: '/dashboard/shipping-methods',
-        query: { page },
+        query: { ...serializeShippingMethodsFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })
@@ -113,8 +118,12 @@ const shippingMethodsHttpTransport = {
 }
 
 export const shippingMethodsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ShippingMethod>> {
-    const response = await shippingMethodsHttpTransport.list(page, signal)
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: ShippingMethodsFilters = emptyShippingMethodsFilters
+  ): Promise<PaginatedData<ShippingMethod>> {
+    const response = await shippingMethodsHttpTransport.list(page, signal, filters)
     const items = response.data.map(normalizeShippingMethod)
     return {
       items,

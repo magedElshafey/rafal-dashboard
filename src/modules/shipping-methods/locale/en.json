@@ -8,6 +8,18 @@
     "total_one": "{{count}} shipping method",
     "total_other": "{{count}} shipping methods",
     "loadingMore": "Loading more shipping methods",
+    "filters": {
+      "title": "Shipping method filters",
+      "all": "All",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": {
+        "sort_order": "Sort order",
+        "code": "Code",
+        "created_at": "Created at"
+      },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "sections": {
       "basic": "Basic Information",
       "duration": "Delivery Duration",

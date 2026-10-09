@@ -9,6 +9,7 @@ import {
   serializeShippingMethodUpdate,
   shippingMethodsService,
 } from './shipping-methods.service'
+import { emptyShippingMethodsFilters } from '../utils/shipping-method-filters'
 
 const rawMethod = {
   id: 1,
@@ -56,6 +57,29 @@ describe('shippingMethodsService', () => {
       updatedAt: rawMethod.updated_at,
     })
     expect(result.paginate).toMatchObject({ current_page: 1, total_pages: 2, per_page: 15, total: 16 })
+  })
+
+  it('sends supported Index sorting server-side', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [],
+        meta: { current_page: 2, last_page: 2, per_page: 15, total: 16 },
+      },
+    })
+    const signal = new AbortController().signal
+    await shippingMethodsService.list(2, signal, {
+      ...emptyShippingMethodsFilters,
+      sortBy: 'created_at',
+      sortDir: 'desc',
+    })
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/shipping-methods',
+      query: { sort_by: 'created_at', sort_dir: 'desc', page: 2 },
+      signal,
+      suppressErrorNotification: true,
+    })
   })
 
   it('serializes exact Create FormData keys with trimmed text and shared boolean values', () => {

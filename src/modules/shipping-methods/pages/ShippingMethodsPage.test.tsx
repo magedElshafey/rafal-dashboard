@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -128,13 +129,15 @@ function installServiceFixtures() {
   })
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/shipping-methods') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={client}>
-      <ShippingMethodsPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <ShippingMethodsPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -161,7 +164,7 @@ describe('ShippingMethodsPage', () => {
     await i18n.changeLanguage('en')
   })
 
-  it('renders structural loading, infinite pagination, localized data, both responsive views, and no search/filter', async () => {
+  it('renders structural loading, infinite pagination, localized data, both responsive views, and no search', async () => {
     seedShippingMethods([
       rawMethod(16, {
         name: { ar: 'طريقة بلا ترجمة', en: '' },
@@ -183,7 +186,52 @@ describe('ShippingMethodsPage', () => {
     expect(screen.getAllByText('2.75')).toHaveLength(2)
     expect(screen.getAllByText('-2')).toHaveLength(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+  })
+
+  it('keeps drafts unapplied, retains sorting on next pages, restarts pagination, and resets', async () => {
+    seedShippingMethods(Array.from({ length: 16 }, (_, index) => rawMethod(index + 1)))
+    const list = vi.mocked(shippingMethodsService.list)
+    const user = userEvent.setup()
+    renderPage('/dashboard/shipping-methods?page=4&sort_by=code&sort_dir=asc')
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) => page === 2 && filters?.sortBy === 'code' && filters.sortDir === 'asc'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('combobox', { name: 'Sort direction' }))
+    await user.click(await screen.findByRole('option', { name: 'Descending' }))
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) => page === 1 && filters?.sortBy === 'code' && filters.sortDir === 'desc'
+        )
+      ).toBe(true)
+    )
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) => page === 2 && filters?.sortBy === 'code' && filters.sortDir === 'desc'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(([page, , filters]) => page === 1 && filters?.sortBy === null && filters.sortDir === null)
+      ).toBe(true)
+    )
   })
 
   it('shows safe Retry and the established empty state', async () => {

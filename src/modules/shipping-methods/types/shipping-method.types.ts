@@ -1,6 +1,14 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 import type { LocalizedName } from '@/types/localized-name.types'
 
+export type ShippingMethodSortBy = 'sort_order' | 'code' | 'created_at'
+export type ShippingMethodSortDir = 'asc' | 'desc'
+
+export type ShippingMethodsFilters = {
+  sortBy: ShippingMethodSortBy | null
+  sortDir: ShippingMethodSortDir | null
+}
+
 export type ShippingMethod = {
   id: number
   code: string

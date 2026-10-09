@@ -12,6 +12,18 @@
     "total_many": "{{count}} طريقة شحن",
     "total_other": "{{count}} طريقة شحن",
     "loadingMore": "جارٍ تحميل المزيد من طرق الشحن",
+    "filters": {
+      "title": "تصفية طرق الشحن",
+      "all": "الكل",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": {
+        "sort_order": "ترتيب العرض",
+        "code": "الرمز",
+        "created_at": "تاريخ الإنشاء"
+      },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "sections": {
       "basic": "المعلومات الأساسية",
       "duration": "مدة التوصيل",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Truck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,17 +15,26 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { ShippingMethodDrawer } from '@/modules/shipping-methods/components/ShippingMethodDrawer'
+import { ShippingMethodFilters } from '@/modules/shipping-methods/components/ShippingMethodFilters'
 import { ShippingMethodsList } from '@/modules/shipping-methods/components/ShippingMethodsList'
 import { ShippingMethodsListSkeleton } from '@/modules/shipping-methods/components/ShippingMethodsListSkeleton'
 import { useDeleteShippingMethod } from '@/modules/shipping-methods/hooks/useDeleteShippingMethod'
 import { useShippingMethods } from '@/modules/shipping-methods/hooks/useShippingMethods'
 import type { ShippingMethod } from '@/modules/shipping-methods/types/shipping-method.types'
 import { getLocalizedShippingMethodValue } from '@/modules/shipping-methods/utils/shipping-method.utils'
+import {
+  readShippingMethodsFilters,
+  shippingMethodFilterNames,
+} from '@/modules/shipping-methods/utils/shipping-method-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function ShippingMethodsPage() {
+function ShippingMethodsContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const query = useShippingMethods()
+  const filters = readShippingMethodsFilters(forwardQuery)
+  const query = useShippingMethods(filters)
   const deleteShippingMethod = useDeleteShippingMethod()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
@@ -38,7 +48,7 @@ function ShippingMethodsPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -86,8 +96,16 @@ function ShippingMethodsPage() {
   const deleteName = methodToDelete ? getLocalizedShippingMethodValue(methodToDelete.name, i18n.language) : ''
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('shippingMethods.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={shippingMethodFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('shippingMethods.filters.title')}
+      >
+        <ShippingMethodFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -163,4 +181,10 @@ function ShippingMethodsPage() {
   )
 }
 
-export default ShippingMethodsPage
+export default function ShippingMethodsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <ShippingMethodsContent />
+    </QueryProvider>
+  )
+}
