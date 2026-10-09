@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, TicketPercent } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,28 +15,35 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { CouponDrawer } from '@/modules/coupons/components/CouponDrawer'
+import { CouponFilters } from '@/modules/coupons/components/CouponFilters'
 import { CouponsList } from '@/modules/coupons/components/CouponsList'
 import { CouponsListSkeleton } from '@/modules/coupons/components/CouponsListSkeleton'
 import { useCoupons } from '@/modules/coupons/hooks/useCoupons'
 import { useDeleteCoupon } from '@/modules/coupons/hooks/useDeleteCoupon'
 import type { Coupon } from '@/modules/coupons/types/coupon.types'
 import { getLocalizedCouponValue } from '@/modules/coupons/utils/coupon.utils'
+import { couponFilterNames, readCouponsFilters, validCouponsDateRange } from '@/modules/coupons/utils/coupon-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function CouponsPage() {
+function CouponsContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const query = useCoupons()
+  const filters = readCouponsFilters(forwardQuery)
+  const query = useCoupons(filters)
   const deleteCoupon = useDeleteCoupon()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
   const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null)
   const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const coupons = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? coupons.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -89,8 +97,23 @@ function CouponsPage() {
   const deleteName = couponToDelete ? getLocalizedCouponValue(couponToDelete.name, i18n.language) : ''
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('coupons.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={couponFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('coupons.filters.title')}
+        onFilter={() => setShowFilterValidation(false)}
+        onReset={() => setShowFilterValidation(false)}
+        onApply={(draftQuery) => {
+          const valid = validCouponsDateRange(readCouponsFilters(draftQuery))
+          setShowFilterValidation(!valid)
+          return valid ? undefined : false
+        }}
+      >
+        <CouponFilters showValidation={showFilterValidation} />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -156,4 +179,10 @@ function CouponsPage() {
   )
 }
 
-export default CouponsPage
+export default function CouponsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <CouponsContent />
+    </QueryProvider>
+  )
+}

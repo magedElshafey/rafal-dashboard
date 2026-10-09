@@ -2,12 +2,14 @@ import type {
   Coupon,
   CouponCreatePayload,
   CouponResponse,
+  CouponsFilters,
   CouponsIndexResponse,
   CouponUpdatePayload,
   DeleteCouponResponse,
   RawCoupon,
   RawCouponResponse,
 } from '@/modules/coupons/types/coupon.types'
+import { emptyCouponsFilters, serializeCouponsFilters } from '@/modules/coupons/utils/coupon-filters'
 import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
 
@@ -89,11 +91,15 @@ function normalizeResponse(response: RawCouponResponse): CouponResponse {
 }
 
 export const couponsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Coupon>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: CouponsFilters = emptyCouponsFilters
+  ): Promise<PaginatedData<Coupon>> {
     const response = (
       await $http.get<CouponsIndexResponse>({
         url: '/dashboard/coupons',
-        query: { page },
+        query: { ...serializeCouponsFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })

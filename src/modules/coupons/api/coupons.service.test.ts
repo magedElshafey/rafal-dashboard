@@ -10,6 +10,7 @@ import {
   couponsService,
 } from '@/modules/coupons/api/coupons.service'
 import type { CouponCreatePayload, CouponUpdatePayload, RawCoupon } from '@/modules/coupons/types/coupon.types'
+import { emptyCouponsFilters } from '@/modules/coupons/utils/coupon-filters'
 
 const rawCoupon: RawCoupon = {
   id: 1,
@@ -86,6 +87,41 @@ describe('couponsService', () => {
       usagesCount: 3,
       name: rawCoupon.name,
       description: rawCoupon.description,
+    })
+  })
+
+  it('sends supported Index filters server-side and preserves false', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [],
+        meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 },
+      },
+    })
+    const signal = new AbortController().signal
+    await couponsService.list(1, signal, {
+      ...emptyCouponsFilters,
+      type: 'fixed',
+      isCurrentlyValid: false,
+      dateFrom: '2026-10-01',
+      dateTo: '2026-10-09',
+      sortBy: 'is_active',
+      sortDir: 'desc',
+    })
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/coupons',
+      query: {
+        type: 'fixed',
+        is_currently_valid: 0,
+        date_from: '2026-10-01',
+        date_to: '2026-10-09',
+        sort_by: 'is_active',
+        sort_dir: 'desc',
+        page: 1,
+      },
+      signal,
+      suppressErrorNotification: true,
     })
   })
 

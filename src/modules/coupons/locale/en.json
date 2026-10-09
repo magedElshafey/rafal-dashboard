@@ -7,6 +7,26 @@
     "createCoupon": "Create Coupon",
     "editCoupon": "Edit Coupon",
     "loadingMore": "Loading more coupons",
+    "filters": {
+      "title": "Coupon filters",
+      "all": "All",
+      "yes": "Yes",
+      "no": "No",
+      "type": "Type",
+      "isCurrentlyValid": "Currently valid",
+      "date_from": "Date from",
+      "date_to": "Date to",
+      "invalidRange": "The date-from value cannot be after the date-to value.",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": {
+        "created_at": "Created date",
+        "code": "Code",
+        "type": "Type",
+        "is_active": "Active status"
+      },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "empty": {
       "title": "No coupons yet",
       "description": "Create a coupon to offer a percentage or fixed discount."

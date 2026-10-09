@@ -2,6 +2,17 @@ import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 import type { LocalizedName } from '@/types/localized-name.types'
 
 export type CouponType = 'percent' | 'fixed'
+export type CouponSortBy = 'created_at' | 'code' | 'type' | 'is_active'
+export type CouponSortDir = 'asc' | 'desc'
+
+export type CouponsFilters = {
+  type: CouponType | null
+  isCurrentlyValid: boolean | null
+  dateFrom: string
+  dateTo: string
+  sortBy: CouponSortBy | null
+  sortDir: CouponSortDir | null
+}
 
 export type LocalizedNullableText = {
   ar: string | null

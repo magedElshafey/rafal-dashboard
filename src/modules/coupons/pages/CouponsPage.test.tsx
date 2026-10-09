@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -66,24 +67,28 @@ const fullUpdatePayload = (overrides: Partial<CouponUpdatePayload> = {}): Coupon
 
 let coupons: Coupon[] = []
 
-function page(items: Coupon[]) {
+function page(items: Coupon[], currentPage = 1, total = items.length) {
+  const totalPages = Math.max(1, Math.ceil(total / 15))
   return {
     items,
     paginate: {
-      current_page: 1,
-      total_pages: 1,
+      current_page: currentPage,
+      total_pages: totalPages,
       per_page: 15,
-      total: items.length,
+      total,
       count: items.length,
-      next_page_url: null,
-      prev_page_url: null,
+      next_page_url: currentPage < totalPages ? String(currentPage + 1) : null,
+      prev_page_url: currentPage > 1 ? String(currentPage - 1) : null,
     },
     extra: null,
   }
 }
 
 function installServiceFixtures() {
-  vi.spyOn(couponsService, 'list').mockImplementation(async () => page(coupons))
+  vi.spyOn(couponsService, 'list').mockImplementation(async (currentPage) => {
+    const start = (currentPage - 1) * 15
+    return page(coupons.slice(start, start + 15), currentPage, coupons.length)
+  })
   vi.spyOn(couponsService, 'create').mockImplementation(async (payload) => {
     const created = coupon({ id: 2, ...payload, usagesCount: 0 })
     coupons = [created, ...coupons]
@@ -107,13 +112,15 @@ function installServiceFixtures() {
   })
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/coupons') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   render(
     <QueryClientProvider client={client}>
-      <CouponsPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <CouponsPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
   return client
@@ -134,14 +141,107 @@ describe('CouponsPage', () => {
     await i18n.changeLanguage('en')
   })
 
-  it('renders the responsive real list with no unsupported search or filters', async () => {
+  it('renders the responsive real list with no unsupported search and the filter trigger', async () => {
     renderPage()
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
     expect(await screen.findAllByText('Welcome')).toHaveLength(2)
     expect(screen.getAllByText('Percent').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Public').length).toBeGreaterThan(0)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+  })
+
+  it('surfaces an invalid date range only after Apply and keeps the applied query', async () => {
+    const list = vi.mocked(couponsService.list)
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findAllByText('Welcome')
+    const appliedRequestCount = list.mock.calls.length
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Date from'), '2026-10-10')
+    await user.type(screen.getByLabelText('Date to'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Date from')).toHaveAttribute('aria-invalid', 'false')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('The date-from value cannot be after the date-to value.')
+    expect(screen.getByLabelText('Date from')).toHaveAttribute('aria-describedby', 'coupons-date-range-error')
+    expect(screen.getByLabelText('Date to')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+  })
+
+  it('does not request an invalid applied deep-link date range', async () => {
+    const list = vi.mocked(couponsService.list)
+    renderPage('/dashboard/coupons?date_from=2026-10-10&date_to=2026-10-09')
+    await waitFor(() => expect(list).not.toHaveBeenCalled())
+  })
+
+  it('keeps drafts unapplied, retains filters on next pages, restarts pagination, and resets', async () => {
+    coupons = Array.from({ length: 16 }, (_, index) =>
+      coupon({
+        id: index + 1,
+        code: `CODE-${index + 1}`,
+        name: { ar: `قسيمة ${index + 1}`, en: `Coupon ${index + 1}` },
+      })
+    )
+    const list = vi.mocked(couponsService.list)
+    const user = userEvent.setup()
+    renderPage('/dashboard/coupons?page=4&type=percent&is_currently_valid=0')
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([requestedPage, , filters]) =>
+            requestedPage === 2 && filters?.type === 'percent' && filters.isCurrentlyValid === false
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const appliedRequestCount = list.mock.calls.length
+    await user.type(screen.getByLabelText('Date from'), '2026-10-01')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([requestedPage, , filters]) =>
+            requestedPage === 1 &&
+            filters?.type === 'percent' &&
+            filters.isCurrentlyValid === false &&
+            filters.dateFrom === '2026-10-01'
+        )
+      ).toBe(true)
+    )
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([requestedPage, , filters]) =>
+            requestedPage === 2 &&
+            filters?.type === 'percent' &&
+            filters.isCurrentlyValid === false &&
+            filters.dateFrom === '2026-10-01'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([requestedPage, , filters]) =>
+            requestedPage === 1 &&
+            filters?.type === null &&
+            filters.isCurrentlyValid === null &&
+            filters.dateFrom === ''
+        )
+      ).toBe(true)
+    )
   })
 
   it('shows a safe retryable initial error and the localized empty state', async () => {
