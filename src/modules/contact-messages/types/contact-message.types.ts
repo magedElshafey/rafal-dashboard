@@ -16,6 +16,15 @@ export type RawContactMessageShowEnvelope = z.infer<typeof contactMessageShowEnv
 export type RawContactMessageStatusEnvelope = z.infer<typeof contactMessageStatusEnvelopeSchema>
 export type RawContactMessageDeleteEnvelope = z.infer<typeof contactMessageDeleteEnvelopeSchema>
 export type ContactMessageWritableStatus = z.infer<typeof contactMessageWritableStatusSchema>
+export type ContactMessageSortBy = 'created_at' | 'status' | 'name'
+export type ContactMessageSortDir = 'asc' | 'desc'
+
+export type ContactMessagesFilters = {
+  createdFrom: string
+  createdTo: string
+  sortBy: ContactMessageSortBy | null
+  sortDir: ContactMessageSortDir | null
+}
 
 export type ContactMessage = {
   id: number

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useIsMutating } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -9,15 +10,26 @@ import { QueryStateNotice } from '@/components/shared/query-state/components/Que
 import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 import { ContactMessageDeleteDialog } from '../components/ContactMessageDeleteDialog'
+import { ContactMessageFilters } from '../components/ContactMessageFilters'
 import { ContactMessagesList, ContactMessagesListSkeleton } from '../components/ContactMessagesList'
 import { useContactMessages } from '../hooks/useContactMessages'
 import { contactMessagesKeys } from '../queries/contact-messages.keys'
 import type { ContactMessage } from '../types/contact-message.types'
+import {
+  contactMessageFilterNames,
+  readContactMessagesFilters,
+  validContactMessagesCreatedRange,
+} from '../utils/contact-message-filters'
 
-export default function ContactMessagesPage() {
+function ContactMessagesContent() {
   const { t } = useTranslation()
-  const query = useContactMessages()
+  const { forwardQuery } = useQuery()
+  const filters = readContactMessagesFilters(forwardQuery)
+  const query = useContactMessages(filters)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const [target, setTarget] = useState<ContactMessage | null>(null)
   const mutating = useIsMutating({ mutationKey: contactMessagesKeys.all }) > 0
   const messages = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
@@ -25,7 +37,7 @@ export default function ContactMessagesPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetching && !query.isFetchNextPageError),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
   return (
     <main className="min-w-0 space-y-4">
@@ -33,6 +45,21 @@ export default function ContactMessagesPage() {
         title={t('contactMessages.title')}
         description={meta ? t('contactMessages.newCount', { count: meta.newCount }) : undefined}
       />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={contactMessageFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('contactMessages.filters.title')}
+        onFilter={() => setShowFilterValidation(false)}
+        onReset={() => setShowFilterValidation(false)}
+        onApply={(draftQuery) => {
+          const valid = validContactMessagesCreatedRange(readContactMessagesFilters(draftQuery))
+          setShowFilterValidation(!valid)
+          return valid ? undefined : false
+        }}
+      >
+        <ContactMessageFilters showValidation={showFilterValidation} />
+      </FiltersWrapper>
       <QueryStateBoundary
         isLoading={query.isLoading}
         loadingFallback={<ContactMessagesListSkeleton />}
@@ -81,5 +108,13 @@ export default function ContactMessagesPage() {
         />
       ) : null}
     </main>
+  )
+}
+
+export default function ContactMessagesPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <ContactMessagesContent />
+    </QueryProvider>
   )
 }

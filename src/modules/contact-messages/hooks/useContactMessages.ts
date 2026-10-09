@@ -4,12 +4,14 @@ import { toast } from 'sonner'
 import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
 import { contactMessagesService } from '../api/contact-messages.service'
 import { contactMessagesKeys } from '../queries/contact-messages.keys'
-import type { ContactMessageWritableStatus } from '../types/contact-message.types'
+import type { ContactMessagesFilters, ContactMessageWritableStatus } from '../types/contact-message.types'
+import { emptyContactMessagesFilters, validContactMessagesCreatedRange } from '../utils/contact-message-filters'
 
-export function useContactMessages() {
+export function useContactMessages(filters: ContactMessagesFilters = emptyContactMessagesFilters) {
   return useInfinitePaginatedQuery({
-    queryKey: contactMessagesKeys.list(),
-    queryFn: contactMessagesService.list,
+    queryKey: contactMessagesKeys.list(filters),
+    queryFn: (page, signal) => contactMessagesService.list(page, signal, filters),
+    enabled: validContactMessagesCreatedRange(filters),
     retry: false,
   })
 }

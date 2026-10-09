@@ -7,7 +7,13 @@ import {
   contactMessagesIndexEnvelopeSchema,
   contactMessageWritableStatusSchema,
 } from '../schemas/contact-message.schema'
-import type { ContactMessage, ContactMessagesMeta, ContactMessageWritableStatus } from '../types/contact-message.types'
+import type {
+  ContactMessage,
+  ContactMessagesFilters,
+  ContactMessagesMeta,
+  ContactMessageWritableStatus,
+} from '../types/contact-message.types'
+import { emptyContactMessagesFilters, serializeContactMessagesFilters } from '../utils/contact-message-filters'
 import { normalizeContactMessage } from '../utils/contact-message-normalizers'
 
 const baseUrl = '/dashboard/contact-messages'
@@ -23,9 +29,18 @@ function assertIdentity(detail: ContactMessage, id: number) {
 }
 
 export const contactMessagesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ContactMessage, ContactMessagesMeta>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: ContactMessagesFilters = emptyContactMessagesFilters
+  ): Promise<PaginatedData<ContactMessage, ContactMessagesMeta>> {
     contactMessageIdSchema.parse(page)
-    const response = await $http.get({ url: baseUrl, query: { page }, signal, suppressErrorNotification: true })
+    const response = await $http.get({
+      url: baseUrl,
+      query: { ...serializeContactMessagesFilters(filters), page },
+      signal,
+      suppressErrorNotification: true,
+    })
     const { data, meta } = contactMessagesIndexEnvelopeSchema.parse(response.data)
     const items = data.map(normalizeContactMessage)
     return {

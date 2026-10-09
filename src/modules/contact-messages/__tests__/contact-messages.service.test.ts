@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { contactMessagesService } from '../api/contact-messages.service'
 import { rawContactMessageSchema, contactMessageWritableStatusSchema } from '../schemas/contact-message.schema'
+import { emptyContactMessagesFilters } from '../utils/contact-message-filters'
 import index from './contact-messages-index.fixture.json'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), delete: vi.fn() }))
@@ -38,6 +39,34 @@ describe('Contact Messages service contracts', () => {
       email: 'abdullah.essam@gmail.com',
     })
   })
+  it('forwards supported Index filters without search or per_page and preserves authoritative counts', async () => {
+    http.get.mockResolvedValue({ data: index })
+    const signal = new AbortController().signal
+    const result = await contactMessagesService.list(2, signal, {
+      ...emptyContactMessagesFilters,
+      createdFrom: '2026-10-01',
+      createdTo: '2026-10-09',
+      sortBy: 'status',
+      sortDir: 'desc',
+    })
+
+    expect(http.get).toHaveBeenCalledWith({
+      url: '/dashboard/contact-messages',
+      query: {
+        created_from: '2026-10-01',
+        created_to: '2026-10-09',
+        sort_by: 'status',
+        sort_dir: 'desc',
+        page: 2,
+      },
+      signal,
+      suppressErrorNotification: true,
+    })
+    expect(http.get.mock.calls[0][0].query).not.toHaveProperty('search')
+    expect(http.get.mock.calls[0][0].query).not.toHaveProperty('per_page')
+    expect(result.extra?.newCount).toBe(4)
+  })
+
   it('reads matching Show identity and rejects the supplied /40 -> 49 inconsistency', async () => {
     http.get.mockResolvedValue({ data: { success: true, data: index.data[0] } })
     await expect(contactMessagesService.show(49)).resolves.toMatchObject({ id: 49 })

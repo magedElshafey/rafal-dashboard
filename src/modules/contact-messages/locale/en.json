@@ -49,6 +49,24 @@
       "deleted": "Contact message deleted successfully",
       "statusError": "Could not update the status. Please try again.",
       "deleteError": "Could not delete the message. Please try again."
+    },
+    "filters": {
+      "title": "Filter contact messages",
+      "all": "All",
+      "created_from": "Created From",
+      "created_to": "Created To",
+      "invalidRange": "The created-from value cannot be after the created-to value.",
+      "sortBy": "Sort By",
+      "sortDir": "Sort Direction",
+      "sort": {
+        "created_at": "Created At",
+        "status": "Status",
+        "name": "Name"
+      },
+      "direction": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      }
     }
   }
 }

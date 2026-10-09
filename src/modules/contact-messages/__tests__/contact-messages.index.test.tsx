@@ -9,6 +9,32 @@ import { installDomMocks, renderMessages } from './test-utils'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), delete: vi.fn() }))
 const toast = vi.hoisted(() => ({ success: vi.fn() }))
+const contactMessageCalls = () =>
+  http.get.mock.calls.filter(([request]) => request.url === '/dashboard/contact-messages')
+
+function installFilterBackend(itemCount = 1) {
+  const messages = Array.from({ length: itemCount }, (_, itemIndex) => ({
+    ...index.data[0],
+    id: itemIndex + 1,
+    name: `Contact ${itemIndex + 1}`,
+  }))
+
+  http.get.mockImplementation(async (request) => {
+    const page = Number(request.query?.page ?? 1)
+    return {
+      data: {
+        ...index,
+        data: messages.slice((page - 1) * 15, page * 15),
+        meta: {
+          ...index.meta,
+          current_page: page,
+          last_page: Math.max(1, Math.ceil(messages.length / 15)),
+          total: messages.length,
+        },
+      },
+    }
+  })
+}
 vi.mock('@/utils/http', () => ({ $http: http }))
 vi.mock('sonner', () => ({ toast }))
 beforeEach(async () => {
@@ -104,6 +130,127 @@ describe('Contact Messages Index', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(http.patch).not.toHaveBeenCalled()
   })
+  it('shows invalid date validation only after Apply and keeps the applied query unchanged', async () => {
+    installFilterBackend()
+    const user = userEvent.setup()
+    renderMessages('/dashboard/contact-messages?sort_by=name&sort_dir=asc')
+
+    await screen.findAllByText('Contact 1')
+    const appliedRequestCount = contactMessageCalls().length
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Created From'), '2026-10-10')
+    await user.type(screen.getByLabelText('Created To'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Created From')).toHaveAttribute('aria-invalid', 'false')
+    expect(contactMessageCalls()).toHaveLength(appliedRequestCount)
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The created-from value cannot be after the created-to value.'
+    )
+    expect(screen.getByLabelText('Created From')).toHaveAttribute(
+      'aria-describedby',
+      'contact-messages-created-range-error'
+    )
+    expect(screen.getByLabelText('Created To')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(contactMessageCalls()).toHaveLength(appliedRequestCount)
+    expect(contactMessageCalls().at(-1)?.[0].query).toMatchObject({ sort_by: 'name', sort_dir: 'asc' })
+  })
+
+  it('does not request an invalid applied deep-link date range', async () => {
+    installFilterBackend()
+
+    renderMessages('/dashboard/contact-messages?created_from=2026-10-10&created_to=2026-10-09')
+
+    await waitFor(() => expect(contactMessageCalls()).toHaveLength(0))
+  })
+
+  it('keeps drafts unapplied, retains filters across pages, restarts pagination, and resets', async () => {
+    let intersect = () => {}
+    let observerCount = 0
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+          observerCount += 1
+          intersect = () => callback([{ isIntersecting: true }])
+        }
+        observe() {}
+        disconnect() {}
+      }
+    )
+    installFilterBackend(16)
+    const user = userEvent.setup()
+    renderMessages('/dashboard/contact-messages?page=4&created_from=2026-10-01&sort_by=status&sort_dir=asc')
+
+    await waitFor(() =>
+      expect(
+        contactMessageCalls().some(
+          ([request]) => request.query?.page === 1 && request.query?.created_from === '2026-10-01'
+        )
+      ).toBe(true)
+    )
+    await waitFor(() => expect(observerCount).toBeGreaterThan(0))
+    await act(async () => intersect())
+    await waitFor(() =>
+      expect(
+        contactMessageCalls().some(
+          ([request]) =>
+            request.query?.page === 2 &&
+            request.query?.created_from === '2026-10-01' &&
+            request.query?.sort_by === 'status' &&
+            request.query?.sort_dir === 'asc'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const appliedRequestCount = contactMessageCalls().length
+    await user.type(screen.getByLabelText('Created To'), '2026-10-09')
+    expect(contactMessageCalls()).toHaveLength(appliedRequestCount)
+    const observerCountBeforeApply = observerCount
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(
+        contactMessageCalls().some(
+          ([request]) =>
+            request.query?.page === 1 &&
+            request.query?.created_from === '2026-10-01' &&
+            request.query?.created_to === '2026-10-09' &&
+            request.query?.sort_by === 'status' &&
+            request.query?.sort_dir === 'asc'
+        )
+      ).toBe(true)
+    )
+    await waitFor(() => expect(observerCount).toBeGreaterThan(observerCountBeforeApply))
+    await act(async () => intersect())
+    await waitFor(() =>
+      expect(
+        contactMessageCalls().some(
+          ([request]) => request.query?.page === 2 && request.query?.created_to === '2026-10-09'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(
+        contactMessageCalls().some(
+          ([request]) =>
+            request.query?.page === 1 &&
+            request.query?.created_from === undefined &&
+            request.query?.created_to === undefined &&
+            request.query?.sort_by === undefined &&
+            request.query?.sort_dir === undefined
+        )
+      ).toBe(true)
+    )
+  })
+
   it('renders plain bounded content, unknown status, and unavailable contact methods', async () => {
     const message = '<img src=x onerror=alert(1)>\n' + 'long '.repeat(200)
     http.get.mockResolvedValue({
