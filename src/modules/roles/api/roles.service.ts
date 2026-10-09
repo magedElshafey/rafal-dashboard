@@ -4,8 +4,10 @@ import type {
   Role,
   RoleResponse,
   RolesIndexResponse,
+  RolesFilters,
   UpdateRolePayload,
 } from '@/modules/roles/types/role.types'
+import { emptyRolesFilters, serializeRolesFilters } from '@/modules/roles/utils/role-filters'
 import { $http } from '@/utils/http'
 
 function serializeRole(payload: CreateRolePayload | UpdateRolePayload) {
@@ -16,10 +18,10 @@ function serializeRole(payload: CreateRolePayload | UpdateRolePayload) {
 }
 
 const rolesHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(page: number, signal?: AbortSignal, filters: RolesFilters = emptyRolesFilters) {
     const response = await $http.get<RolesIndexResponse>({
       url: '/dashboard/roles',
-      query: { page },
+      query: { ...serializeRolesFilters(filters), page },
       signal,
       suppressErrorNotification: true,
     })
@@ -64,8 +66,12 @@ const rolesHttpTransport = {
 }
 
 export const rolesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Role>> {
-    const response = await rolesHttpTransport.list(page, signal)
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: RolesFilters = emptyRolesFilters
+  ): Promise<PaginatedData<Role>> {
+    const response = await rolesHttpTransport.list(page, signal, filters)
     return {
       items: response.data,
       paginate: {

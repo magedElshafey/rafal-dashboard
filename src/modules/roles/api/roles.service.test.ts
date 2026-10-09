@@ -5,6 +5,7 @@ const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(),
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { rolesService, serializeRole } from '@/modules/roles/api/roles.service'
+import { emptyRolesFilters } from '@/modules/roles/utils/role-filters'
 
 describe('roles service serialization', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -18,6 +19,31 @@ describe('roles service serialization', () => {
 
   it('omits optional permissions when none are supplied', () => {
     expect(serializeRole({ name: 'Warehouse Staff' }).has('permissions[]')).toBe(false)
+  })
+
+  it('sends supported Index search and sorting server-side without per_page', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [],
+        meta: { current_page: 2, last_page: 2, per_page: 15, total: 16 },
+      },
+    })
+    const signal = new AbortController().signal
+    await rolesService.list(2, signal, {
+      ...emptyRolesFilters,
+      search: 'manager',
+      sortBy: 'created_at',
+      sortDir: 'desc',
+    })
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/roles',
+      query: { search: 'manager', sort_by: 'created_at', sort_dir: 'desc', page: 2 },
+      signal,
+      suppressErrorNotification: true,
+    })
+    expect(httpMocks.get.mock.calls[0][0].query).not.toHaveProperty('per_page')
   })
 
   it('calls only the real Role endpoints through shared HTTP', async () => {

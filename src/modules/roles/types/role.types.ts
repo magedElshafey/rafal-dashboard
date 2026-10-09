@@ -1,3 +1,14 @@
+import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
+
+export type RoleSortBy = 'name' | 'created_at'
+export type RoleSortDir = 'asc' | 'desc'
+
+export type RolesFilters = {
+  search: string
+  sortBy: RoleSortBy | null
+  sortDir: RoleSortDir | null
+}
+
 export type Role = {
   id: number
   name: string
@@ -28,8 +39,3 @@ export type RoleFormValues = {
   name: string
   permissions: string[]
 }
-
-export type RolesListParams = {
-  page: number
-}
-import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'

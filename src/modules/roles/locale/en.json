@@ -11,6 +11,15 @@
     "noPermissions": "No permissions",
     "loadingForm": "Loading role form…",
     "loadingMore": "Loading more roles…",
+    "filters": {
+      "title": "Role filters",
+      "search": "Search roles",
+      "all": "All",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": { "name": "Name", "created_at": "Created at" },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "morePermissions_one": "{{count}} more permission",
     "morePermissions_other": "{{count}} more permissions",
     "actions": {

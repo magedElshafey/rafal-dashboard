@@ -15,6 +15,15 @@
     "noPermissions": "لا توجد صلاحيات",
     "loadingForm": "جارٍ تحميل نموذج الدور…",
     "loadingMore": "جارٍ تحميل المزيد من الأدوار…",
+    "filters": {
+      "title": "تصفية الأدوار",
+      "search": "البحث في الأدوار",
+      "all": "الكل",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": { "name": "الاسم", "created_at": "تاريخ الإنشاء" },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "morePermissions_zero": "لا توجد صلاحيات إضافية",
     "morePermissions_one": "صلاحية إضافية واحدة",
     "morePermissions_two": "صلاحيتان إضافيتان",

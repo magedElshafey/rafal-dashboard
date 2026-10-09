@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,16 +15,24 @@ import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { RoleDrawer } from '@/modules/roles/components/RoleDrawer'
+import { RoleFilters } from '@/modules/roles/components/RoleFilters'
 import { RolesList } from '@/modules/roles/components/RolesList'
 import { RolesListSkeleton } from '@/modules/roles/components/RolesListSkeleton'
 import { useDeleteRole } from '@/modules/roles/hooks/useDeleteRole'
 import { useRoles } from '@/modules/roles/hooks/useRoles'
 import type { Role } from '@/modules/roles/types/role.types'
+import { readRolesFilters, roleFilterNames } from '@/modules/roles/utils/role-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function RolesPage() {
+const roleManagedFilterNames = ['search', ...roleFilterNames]
+
+function RolesContent() {
   const { t } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const rolesQuery = useRoles()
+  const filters = readRolesFilters(forwardQuery)
+  const rolesQuery = useRoles(filters)
   const deleteRole = useDeleteRole()
   const deleteAlertRef = useRef<DeleteAlertRef>(null)
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
@@ -33,7 +42,7 @@ function RolesPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(rolesQuery.hasNextPage && !rolesQuery.isFetchingNextPage),
     onLoadMore: rolesQuery.fetchNextPage,
-    operationKey: rolesQuery.data?.pages.length,
+    operationKey: JSON.stringify([filters, rolesQuery.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -68,10 +77,18 @@ function RolesPage() {
       // The feature mutation owns localized error feedback; keep confirmation open for retry/cancel.
     }
   }
-
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('roles.title')} actions={createButton} />
+      <FiltersWrapper
+        filterNames={roleManagedFilterNames}
+        resetQueryNamesOnChange={['page']}
+        searchLabel={t('roles.filters.search')}
+        searchPlaceholder={t('roles.filters.search')}
+        dialogTitle={t('roles.filters.title')}
+      >
+        <RoleFilters />
+      </FiltersWrapper>
 
       <QueryStateBoundary
         loadingFallback={loadingSurface}
@@ -140,4 +157,10 @@ function RolesPage() {
   )
 }
 
-export default RolesPage
+export default function RolesPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <RolesContent />
+    </QueryProvider>
+  )
+}

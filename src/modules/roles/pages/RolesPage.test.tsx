@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -22,6 +23,9 @@ class ResizeObserverMock {
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 Element.prototype.scrollIntoView = vi.fn()
+HTMLElement.prototype.hasPointerCapture = vi.fn(() => false)
+HTMLElement.prototype.setPointerCapture = vi.fn()
+HTMLElement.prototype.releasePointerCapture = vi.fn()
 
 let roles: Role[] = []
 let permissions: Permission[] = []
@@ -81,13 +85,15 @@ function installServiceFixtures() {
   vi.spyOn(permissionsService, 'list').mockImplementation(async (page) => paginated(permissions, page))
 }
 
-function renderRolesPage() {
+function renderRolesPage(initialEntry = '/dashboard/roles') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <RolesPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <RolesPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -124,7 +130,7 @@ describe('RolesPage', () => {
 
   afterEach(() => vi.restoreAllMocks())
 
-  it('renders a mirrored loading state, then one query in desktop table and mobile cards without search', async () => {
+  it('renders a mirrored loading state, then one query in desktop table and mobile cards with shared search', async () => {
     renderRolesPage()
 
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
@@ -132,7 +138,93 @@ describe('RolesPage', () => {
     expect(await screen.findAllByText('Content Manager')).toHaveLength(2)
     expect(document.querySelector('[data-slot="responsive-data-desktop"]')).toBeInTheDocument()
     expect(document.querySelector('[data-slot="responsive-data-mobile-cards"]')).toBeInTheDocument()
-    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Search roles' })).toBeInTheDocument()
+  })
+
+  it('resets pagination for search and Apply, retains filters on next pages, and resets all filters', async () => {
+    roles = Array.from({ length: 16 }, (_, index) => ({
+      id: index + 1,
+      name: `Role ${index + 1}`,
+      permissions: [],
+    }))
+    const list = vi.mocked(rolesService.list)
+    const user = userEvent.setup()
+    renderRolesPage('/dashboard/roles?page=4&search=Manager&sort_by=name&sort_dir=asc')
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 2 && filters?.search === 'Manager' && filters.sortBy === 'name' && filters.sortDir === 'asc'
+        )
+      ).toBe(true)
+    )
+
+    const search = screen.getByRole('textbox', { name: 'Search roles' })
+    await user.clear(search)
+    await user.type(search, 'Auditor')
+    await waitFor(
+      () =>
+        expect(
+          list.mock.calls.some(
+            ([page, , filters]) =>
+              page === 1 && filters?.search === 'Auditor' && filters.sortBy === 'name' && filters.sortDir === 'asc'
+          )
+        ).toBe(true),
+      { timeout: 2000 }
+    )
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 2 && filters?.search === 'Auditor' && filters.sortBy === 'name' && filters.sortDir === 'asc'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('combobox', { name: 'Sort direction' }))
+    await user.click(await screen.findByRole('option', { name: 'Descending' }))
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 1 && filters?.search === 'Auditor' && filters.sortBy === 'name' && filters.sortDir === 'desc'
+        )
+      ).toBe(true)
+    )
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 2 && filters?.search === 'Auditor' && filters.sortBy === 'name' && filters.sortDir === 'desc'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const resetRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 1 && filters?.search === '' && filters.sortBy === null && filters.sortDir === null
+        )
+      ).toBe(true)
+    )
+    expect(
+      list.mock.calls
+        .slice(resetRequestCount)
+        .filter(
+          ([page, , filters]) =>
+            page === 1 && filters?.search === '' && filters.sortBy === null && filters.sortDir === null
+        )
+    ).toHaveLength(1)
+    expect(screen.getByPlaceholderText('Search roles')).toHaveValue('')
   })
 
   it('uses the standard empty state and create action', async () => {
