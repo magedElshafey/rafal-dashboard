@@ -2,12 +2,14 @@ import { normalizeCategory } from '@/modules/categories/api/category.mapper'
 
 import type {
   Category,
+  CategoriesFilters,
   CategoryPayload,
   CategoryResponse,
   DeleteCategoryResponse,
   RawCategoriesIndexResponse,
   RawCategoryResponse,
 } from '@/modules/categories/types/category.types'
+import { serializeCategoriesFilters } from '@/modules/categories/utils/category-filters'
 import { $http } from '@/utils/http'
 
 function normalizeResponse(response: RawCategoryResponse): CategoryResponse {
@@ -30,10 +32,10 @@ export function serializeCategory(payload: CategoryPayload) {
 }
 
 const categoriesHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(filters: CategoriesFilters, page: number, signal?: AbortSignal) {
     const response = await $http.get<RawCategoriesIndexResponse>({
       url: '/dashboard/categories',
-      query: { page },
+      query: { ...serializeCategoriesFilters(filters), page },
       signal,
       suppressErrorNotification: true,
     })
@@ -78,8 +80,8 @@ const categoriesHttpTransport = {
 }
 
 export const categoriesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Category>> {
-    const response = await categoriesHttpTransport.list(page, signal)
+  async list(filters: CategoriesFilters, page: number, signal?: AbortSignal): Promise<PaginatedData<Category>> {
+    const response = await categoriesHttpTransport.list(filters, page, signal)
     const items = response.data.map(normalizeCategory)
     return {
       items,

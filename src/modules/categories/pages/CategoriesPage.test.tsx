@@ -1,13 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { categoriesService } from '@/modules/categories/api/categories.service'
 import CategoriesPage from '@/modules/categories/pages/CategoriesPage'
-import type { Category, CategoryPayload } from '@/modules/categories/types/category.types'
+import type { CategoriesFilters, Category, CategoryPayload } from '@/modules/categories/types/category.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -49,7 +50,7 @@ function initialCategories() {
 
 function installCategoryServiceFixtures() {
   const pageSize = 15
-  vi.spyOn(categoriesService, 'list').mockImplementation(async (page) => {
+  vi.spyOn(categoriesService, 'list').mockImplementation(async (_filters: CategoriesFilters, page) => {
     const start = (page - 1) * pageSize
     const items = categoryStore.slice(start, start + pageSize)
     const totalPages = Math.max(1, Math.ceil(categoryStore.length / pageSize))
@@ -111,13 +112,15 @@ function installCategoryServiceFixtures() {
   })
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/categories') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <CategoriesPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <CategoriesPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -149,7 +152,7 @@ describe('CategoriesPage', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
-  it('renders mirrored paginated hierarchy with image fallbacks and no search/filter controls', async () => {
+  it('renders mirrored paginated hierarchy with image fallbacks and the filter trigger', async () => {
     categoryStore = Array.from({ length: 16 }, (_, index) => category(index + 1, index === 1 ? 1 : null))
     const list = vi.mocked(categoriesService.list)
     renderPage()
@@ -162,7 +165,62 @@ describe('CategoriesPage', () => {
     expect(screen.getAllByRole('img', { name: 'Category 1' }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('img', { name: 'No image' }).length).toBeGreaterThan(0)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+    expect(list.mock.calls.map(([, page]) => page)).toEqual([1, 2])
+    expect(list.mock.calls.every(([filters]) => filters.isActive === null)).toBe(true)
+  })
+
+  it('retains filters on next pages, restarts pagination after Apply, and resets to the unfiltered list', async () => {
+    categoryStore = Array.from({ length: 16 }, (_, index) => category(index + 1))
+    const list = vi.mocked(categoriesService.list)
+    const user = userEvent.setup()
+
+    renderPage('/dashboard/categories?page=4&is_active=0')
+
+    expect(await screen.findAllByText('Category 16')).toHaveLength(2)
+    await waitFor(() => expect(list.mock.calls.some(([, page]) => page === 2)).toBe(true))
+    expect(list.mock.calls.filter(([, page]) => page <= 2).every(([filters]) => filters.isActive === false)).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('combobox', { name: 'Active' }))
+    await user.click(screen.getByRole('option', { name: 'Yes' }))
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await waitFor(() =>
+      expect(list.mock.calls.some(([filters, page]) => filters.isActive === true && page === 1)).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(list.mock.calls.some(([filters, page]) => filters.isActive === null && page === 1)).toBe(true)
+    )
+  })
+
+  it('surfaces an invalid created range only after Apply and keeps the draft dialog open without querying', async () => {
+    const list = vi.mocked(categoriesService.list)
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await screen.findAllByText('Jewelry')
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Created from'), '2026-10-10')
+    await user.type(screen.getByLabelText('Created to'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Created from')).toHaveAttribute('aria-invalid', 'false')
+    expect(screen.getByLabelText('Created from')).not.toHaveAttribute('aria-describedby')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The created-from date cannot be after the created-to date.'
+    )
+    expect(screen.getByLabelText('Created from')).toHaveAttribute('aria-describedby', 'categories-created-range-error')
+    expect(screen.getByLabelText('Created from')).toHaveValue('2026-10-10')
+    expect(screen.getByLabelText('Created to')).toHaveValue('2026-10-09')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
   })
 
   it('uses standard empty and safe retry states', async () => {

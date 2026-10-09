@@ -12,6 +12,24 @@
     "total_other": "{{count}} قسم",
     "loadingMore": "جارٍ تحميل المزيد من الأقسام",
     "noImage": "لا توجد صورة",
+    "filters": {
+      "title": "تصفية الأقسام",
+      "all": "الكل",
+      "yes": "نعم",
+      "no": "لا",
+      "is_active": "نشط",
+      "created_from": "تاريخ الإنشاء من",
+      "created_to": "تاريخ الإنشاء إلى",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "invalidRange": "لا يمكن أن يكون تاريخ البداية بعد تاريخ النهاية.",
+      "sort": {
+        "sort_order": "ترتيب العرض",
+        "name": "الاسم",
+        "created_at": "تاريخ الإنشاء"
+      },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "fields": {
       "image": "الصورة",
       "currentImage": "الصورة الحالية",

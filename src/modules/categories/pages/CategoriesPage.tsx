@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FolderTree, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -19,14 +20,25 @@ import { CategoryDrawer } from '@/modules/categories/components/CategoryDrawer'
 import { useCategories } from '@/modules/categories/hooks/useCategories'
 import { useDeleteCategory } from '@/modules/categories/hooks/useDeleteCategory'
 import type { Category } from '@/modules/categories/types/category.types'
+import { CategoryFilters } from '@/modules/categories/components/CategoryFilters'
+import {
+  categoryFilterNames,
+  readCategoriesFilters,
+  validCategoriesCreatedRange,
+} from '@/modules/categories/utils/category-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function CategoriesPage() {
+function CategoriesContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const categoriesQuery = useCategories()
+  const filters = readCategoriesFilters(forwardQuery)
+  const categoriesQuery = useCategories(filters)
   const deleteCategory = useDeleteCategory()
   const deleteAlertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const categories = useMemo(
     () => categoriesQuery.data?.pages.flatMap((page) => page.items) ?? [],
@@ -36,7 +48,7 @@ function CategoriesPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(categoriesQuery.hasNextPage && !categoriesQuery.isFetchingNextPage),
     onLoadMore: categoriesQuery.fetchNextPage,
-    operationKey: categoriesQuery.data?.pages.length,
+    operationKey: JSON.stringify([filters, categoriesQuery.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -83,8 +95,23 @@ function CategoriesPage() {
   const deleteName = categoryToDelete?.name[i18n.language.startsWith('ar') ? 'ar' : 'en'] ?? ''
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('categories.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={categoryFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('categories.filters.title')}
+        onFilter={() => setShowFilterValidation(false)}
+        onReset={() => setShowFilterValidation(false)}
+        onApply={(draftQuery) => {
+          const valid = validCategoriesCreatedRange(readCategoriesFilters(draftQuery))
+          setShowFilterValidation(!valid)
+          return valid ? undefined : false
+        }}
+      >
+        <CategoryFilters showValidation={showFilterValidation} />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loadingSurface}
         isLoading={categoriesQuery.isLoading}
@@ -161,4 +188,10 @@ function CategoriesPage() {
   )
 }
 
-export default CategoriesPage
+export default function CategoriesPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <CategoriesContent />
+    </QueryProvider>
+  )
+}

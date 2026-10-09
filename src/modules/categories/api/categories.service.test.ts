@@ -5,6 +5,7 @@ const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(),
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { categoriesService, serializeCategory } from './categories.service'
+import { emptyCategoriesFilters } from '../utils/category-filters'
 
 const rawCategory = {
   id: 7,
@@ -75,7 +76,15 @@ describe('categories service boundary', () => {
     httpMocks.delete.mockResolvedValue({ data: { success: true, message: 'deleted' } })
     const signal = new AbortController().signal
 
-    await expect(categoriesService.list(1, signal)).resolves.toMatchObject({
+    const filters = {
+      ...emptyCategoriesFilters,
+      isActive: false,
+      createdFrom: '2026-10-01',
+      createdTo: '2026-10-09',
+      sortBy: 'name' as const,
+      sortDir: 'desc' as const,
+    }
+    await expect(categoriesService.list(filters, 1, signal)).resolves.toMatchObject({
       items: [expect.objectContaining({ id: 7, sort_order: 2 })],
       paginate: { current_page: 1, total_pages: 1, total: 1 },
     })
@@ -89,7 +98,14 @@ describe('categories service boundary', () => {
 
     expect(httpMocks.get).toHaveBeenNthCalledWith(1, {
       url: '/dashboard/categories',
-      query: { page: 1 },
+      query: {
+        is_active: 0,
+        created_from: '2026-10-01',
+        created_to: '2026-10-09',
+        sort_by: 'name',
+        sort_dir: 'desc',
+        page: 1,
+      },
       signal,
       suppressErrorNotification: true,
     })

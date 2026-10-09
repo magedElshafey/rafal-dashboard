@@ -46,3 +46,14 @@ export type RawCategoriesIndexResponse = PaginatedDashboardResponse<RawCategory>
 export type RawCategoryResponse = { success: boolean; message: string; data: RawCategory }
 export type CategoryResponse = { success: boolean; message: string; data: Category }
 export type DeleteCategoryResponse = Omit<CategoryResponse, 'data'>
+
+export type CategorySortBy = 'sort_order' | 'name' | 'created_at'
+export type CategorySortDir = 'asc' | 'desc'
+
+export type CategoriesFilters = {
+  isActive: boolean | null
+  createdFrom: string
+  createdTo: string
+  sortBy: CategorySortBy | null
+  sortDir: CategorySortDir | null
+}
