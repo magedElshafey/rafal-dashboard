@@ -4,6 +4,16 @@ import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 export type LocalizedTitle = { ar: string; en: string }
 export type BannerPlacement = 'home' | 'splash'
 export type BannerPlatform = 'web' | 'mobile' | 'both'
+export type BannerSortBy = 'sort_order' | 'created_at' | 'starts_at'
+export type BannerSortDir = 'asc' | 'desc'
+
+export type BannersFilters = {
+  platform: BannerPlatform | null
+  isActive: boolean | null
+  activeNow: boolean | null
+  sortBy: BannerSortBy | null
+  sortDir: BannerSortDir | null
+}
 
 export type Banner = {
   id: number

@@ -7,6 +7,23 @@
     "total_one": "{{count}} banner",
     "total_other": "{{count}} banners",
     "loadingMore": "Loading more banners",
+    "filters": {
+      "title": "Banner filters",
+      "all": "All",
+      "yes": "Yes",
+      "no": "No",
+      "platform": "Platform",
+      "active": "Active",
+      "activeNow": "Active now",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": {
+        "sort_order": "Sort order",
+        "created_at": "Created at",
+        "starts_at": "Starts at"
+      },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "fields": {
       "image": "Image",
       "title": "Title",

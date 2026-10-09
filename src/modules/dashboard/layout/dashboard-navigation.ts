@@ -74,7 +74,18 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
   },
   { to: Routes.orders, labelKey: 'orders.title', icon: Package, match: 'prefix' },
   { to: Routes.returnRequests, labelKey: 'returnRequests.title', icon: RotateCcw, match: 'prefix' },
-  { to: Routes.contactMessages, labelKey: 'contactMessages.title', icon: Mail, match: 'prefix' },
+  {
+    to: Routes.coupons,
+    labelKey: 'dashboard.sidebar.coupons',
+    icon: TicketPercent,
+    match: 'prefix',
+  },
+  {
+    to: Routes.banners,
+    labelKey: 'dashboard.sidebar.banners',
+    icon: Images,
+    match: 'prefix',
+  },
   {
     to: Routes.roles,
     labelKey: 'dashboard.sidebar.roles',
@@ -87,6 +98,25 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: UsersRound,
     match: 'prefix',
   },
+  {
+    to: Routes.shippingMethods,
+    labelKey: 'dashboard.sidebar.shippingMethods',
+    icon: Truck,
+    match: 'prefix',
+  },
+  {
+    to: Routes.staticPages,
+    labelKey: 'dashboard.sidebar.staticPages',
+    icon: FileText,
+    match: 'prefix',
+  },
+  {
+    to: Routes.aboutUs,
+    labelKey: 'dashboard.sidebar.aboutUs',
+    icon: Info,
+    match: 'prefix',
+  },
+  { to: Routes.contactMessages, labelKey: 'contactMessages.title', icon: Mail, match: 'prefix' },
 
   {
     to: Routes.reviews,
@@ -100,41 +130,11 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: MessageSquareQuote,
     match: 'prefix',
   },
-  {
-    to: Routes.staticPages,
-    labelKey: 'dashboard.sidebar.staticPages',
-    icon: FileText,
-    match: 'prefix',
-  },
-  {
-    to: Routes.banners,
-    labelKey: 'dashboard.sidebar.banners',
-    icon: Images,
-    match: 'prefix',
-  },
 
   {
     to: Routes.settings,
     labelKey: 'dashboard.sidebar.settings',
     icon: Settings,
-    match: 'prefix',
-  },
-  {
-    to: Routes.shippingMethods,
-    labelKey: 'dashboard.sidebar.shippingMethods',
-    icon: Truck,
-    match: 'prefix',
-  },
-  {
-    to: Routes.coupons,
-    labelKey: 'dashboard.sidebar.coupons',
-    icon: TicketPercent,
-    match: 'prefix',
-  },
-  {
-    to: Routes.aboutUs,
-    labelKey: 'dashboard.sidebar.aboutUs',
-    icon: Info,
     match: 'prefix',
   },
 ]

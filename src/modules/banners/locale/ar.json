@@ -11,6 +11,23 @@
     "total_many": "{{count}} لافتة",
     "total_other": "{{count}} لافتة",
     "loadingMore": "جارٍ تحميل المزيد من اللافتات",
+    "filters": {
+      "title": "تصفية اللافتات",
+      "all": "الكل",
+      "yes": "نعم",
+      "no": "لا",
+      "platform": "المنصة",
+      "active": "نشطة",
+      "activeNow": "نشطة الآن",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": {
+        "sort_order": "ترتيب العرض",
+        "created_at": "تاريخ الإنشاء",
+        "starts_at": "تاريخ البدء"
+      },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "fields": {
       "image": "الصورة",
       "title": "العنوان",

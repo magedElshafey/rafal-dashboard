@@ -5,6 +5,7 @@ const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(),
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { bannersService, normalizeBanner, serializeBanner } from './banners.service'
+import { emptyBannersFilters } from '../utils/banner-filters'
 
 const payload = {
   placement: 'home' as const,
@@ -44,6 +45,39 @@ describe('banners service boundary', () => {
       updated_at: '2026-09-06T20:01:03+00:00',
     })
     expect(normalized.sort_order).toBe(4)
+  })
+
+  it('sends supported list filters server-side and preserves false booleans', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [],
+        meta: { current_page: 2, last_page: 2, per_page: 15, total: 16 },
+      },
+    })
+    const signal = new AbortController().signal
+    await bannersService.list(2, signal, {
+      ...emptyBannersFilters,
+      platform: 'mobile',
+      isActive: false,
+      activeNow: true,
+      sortBy: 'starts_at',
+      sortDir: 'desc',
+    })
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/banners',
+      query: {
+        platform: 'mobile',
+        is_active: 0,
+        active_now: 1,
+        sort_by: 'starts_at',
+        sort_dir: 'desc',
+        page: 2,
+      },
+      signal,
+      suppressErrorNotification: true,
+    })
   })
 
   it('calls only the real Banner endpoints through shared HTTP', async () => {

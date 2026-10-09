@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -94,7 +95,7 @@ function installServiceFixtures() {
   })
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/banners') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
@@ -102,7 +103,9 @@ function renderPage() {
     queryClient,
     ...render(
       <QueryClientProvider client={queryClient}>
-        <BannersPage />
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <BannersPage />
+        </MemoryRouter>
       </QueryClientProvider>
     ),
   }
@@ -137,7 +140,7 @@ describe('BannersPage', () => {
 
   afterEach(() => vi.restoreAllMocks())
 
-  it('renders mirrored responsive data, localized titles, infinite pagination, and no search or filters', async () => {
+  it('renders mirrored responsive data, localized titles, infinite pagination, and no search', async () => {
     banners = Array.from({ length: 16 }, (_, index) => banner(index + 1))
     const list = vi.mocked(bannersService.list)
     renderPage()
@@ -148,7 +151,70 @@ describe('BannersPage', () => {
     expect(document.querySelector('[data-slot="responsive-data-desktop"]')).toBeInTheDocument()
     expect(document.querySelector('[data-slot="responsive-data-mobile-cards"]')).toBeInTheDocument()
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+  })
+
+  it('keeps drafts unapplied, retains filters on next pages, restarts pagination, and resets', async () => {
+    banners = Array.from({ length: 16 }, (_, index) => banner(index + 1))
+    const list = vi.mocked(bannersService.list)
+    const user = userEvent.setup()
+    renderPage('/dashboard/banners?page=4&platform=web&is_active=0&active_now=1')
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 2 && filters?.platform === 'web' && filters.isActive === false && filters.activeNow === true
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('combobox', { name: 'Sort by' }))
+    await user.click(await screen.findByRole('option', { name: 'Starts at' }))
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 1 &&
+            filters?.platform === 'web' &&
+            filters.isActive === false &&
+            filters.activeNow === true &&
+            filters.sortBy === 'starts_at'
+        )
+      ).toBe(true)
+    )
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 2 &&
+            filters?.platform === 'web' &&
+            filters.isActive === false &&
+            filters.activeNow === true &&
+            filters.sortBy === 'starts_at'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([page, , filters]) =>
+            page === 1 &&
+            filters?.platform === null &&
+            filters.isActive === null &&
+            filters.activeNow === null &&
+            filters.sortBy === null
+        )
+      ).toBe(true)
+    )
   })
 
   it('uses the shared empty and safe retry states', async () => {

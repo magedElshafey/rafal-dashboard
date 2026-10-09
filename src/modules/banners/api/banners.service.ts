@@ -2,9 +2,11 @@ import type {
   Banner,
   BannerPayload,
   BannerResponse,
+  BannersFilters,
   BannersIndexResponse,
   DeleteBannerResponse,
 } from '@/modules/banners/types/banner.types'
+import { emptyBannersFilters, serializeBannersFilters } from '@/modules/banners/utils/banner-filters'
 import { $http } from '@/utils/http'
 
 type RawBanner = Omit<Banner, 'sort_order'> & { sort_order: number | string }
@@ -39,10 +41,10 @@ export function serializeBanner(payload: BannerPayload) {
 }
 
 const bannersHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(page: number, signal?: AbortSignal, filters: BannersFilters = emptyBannersFilters) {
     const response = await $http.get<RawBannersIndexResponse>({
       url: '/dashboard/banners',
-      query: { page },
+      query: { ...serializeBannersFilters(filters), page },
       signal,
       suppressErrorNotification: true,
     })
@@ -87,8 +89,12 @@ const bannersHttpTransport = {
 }
 
 export const bannersService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Banner>> {
-    const response = await bannersHttpTransport.list(page, signal)
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: BannersFilters = emptyBannersFilters
+  ): Promise<PaginatedData<Banner>> {
+    const response = await bannersHttpTransport.list(page, signal, filters)
     const items = response.data.map(normalizeBanner)
     return {
       items,

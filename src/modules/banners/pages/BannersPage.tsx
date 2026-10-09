@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ImageIcon, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,16 +15,22 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { BannerDrawer } from '@/modules/banners/components/BannerDrawer'
+import { BannerFilters } from '@/modules/banners/components/BannerFilters'
 import { BannersList } from '@/modules/banners/components/BannersList'
 import { BannersListSkeleton } from '@/modules/banners/components/BannersListSkeleton'
 import { useBanners } from '@/modules/banners/hooks/useBanners'
 import { useDeleteBanner } from '@/modules/banners/hooks/useDeleteBanner'
 import type { Banner } from '@/modules/banners/types/banner.types'
+import { bannerFilterNames, readBannersFilters } from '@/modules/banners/utils/banner-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function BannersPage() {
+function BannersContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const bannersQuery = useBanners()
+  const filters = readBannersFilters(forwardQuery)
+  const bannersQuery = useBanners(filters)
   const deleteBanner = useDeleteBanner()
   const deleteAlertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
@@ -33,7 +40,7 @@ function BannersPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(bannersQuery.hasNextPage && !bannersQuery.isFetchingNextPage),
     onLoadMore: bannersQuery.fetchNextPage,
-    operationKey: bannersQuery.data?.pages.length,
+    operationKey: JSON.stringify([filters, bannersQuery.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -74,8 +81,16 @@ function BannersPage() {
   const deleteTitle = bannerToDelete?.title[i18n.language.startsWith('ar') ? 'ar' : 'en'] ?? ''
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('banners.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={bannerFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('banners.filters.title')}
+      >
+        <BannerFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loadingSurface}
         isLoading={bannersQuery.isLoading}
@@ -142,4 +157,10 @@ function BannersPage() {
   )
 }
 
-export default BannersPage
+export default function BannersPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <BannersContent />
+    </QueryProvider>
+  )
+}
