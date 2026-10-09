@@ -14,7 +14,7 @@ export type ShippingMethodSubmitIntent = 'create' | 'create-another' | 'edit'
 export const EMPTY_SHIPPING_METHOD_FORM_VALUES: ShippingMethodFormValues = {
   code: '',
   name: { ar: '', en: '' },
-  deliveryDuration: null,
+  etaLabel: { ar: '', en: '' },
   price: 0,
   isPickup: false,
   isActive: true,
@@ -101,6 +101,7 @@ export function ShippingMethodForm({
       ...values,
       code: values.code.trim(),
       name: { ar: values.name.ar.trim(), en: values.name.en.trim() },
+      etaLabel: { ar: values.etaLabel.ar.trim(), en: values.etaLabel.en.trim() },
     }
     try {
       await onSubmit(normalized, intent, methods)
@@ -111,7 +112,10 @@ export function ShippingMethodForm({
         'name[ar]': 'name.ar',
         'name.en': 'name.en',
         'name[en]': 'name.en',
-        delivery_duration: 'deliveryDuration',
+        'eta_label.ar': 'etaLabel.ar',
+        'eta_label[ar]': 'etaLabel.ar',
+        'eta_label.en': 'etaLabel.en',
+        'eta_label[en]': 'etaLabel.en',
         price: 'price',
         is_pickup: 'isPickup',
         is_active: 'isActive',
@@ -173,16 +177,22 @@ export function ShippingMethodForm({
         <h2 id="shipping-method-duration-title" className="font-semibold text-foreground">
           {t('shippingMethods.sections.duration')}
         </h2>
-        <FormInput
-          name="deliveryDuration"
-          label={t('shippingMethods.fields.deliveryDuration')}
-          type="number"
-          inputMode="decimal"
-          step="any"
-          dir="ltr"
-          required
-          disabled={isSubmitting}
-        />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <FormInput
+            name="etaLabel.ar"
+            label={t('shippingMethods.fields.etaLabelAr')}
+            dir="rtl"
+            required
+            disabled={isSubmitting}
+          />
+          <FormInput
+            name="etaLabel.en"
+            label={t('shippingMethods.fields.etaLabelEn')}
+            dir="ltr"
+            required
+            disabled={isSubmitting}
+          />
+        </div>
       </section>
 
       <section

@@ -28,7 +28,8 @@ export function serializeShippingMethodCreate(payload: ShippingMethodCreatePaylo
   body.set('code', payload.code.trim())
   body.set('name[ar]', payload.name.ar.trim())
   body.set('name[en]', payload.name.en.trim())
-  body.set('delivery_duration', String(payload.deliveryDuration))
+  body.set('eta_label[ar]', payload.etaLabel.ar.trim())
+  body.set('eta_label[en]', payload.etaLabel.en.trim())
   body.set('is_pickup', String(toApiBoolean(payload.isPickup)))
   body.set('price', String(payload.price))
   if (payload.sortOrder !== null) body.set('sort_order', String(payload.sortOrder))
@@ -42,7 +43,8 @@ export function serializeShippingMethodUpdate(payload: ShippingMethodUpdatePaylo
   if (payload.code !== undefined) body.set('code', payload.code.trim())
   if (payload.nameAr !== undefined) body.set('name[ar]', payload.nameAr.trim())
   if (payload.nameEn !== undefined) body.set('name[en]', payload.nameEn.trim())
-  if (payload.deliveryDuration !== undefined) body.set('delivery_duration', String(payload.deliveryDuration))
+  if (payload.etaLabelAr !== undefined) body.set('eta_label[ar]', payload.etaLabelAr.trim())
+  if (payload.etaLabelEn !== undefined) body.set('eta_label[en]', payload.etaLabelEn.trim())
   if (payload.isPickup !== undefined) body.set('is_pickup', String(toApiBoolean(payload.isPickup)))
   if (payload.price !== undefined) body.set('price', String(payload.price))
   if (payload.sortOrder !== undefined) body.set('sort_order', String(payload.sortOrder))
@@ -52,14 +54,12 @@ export function serializeShippingMethodUpdate(payload: ShippingMethodUpdatePaylo
 
 export function normalizeShippingMethod(raw: RawShippingMethod): ShippingMethod {
   const price = Number(raw.price)
-  const deliveryDuration = Number(raw.delivery_duration)
   if (!Number.isFinite(price)) throw new Error('Shipping method price is unavailable')
-  if (!Number.isFinite(deliveryDuration)) throw new Error('Shipping method delivery duration is unavailable')
   return {
     id: raw.id,
     code: raw.code,
     name: { ...raw.name },
-    deliveryDuration,
+    etaLabel: { ...raw.eta_label },
     price,
     isPickup: raw.is_pickup,
     isActive: raw.is_active,

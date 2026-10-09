@@ -22,7 +22,7 @@
     },
     "sections": {
       "basic": "Basic Information",
-      "duration": "Delivery Duration",
+      "duration": "Estimated delivery",
       "pricing": "Pricing & Type",
       "status": "Status & Ordering"
     },
@@ -31,7 +31,9 @@
       "code": "Code",
       "nameAr": "Arabic Name",
       "nameEn": "English Name",
-      "deliveryDuration": "Delivery duration",
+      "etaLabel": "Estimated delivery",
+      "etaLabelAr": "Arabic ETA label",
+      "etaLabelEn": "English ETA label",
       "price": "Price",
       "isPickup": "Pickup from Branch",
       "isActive": "Active",

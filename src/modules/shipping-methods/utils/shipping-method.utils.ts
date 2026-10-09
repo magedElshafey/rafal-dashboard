@@ -17,7 +17,7 @@ export function toShippingMethodFormValues(method: ShippingMethod): ShippingMeth
   return {
     code: method.code,
     name: { ...method.name },
-    deliveryDuration: method.deliveryDuration,
+    etaLabel: { ...method.etaLabel },
     price: method.price,
     isPickup: method.isPickup,
     isActive: method.isActive,
@@ -26,8 +26,7 @@ export function toShippingMethodFormValues(method: ShippingMethod): ShippingMeth
 }
 
 export function buildShippingMethodCreatePayload(values: ShippingMethodFormValues): ShippingMethodCreatePayload {
-  if (values.deliveryDuration === null) throw new Error('Shipping Method delivery duration must be numeric.')
-  return { ...values, deliveryDuration: values.deliveryDuration }
+  return values
 }
 
 export function buildShippingMethodUpdatePayload(
@@ -38,10 +37,8 @@ export function buildShippingMethodUpdatePayload(
   if (dirty.code) payload.code = values.code.trim()
   if (dirty.name?.ar) payload.nameAr = values.name.ar.trim()
   if (dirty.name?.en) payload.nameEn = values.name.en.trim()
-  if (dirty.deliveryDuration) {
-    if (values.deliveryDuration === null) throw new Error('A dirty Shipping Method delivery duration must be numeric.')
-    payload.deliveryDuration = values.deliveryDuration
-  }
+  if (dirty.etaLabel?.ar) payload.etaLabelAr = values.etaLabel.ar.trim()
+  if (dirty.etaLabel?.en) payload.etaLabelEn = values.etaLabel.en.trim()
   if (dirty.price) payload.price = values.price
   if (dirty.isPickup) payload.isPickup = values.isPickup
   if (dirty.isActive) payload.isActive = values.isActive

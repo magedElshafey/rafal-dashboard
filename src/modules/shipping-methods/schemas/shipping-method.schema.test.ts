@@ -15,7 +15,7 @@ const editSchema = createShippingMethodSchema('edit', messages)
 const valid: ShippingMethodFormValues = {
   code: 'standard',
   name: { ar: 'عادي', en: 'Standard' },
-  deliveryDuration: 3,
+  etaLabel: { ar: '٣-٥ أيام عمل', en: '3-5 business days' },
   price: 25,
   isPickup: false,
   isActive: true,
@@ -31,14 +31,10 @@ describe('Shipping Method validation', () => {
     await expect(createSchema.isValid(next)).resolves.toBe(false)
   })
 
-  it.each([
-    [null, false],
-    [0, true],
-    [2.5, true],
-    [-1, true],
-    [Number.POSITIVE_INFINITY, false],
-  ])('validates delivery duration %s', async (deliveryDuration, expected) => {
-    await expect(createSchema.isValid({ ...valid, deliveryDuration })).resolves.toBe(expected)
+  it.each(['ar', 'en'] as const)('requires etaLabel.%s', async (language) => {
+    await expect(createSchema.isValid({ ...valid, etaLabel: { ...valid.etaLabel, [language]: '   ' } })).resolves.toBe(
+      false
+    )
   })
 
   it.each([

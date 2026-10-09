@@ -10,7 +10,7 @@ import {
 const values: ShippingMethodFormValues = {
   code: 'standard',
   name: { ar: 'عادي', en: 'Standard' },
-  deliveryDuration: 3,
+  etaLabel: { ar: '٣-٥ أيام عمل', en: '3-5 business days' },
   price: 25,
   isPickup: false,
   isActive: true,
@@ -23,15 +23,14 @@ describe('Shipping Method utilities', () => {
   })
 
   it('maps nested dirty fields without leaking untouched values', () => {
-    expect(buildShippingMethodUpdatePayload(values, { name: { en: true }, deliveryDuration: true })).toEqual({
+    expect(buildShippingMethodUpdatePayload(values, { name: { en: true }, etaLabel: { ar: true } })).toEqual({
       nameEn: 'Standard',
-      deliveryDuration: 3,
+      etaLabelAr: '٣-٥ أيام عمل',
     })
   })
 
-  it('requires a numeric delivery duration at the Create payload boundary', () => {
+  it('preserves localized ETA labels at the Create payload boundary', () => {
     expect(buildShippingMethodCreatePayload(values)).toEqual(values)
-    expect(() => buildShippingMethodCreatePayload({ ...values, deliveryDuration: null })).toThrow()
   })
 
   it('includes zero price when Pickup is enabled and leaves zero editable when disabled', () => {

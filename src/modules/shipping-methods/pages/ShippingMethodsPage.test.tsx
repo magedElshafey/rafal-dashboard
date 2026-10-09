@@ -33,7 +33,7 @@ const rawMethod = (id: number, overrides: Partial<RawShippingMethod> = {}): RawS
   id,
   code: `method-${id}`,
   name: { ar: `طريقة ${id}`, en: `Method ${id}` },
-  delivery_duration: id,
+  eta_label: { ar: `${id}-${id + 2} أيام عمل`, en: `${id}-${id + 2} business days` },
   price: `${id}.50`,
   is_pickup: false,
   is_active: true,
@@ -50,7 +50,7 @@ function toShippingMethod(raw: RawShippingMethod): ShippingMethod {
     id: raw.id,
     code: raw.code,
     name: { ...raw.name },
-    deliveryDuration: Number(raw.delivery_duration),
+    etaLabel: { ...raw.eta_label },
     price: Number(raw.price),
     isPickup: raw.is_pickup,
     isActive: raw.is_active,
@@ -92,7 +92,7 @@ function installServiceFixtures() {
       id: Math.max(0, ...shippingMethods.map((method) => method.id)) + 1,
       code: payload.code,
       name: { ...payload.name },
-      deliveryDuration: payload.deliveryDuration,
+      etaLabel: { ...payload.etaLabel },
       price: payload.price,
       isPickup: payload.isPickup,
       isActive: payload.isActive,
@@ -114,7 +114,10 @@ function installServiceFixtures() {
         ar: payload.nameAr ?? current.name.ar,
         en: payload.nameEn ?? current.name.en,
       },
-      deliveryDuration: payload.deliveryDuration ?? current.deliveryDuration,
+      etaLabel: {
+        ar: payload.etaLabelAr ?? current.etaLabel.ar,
+        en: payload.etaLabelEn ?? current.etaLabel.en,
+      },
       price: payload.price ?? current.price,
       isPickup: payload.isPickup ?? current.isPickup,
       isActive: payload.isActive ?? current.isActive,
@@ -151,7 +154,8 @@ async function fillRequiredCreateFields(user: ReturnType<typeof userEvent.setup>
   await user.type(screen.getByRole('textbox', { name: /^Code/ }), 'same-day')
   await user.type(screen.getByRole('textbox', { name: /Arabic Name/ }), 'نفس اليوم')
   await user.type(screen.getByRole('textbox', { name: /English Name/ }), 'Same Day')
-  await user.type(screen.getByRole('spinbutton', { name: /Delivery duration/ }), '1.5')
+  await user.type(screen.getByRole('textbox', { name: /Arabic ETA label/ }), '٣-٥ أيام عمل')
+  await user.type(screen.getByRole('textbox', { name: /English ETA label/ }), '3-5 business days')
 }
 
 describe('ShippingMethodsPage', () => {
@@ -168,7 +172,7 @@ describe('ShippingMethodsPage', () => {
     seedShippingMethods([
       rawMethod(16, {
         name: { ar: 'طريقة بلا ترجمة', en: '' },
-        delivery_duration: 2.75,
+        eta_label: { ar: 'يومان', en: 'Two business days' },
         price: '0.00',
         is_pickup: true,
         is_active: false,
@@ -183,7 +187,7 @@ describe('ShippingMethodsPage', () => {
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2))
     expect(screen.getAllByText('Pickup').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Inactive').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('2.75')).toHaveLength(2)
+    expect(screen.getAllByText('Two business days')).toHaveLength(2)
     expect(screen.getAllByText('-2')).toHaveLength(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
@@ -255,7 +259,8 @@ describe('ShippingMethodsPage', () => {
     await screen.findByText('No shipping methods yet')
     await user.click(screen.getAllByRole('button', { name: 'Create Shipping Method' })[0])
     expect(screen.getByRole('button', { name: 'Create & Create Another' })).toBeDisabled()
-    expect(screen.getAllByRole('spinbutton', { name: /Delivery duration/ })).toHaveLength(1)
+    expect(screen.getByRole('textbox', { name: /Arabic ETA label/ })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /English ETA label/ })).toBeInTheDocument()
     await fillRequiredCreateFields(user)
     const price = screen.getByRole('spinbutton', { name: /^Price/ })
     await user.clear(price)
@@ -267,7 +272,7 @@ describe('ShippingMethodsPage', () => {
       expect(create).toHaveBeenCalledWith({
         code: 'same-day',
         name: { ar: 'نفس اليوم', en: 'Same Day' },
-        deliveryDuration: 1.5,
+        etaLabel: { ar: '٣-٥ أيام عمل', en: '3-5 business days' },
         price: 30.5,
         isPickup: false,
         isActive: true,
@@ -277,14 +282,15 @@ describe('ShippingMethodsPage', () => {
     expect(create).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(screen.getByRole('textbox', { name: /^Code/ })).toHaveValue(''))
     expect(screen.getByRole('textbox', { name: /Arabic Name/ })).toHaveValue('')
-    expect(screen.getByRole('spinbutton', { name: /Delivery duration/ })).toHaveValue(null)
+    expect(screen.getByRole('textbox', { name: /Arabic ETA label/ })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: /English ETA label/ })).toHaveValue('')
     expect(screen.getByRole('spinbutton', { name: /^Price/ })).toHaveValue(0)
     expect(screen.getByRole('switch', { name: 'Pickup from Branch' })).not.toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Active' })).toBeChecked()
     expect(screen.getByRole('spinbutton', { name: /Sort Order/ })).toHaveValue(null)
   })
 
-  it('uses the same single numeric delivery-duration field in Arabic', async () => {
+  it('uses localized ETA text fields in Arabic', async () => {
     seedShippingMethods([])
     await i18n.changeLanguage('ar')
     const user = userEvent.setup()
@@ -293,9 +299,10 @@ describe('ShippingMethodsPage', () => {
     await screen.findByText('لا توجد طرق شحن بعد')
     await user.click(screen.getAllByRole('button', { name: 'إنشاء طريقة شحن' })[0])
 
-    const durationFields = screen.getAllByRole('spinbutton', { name: /مدة التوصيل/ })
-    expect(durationFields).toHaveLength(1)
-    expect(durationFields[0]).toHaveAttribute('dir', 'ltr')
+    const etaFields = screen.getAllByRole('textbox', { name: /وصف مدة التوصيل/ })
+    expect(etaFields).toHaveLength(2)
+    expect(etaFields[0]).toHaveAttribute('dir', 'rtl')
+    expect(etaFields[1]).toHaveAttribute('dir', 'ltr')
   })
 
   it('creates Pickup with a visible disabled zero price', async () => {
@@ -329,13 +336,13 @@ describe('ShippingMethodsPage', () => {
     expect(screen.getByRole('textbox', { name: /^Code/ })).toHaveValue('method-1')
     expect(screen.getByRole('spinbutton', { name: /^Price/ })).toHaveValue(1.5)
     expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled()
-    const duration = screen.getByRole('spinbutton', { name: /Delivery duration/ })
-    expect(duration).toHaveValue(1)
-    await user.clear(duration)
-    await user.type(duration, '2.5')
+    const eta = screen.getByRole('textbox', { name: /English ETA label/ })
+    expect(eta).toHaveValue('1-3 business days')
+    await user.clear(eta)
+    await user.type(eta, '2-4 business days')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled())
     await user.click(screen.getByRole('button', { name: 'Update' }))
-    await waitFor(() => expect(update).toHaveBeenCalledWith(1, { deliveryDuration: 2.5 }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, { etaLabelEn: '2-4 business days' }))
   })
 
   it('prevents Edit from clearing an existing Sort Order', async () => {

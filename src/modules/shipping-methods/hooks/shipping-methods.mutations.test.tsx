@@ -17,7 +17,7 @@ vi.mock('sonner', () => ({ toast: toastMocks }))
 const createPayload: ShippingMethodCreatePayload = {
   code: 'standard',
   name: { ar: 'عادي', en: 'Standard' },
-  deliveryDuration: 3,
+  etaLabel: { ar: '٣-٥ أيام عمل', en: '3-5 business days' },
   price: 25,
   isPickup: false,
   isActive: true,
@@ -51,12 +51,12 @@ describe('Shipping Method mutation error feedback', () => {
   })
 
   it('shows the backend envelope message for Edit', async () => {
-    const error = apiError('Delivery duration is not supported.')
+    const error = apiError('The English ETA label is not supported.')
     vi.spyOn(shippingMethodsService, 'update').mockRejectedValue(error)
     const { result } = renderHook(() => useUpdateShippingMethod(1), { wrapper })
 
-    await expect(act(() => result.current.mutateAsync({ deliveryDuration: 4 }))).rejects.toBe(error)
-    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('Delivery duration is not supported.'))
+    await expect(act(() => result.current.mutateAsync({ etaLabelEn: '4-6 business days' }))).rejects.toBe(error)
+    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('The English ETA label is not supported.'))
   })
 
   it('shows the backend envelope message for Delete', async () => {
