@@ -5,6 +5,7 @@ import approved from './return-request-approved.fixture.json'
 import show from './return-request-show.fixture.json'
 import index from './return-requests-index.fixture.json'
 import nullCommentIndex from './return-requests-index-null-comment.fixture.json'
+import { emptyReturnRequestsFilters } from '../utils/return-request-filters'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: http }))
@@ -20,7 +21,7 @@ describe('Return Requests real read contracts', () => {
   })
   it('resolves the exact real nullable-comment Index response without fabricating absent values', async () => {
     http.get.mockResolvedValue({ data: nullCommentIndex })
-    await expect(returnRequestsService.list()).resolves.toEqual({
+    await expect(returnRequestsService.list()).resolves.toMatchObject({
       items: [
         {
           id: 1,
@@ -37,19 +38,39 @@ describe('Return Requests real read contracts', () => {
           updatedAt: '2026-10-04T21:58:28+00:00',
         },
       ],
-      meta: { currentPage: 1, perPage: 15 },
+      paginate: { current_page: 1, per_page: 15, next_page_url: null },
+      extra: null,
     })
   })
   it('parses the exact Index response and only confirmed partial pagination metadata', async () => {
     http.get.mockResolvedValue({ data: index })
     const signal = new AbortController().signal
-    const result = await returnRequestsService.list(signal)
+    const result = await returnRequestsService.list(
+      {
+        ...emptyReturnRequestsFilters,
+        orderId: 47,
+        dateFrom: '2026-10-01',
+        dateTo: '2026-10-09',
+        sortBy: 'status',
+        sortDir: 'desc',
+      },
+      2,
+      signal
+    )
     expect(http.get).toHaveBeenCalledWith({
       url: '/dashboard/return-requests',
+      query: {
+        order_id: 47,
+        date_from: '2026-10-01',
+        date_to: '2026-10-09',
+        sort_by: 'status',
+        sort_dir: 'desc',
+        page: 2,
+      },
       signal,
       suppressErrorNotification: true,
     })
-    expect(result.meta).toEqual({ currentPage: 1, perPage: 15 })
+    expect(result.paginate).toMatchObject({ current_page: 1, per_page: 15, next_page_url: null })
     expect(result.items).toEqual([
       {
         id: 31,

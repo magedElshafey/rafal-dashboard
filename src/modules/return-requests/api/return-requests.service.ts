@@ -5,8 +5,9 @@ import {
   returnRequestIndexEnvelopeSchema,
   returnRequestSuccessEnvelopeSchema,
 } from '../schemas/return-request.schema'
-import type { ReturnRequestDecisionResult, ReturnRequestsIndex } from '../types/return-request.types'
+import type { ReturnRequest, ReturnRequestDecisionResult, ReturnRequestsFilters } from '../types/return-request.types'
 import { ReturnRequestDecisionError } from '../utils/return-request-errors'
+import { emptyReturnRequestsFilters, serializeReturnRequestsFilters } from '../utils/return-request-filters'
 import { normalizeReturnRequest } from '../utils/return-request-normalizers'
 
 const validId = z.number().int().positive().safe()
@@ -21,16 +22,32 @@ function message(value: string | undefined) {
 }
 
 export const returnRequestsService = {
-  async list(signal?: AbortSignal): Promise<ReturnRequestsIndex> {
+  async list(
+    filters: ReturnRequestsFilters = emptyReturnRequestsFilters,
+    page = 1,
+    signal?: AbortSignal
+  ): Promise<PaginatedData<ReturnRequest>> {
     const response = await $http.get({
       url: '/dashboard/return-requests',
+      query: { ...serializeReturnRequestsFilters(filters), page },
       signal,
       suppressErrorNotification: true,
     })
     const envelope = returnRequestIndexEnvelopeSchema.parse(response.data)
+    const items = envelope.data.map(normalizeReturnRequest)
+    const hasNextPage = items.length === envelope.meta.per_page
     return {
-      items: envelope.data.map(normalizeReturnRequest),
-      meta: { currentPage: envelope.meta.current_page, perPage: envelope.meta.per_page },
+      items,
+      paginate: {
+        current_page: envelope.meta.current_page,
+        total_pages: hasNextPage ? envelope.meta.current_page + 1 : envelope.meta.current_page,
+        per_page: envelope.meta.per_page,
+        total: items.length,
+        count: items.length,
+        next_page_url: hasNextPage ? String(envelope.meta.current_page + 1) : null,
+        prev_page_url: envelope.meta.current_page > 1 ? String(envelope.meta.current_page - 1) : null,
+      },
+      extra: null,
     }
   },
   async show(id: number, signal?: AbortSignal) {

@@ -38,3 +38,14 @@ export type ReturnRequestDecisionResult = {
   message?: string
   detail: ReturnRequest | null
 }
+
+export type ReturnRequestSortBy = 'created_at' | 'status'
+export type ReturnRequestSortDir = 'asc' | 'desc'
+
+export type ReturnRequestsFilters = {
+  orderId: number | null
+  dateFrom: string
+  dateTo: string
+  sortBy: ReturnRequestSortBy | null
+  sortDir: ReturnRequestSortDir | null
+}

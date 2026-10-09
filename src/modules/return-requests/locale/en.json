@@ -15,6 +15,22 @@
     "loading": "Loading return requests",
     "error": "Unable to load return requests",
     "retry": "Try again",
+    "filters": {
+      "title": "Return request filters",
+      "all": "All",
+      "order": "Order",
+      "ordersEmpty": "No orders available.",
+      "ordersLoading": "Loading orders…",
+      "ordersLoadMore": "Load more orders",
+      "clearOrder": "Clear order",
+      "date_from": "Date from",
+      "date_to": "Date to",
+      "invalidRange": "The date-from value cannot be after the date-to value.",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": { "created_at": "Created date", "status": "Status" },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "fields": {
       "id": "Request ID",
       "order": "Order Number",
