@@ -13,6 +13,7 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: (payload: ProductCreatePayload) => productsService.create(payload),
+    retry: false,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: productsKeys.lists() })
       toast.success(t('products.feedback.created'))

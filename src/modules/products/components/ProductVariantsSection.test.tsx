@@ -156,7 +156,7 @@ describe('ProductVariantsSection', () => {
       isActive: true,
       images: [],
     })
-    await waitFor(() => expect(screen.getByText('VAR-C')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('VAR-C')).toHaveLength(1))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
@@ -244,6 +244,35 @@ describe('ProductVariantsSection', () => {
 
     await waitFor(() => expect(update).toHaveBeenCalledWith(7, 12, { sku: 'VAR-A2' }))
     expect(await screen.findByText('VAR-A2')).toBeInTheDocument()
+  })
+
+  it('removes unsaved rows locally and sends an empty replacement after deleting the final persisted Attribute', async () => {
+    const update = vi.spyOn(productVariantsService, 'update').mockResolvedValue({
+      ...product.variants[0],
+      attributes: {},
+    })
+    const user = userEvent.setup()
+    renderSection()
+    await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-A' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit variant VAR-A' }))
+    const drawer = await screen.findByRole('dialog')
+
+    const removePersistedAttribute = within(drawer).getByRole('button', { name: 'Remove attribute row 1' })
+    expect(removePersistedAttribute).toBeEnabled()
+    await user.click(within(drawer).getByRole('button', { name: 'Add Attribute' }))
+
+    const removeNewAttribute = within(drawer).getByRole('button', { name: 'Remove attribute row 2' })
+    expect(removeNewAttribute).toBeEnabled()
+    await user.type(within(drawer).getAllByRole('textbox', { name: 'Attribute Key' })[1], 'material')
+    await user.type(within(drawer).getAllByLabelText('Attribute Value')[1], 'Gold')
+    await user.click(removeNewAttribute)
+
+    expect(within(drawer).queryByRole('button', { name: 'Remove attribute row 2' })).not.toBeInTheDocument()
+    expect(within(drawer).getAllByLabelText('Attribute Value')).toHaveLength(1)
+    await user.click(removePersistedAttribute)
+    await user.click(within(drawer).getByRole('button', { name: 'Update Variant' }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, 12, { attributes: {} }))
   })
 
   it('allows an SKU-only edit with unchanged legacy color text and omits attributes', async () => {
@@ -353,6 +382,19 @@ describe('ProductVariantsSection', () => {
     await waitFor(() => expect(update).toHaveBeenCalledWith(7, 12, { attributes: { [unicodeKey]: '22222' } }))
   })
 
+  it('keeps Variant Delete enabled without a proven backend blocker', async () => {
+    const user = userEvent.setup()
+    renderSection({
+      ...product,
+      variants: [{ ...product.variants[0], isDefault: true }],
+    })
+
+    const actions = screen.getByRole('button', { name: 'Actions for variant VAR-A' })
+    expect(actions).toBeEnabled()
+    await user.click(actions)
+    expect(await screen.findByRole('menuitem', { name: 'Delete variant VAR-A' })).toBeEnabled()
+  })
+
   it('confirms Variant Delete, prevents duplicates, and removes only the target', async () => {
     let resolveDelete!: (value: { success: boolean; message: string }) => void
     const remove = vi.spyOn(productVariantsService, 'delete').mockImplementation(
@@ -363,11 +405,17 @@ describe('ProductVariantsSection', () => {
     )
     const user = userEvent.setup()
     renderSection()
-    await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-A' }))
-    await user.click(await screen.findByRole('menuitem', { name: 'Delete variant VAR-A' }))
+    const firstActions = screen.getByRole('button', { name: 'Actions for variant VAR-A' })
+    expect(firstActions).toBeEnabled()
+    await user.click(firstActions)
+    const deleteAction = await screen.findByRole('menuitem', { name: 'Delete variant VAR-A' })
+    expect(deleteAction).toBeEnabled()
+    await user.click(deleteAction)
     const confirm = within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete Variant' })
     await user.click(confirm)
     await waitFor(() => expect(remove).toHaveBeenCalledTimes(1))
+    expect(firstActions).toBeDisabled()
+    expect(screen.getByLabelText('Actions for variant VAR-B')).toBeEnabled()
     expect(confirm).toBeDisabled()
     await user.click(confirm)
     expect(remove).toHaveBeenCalledTimes(1)
@@ -385,6 +433,7 @@ describe('ProductVariantsSection', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Delete variant VAR-A' }))
     await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete Variant' }))
     const dialog = await screen.findByRole('alertdialog')
+    expect(within(dialog).getByRole('button', { name: 'Delete Variant' })).toBeEnabled()
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(screen.getByText('VAR-A')).toBeInTheDocument()
     expect(screen.getByText('VAR-B')).toBeInTheDocument()

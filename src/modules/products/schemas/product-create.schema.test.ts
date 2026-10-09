@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
 import type { ProductCreateFormValues } from '@/modules/products/types/product.types'
 
 import { createProductCreateSchema, PRODUCT_IMAGE_MAX_SIZE } from './product-create.schema'
@@ -16,7 +15,24 @@ const messages = {
   dateInvalid: 'invalid-date',
   imageType: 'image-type',
   imageSize: 'image-size',
+  imageRequired: 'image-required',
+  variantRequired: 'variant-required',
+  duplicateVariantSku: 'duplicate-sku',
+  attributeIncomplete: 'attribute-incomplete',
+  attributeDuplicate: 'attribute-duplicate',
+  attributeInvalidKey: 'attribute-key',
+  attributeInvalidColor: 'attribute-color',
+  duplicateWarehouse: 'duplicate-warehouse',
 }
+
+const productImage = new File(['image'], 'product.png', { type: 'image/png' })
+const validVariant = () => ({
+  sku: 'VAR-1',
+  attributes: [],
+  priceOverride: null,
+  isActive: true,
+  stocks: [],
+})
 
 const validValues = (overrides: Partial<ProductCreateFormValues> = {}): ProductCreateFormValues => ({
   categoryId: 1,
@@ -33,13 +49,14 @@ const validValues = (overrides: Partial<ProductCreateFormValues> = {}): ProductC
   isNewArrival: false,
   isActive: true,
   sortOrder: 0,
-  images: EMPTY_IMAGE_UPLOAD_VALUE,
+  images: { files: [productImage], removedExistingIds: [] },
+  variants: [validVariant()],
   ...overrides,
 })
 
 const schema = createProductCreateSchema(messages)
 
-describe('shared Product Create/Edit validation', () => {
+describe('aggregate Product Create validation', () => {
   it('requires Category for both Dashboard write flows and trims required identity fields', async () => {
     await expect(schema.validateAt('categoryId', validValues({ categoryId: null }))).rejects.toThrow('required')
     await expect(schema.validateAt('sku', validValues({ sku: ' '.repeat(2) }))).rejects.toThrow('required')
@@ -122,5 +139,49 @@ describe('shared Product Create/Edit validation', () => {
     await expect(
       schema.validateAt('images', validValues({ images: { files: [oversizedImage], removedExistingIds: [] } }))
     ).rejects.toThrow('image-size')
+  })
+
+  it('requires a Product image before aggregate submission', async () => {
+    await expect(
+      schema.validateAt('images', validValues({ images: { files: [], removedExistingIds: [] } }))
+    ).rejects.toThrow('image-required')
+  })
+
+  it('requires at least one Variant and preserves nested Variant validation', async () => {
+    await expect(schema.validateAt('variants', validValues({ variants: [] }))).rejects.toThrow('variant-required')
+    await expect(schema.validateAt('variants', validValues({ variants: [validVariant()] }))).resolves.toHaveLength(1)
+    await expect(
+      schema.validateAt('variants.0.sku', validValues({ variants: [{ ...validVariant(), sku: ' ' }] }))
+    ).rejects.toThrow('required')
+  })
+
+  it('rejects duplicate Variant SKUs, attribute keys, and Warehouses', async () => {
+    const duplicateVariants = [
+      { sku: 'VAR-1', attributes: [], priceOverride: null, isActive: true, stocks: [] },
+      { sku: ' var-1 ', attributes: [], priceOverride: null, isActive: true, stocks: [] },
+    ]
+    await expect(schema.validateAt('variants', validValues({ variants: duplicateVariants }))).rejects.toThrow(
+      'duplicate-sku'
+    )
+
+    const variant = {
+      sku: 'VAR-1',
+      priceOverride: null,
+      isActive: true,
+      attributes: [
+        { key: 'Stone Type', value: 'diamond' },
+        { key: 'stone_type', value: 'ruby' },
+      ],
+      stocks: [
+        { warehouseId: 2, quantity: 0 },
+        { warehouseId: 2, quantity: 5 },
+      ],
+    }
+    await expect(schema.validateAt('variants.0.attributes', validValues({ variants: [variant] }))).rejects.toThrow(
+      'attribute-duplicate'
+    )
+    await expect(schema.validateAt('variants.0.stocks', validValues({ variants: [variant] }))).rejects.toThrow(
+      'duplicate-warehouse'
+    )
   })
 })

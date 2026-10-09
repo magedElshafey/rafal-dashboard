@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,8 +8,11 @@ import '@/config/i18'
 import i18n from '@/config/i18'
 import { categoriesService } from '@/modules/categories/api/categories.service'
 import { productsService } from '@/modules/products/api/products.service'
+import { productVariantsService } from '@/modules/products/api/product-variants.service'
+import { productVariantStocksService } from '@/modules/products/api/product-variant-stocks.service'
 import ProductCreatePage from '@/modules/products/pages/ProductCreatePage'
 import { productsKeys } from '@/modules/products/queries/products.keys'
+import { warehousesService } from '@/modules/warehouses/api/warehouses.service'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -44,16 +47,27 @@ function renderPage() {
   return { queryClient, invalidate }
 }
 
-async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
+async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>, includeImage = true) {
   await user.click(screen.getByRole('combobox', { name: 'Category' }))
   await user.click(await screen.findByRole('option', { name: 'Jewelry' }))
   await user.type(screen.getByRole('textbox', { name: 'SKU' }), ' RFL-NEW ')
   await user.type(screen.getByRole('textbox', { name: 'Arabic Name' }), ' منتج جديد ')
   await user.type(screen.getByRole('spinbutton', { name: 'Base Price' }), '25.5')
+  if (includeImage) {
+    await user.upload(screen.getByLabelText('Browse images'), new File(['image'], 'product.png', { type: 'image/png' }))
+  }
+}
+
+async function addValidVariant(user: ReturnType<typeof userEvent.setup>, sku = 'VAR-ONE') {
+  await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+  const skuInputs = screen.getAllByRole('textbox', { name: 'SKU' })
+  await user.type(skuInputs[skuInputs.length - 1], sku)
 }
 
 describe('ProductCreatePage', () => {
   beforeEach(async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:product')
+    URL.revokeObjectURL = vi.fn()
     vi.spyOn(categoriesService, 'list').mockResolvedValue({
       items: [
         {
@@ -83,6 +97,22 @@ describe('ProductCreatePage', () => {
     })
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
+    vi.spyOn(warehousesService, 'list').mockResolvedValue({
+      items: [
+        { id: 1, name: 'Main Warehouse', isActive: true, createdAt: 'created', updatedAt: 'updated' },
+        { id: 2, name: 'Second Warehouse', isActive: true, createdAt: 'created', updatedAt: 'updated' },
+      ],
+      paginate: {
+        current_page: 1,
+        total_pages: 1,
+        per_page: 15,
+        total: 2,
+        count: 2,
+        next_page_url: null,
+        prev_page_url: null,
+      },
+      extra: null,
+    })
     await i18n.changeLanguage('en')
   })
 
@@ -138,13 +168,14 @@ describe('ProductCreatePage', () => {
     const user = userEvent.setup()
     renderPage()
     await fillRequiredFields(user)
+    await addValidVariant(user)
 
     await user.click(screen.getByRole('button', { name: 'Create Product' }))
 
     await waitFor(() =>
       expect(toastMocks.error).toHaveBeenCalledWith('Product could not be created. Your changes have been preserved.')
     )
-    expect(screen.getByRole('textbox', { name: 'SKU' })).toHaveValue(' RFL-NEW ')
+    expect(screen.getAllByRole('textbox', { name: 'SKU' })[0]).toHaveValue(' RFL-NEW ')
     expect(screen.getByRole('textbox', { name: 'Arabic Name' })).toHaveValue(' منتج جديد ')
     expect(screen.getByRole('spinbutton', { name: 'Base Price' })).toHaveValue(25.5)
     expect(screen.getByRole('combobox', { name: 'Category' })).toHaveTextContent('Jewelry')
@@ -167,6 +198,7 @@ describe('ProductCreatePage', () => {
     const user = userEvent.setup()
     renderPage()
     await fillRequiredFields(user)
+    await addValidVariant(user)
 
     await user.click(screen.getByRole('button', { name: 'Create Product' }))
 
@@ -176,11 +208,198 @@ describe('ProductCreatePage', () => {
     expect(screen.getByRole('textbox', { name: 'Arabic Name' })).toHaveValue(' منتج جديد ')
   })
 
+  it('requires a Product image before submitting', async () => {
+    const create = vi.spyOn(productsService, 'create')
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user, false)
+
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+
+    expect(await screen.findByText('Upload at least one product image.')).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('requires an explicit Variant, preserves Product values, and clears the section error once valid', async () => {
+    const create = vi.spyOn(productsService, 'create')
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+
+    expect(await screen.findByText('At least one variant is required.')).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
+    expect(screen.getAllByRole('textbox', { name: 'SKU' })[0]).toHaveValue(' RFL-NEW ')
+    expect(screen.getByRole('textbox', { name: 'Arabic Name' })).toHaveValue(' منتج جديد ')
+
+    await addValidVariant(user)
+
+    await waitFor(() => expect(screen.queryByText('At least one variant is required.')).not.toBeInTheDocument())
+  })
+
+  it('submits exactly one valid Variant in one aggregate Product request', async () => {
+    const create = vi.spyOn(productsService, 'create').mockResolvedValueOnce({ id: 89 })
+    const createVariant = vi.spyOn(productVariantsService, 'create')
+    const putStock = vi.spyOn(productVariantStocksService, 'put')
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+    await addValidVariant(user)
+
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variants: [expect.objectContaining({ sku: 'VAR-ONE', stocks: [] })],
+      })
+    )
+    expect(createVariant).not.toHaveBeenCalled()
+    expect(putStock).not.toHaveBeenCalled()
+  })
+
+  it('builds independent Variant, Attribute, and Stock rows in the single Create form', async () => {
+    const create = vi.spyOn(productsService, 'create').mockResolvedValueOnce({ id: 90 })
+    const createVariant = vi.spyOn(productVariantsService, 'create')
+    const putStock = vi.spyOn(productVariantStocksService, 'put')
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    await user.type(screen.getAllByRole('textbox', { name: 'SKU' })[1], 'VAR-RED')
+    await user.type(screen.getByRole('textbox', { name: 'Attribute Key' }), 'Color')
+    fireEvent.change(screen.getByLabelText('Attribute Value'), { target: { value: '#c8102e' } })
+    await user.click(screen.getByRole('button', { name: 'Add Stock' }))
+    await user.click(screen.getByRole('combobox', { name: 'Warehouse' }))
+    await user.click(await screen.findByRole('option', { name: 'Main Warehouse' }))
+    await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '0')
+
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    await user.type(screen.getAllByRole('textbox', { name: 'SKU' })[2], 'VAR-BLUE')
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variants: [
+          expect.objectContaining({
+            sku: 'VAR-RED',
+            attributes: { color: '#C8102E' },
+            stocks: [{ warehouseId: 1, quantity: 0 }],
+          }),
+          expect.objectContaining({ sku: 'VAR-BLUE', stocks: [] }),
+        ],
+      })
+    )
+    expect(createVariant).not.toHaveBeenCalled()
+    expect(putStock).not.toHaveBeenCalled()
+    expect(warehousesService.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes dynamic rows and prevents duplicate Warehouse selection within a Variant', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    expect(screen.getAllByText(/Variant \d/)).toHaveLength(2)
+    await user.click(screen.getAllByRole('button', { name: 'Remove Variant' })[1])
+    expect(screen.getAllByText(/Variant \d/)).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: 'Add Stock' }))
+    await user.click(screen.getByRole('combobox', { name: 'Warehouse' }))
+    await user.click(await screen.findByRole('option', { name: 'Main Warehouse' }))
+    await user.click(screen.getByRole('button', { name: 'Add Stock' }))
+    await user.click(screen.getAllByRole('combobox', { name: 'Warehouse' })[1])
+    expect(screen.queryByRole('option', { name: 'Main Warehouse' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: 'Second Warehouse' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await user.click(screen.getAllByRole('button', { name: /Remove stock row/ })[1])
+    expect(screen.getAllByRole('combobox', { name: 'Warehouse' })).toHaveLength(1)
+  })
+
+  it('maps a nested Laravel Warehouse error to the exact Stock selector and preserves values', async () => {
+    vi.spyOn(productsService, 'create').mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { errors: { 'variants.0.stocks.0.warehouse_id': ['Warehouse is unavailable'] } } },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    await user.type(screen.getAllByRole('textbox', { name: 'SKU' })[1], 'VAR-ONE')
+    await user.click(screen.getByRole('button', { name: 'Add Stock' }))
+    await user.click(screen.getByRole('combobox', { name: 'Warehouse' }))
+    await user.click(await screen.findByRole('option', { name: 'Main Warehouse' }))
+    await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '4')
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+
+    expect(await screen.findByText('Warehouse is unavailable')).toBeInTheDocument()
+    expect(screen.getAllByRole('textbox', { name: 'SKU' })[1]).toHaveValue('VAR-ONE')
+    expect(screen.getByRole('spinbutton', { name: 'Quantity' })).toHaveValue(4)
+  })
+
+  it('maps aggregate Variant pricing, active, and Attribute errors to their exact controls', async () => {
+    vi.spyOn(productsService, 'create').mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        data: {
+          errors: {
+            'variants.0.price_override': ['Price override is invalid'],
+            'variants.0.is_active': ['Variant active state is invalid'],
+            'variants.0.attributes.color': ['Variant color is invalid'],
+          },
+        },
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    await user.type(screen.getAllByRole('textbox', { name: 'SKU' })[1], 'VAR-COLOR')
+    await user.type(screen.getByRole('textbox', { name: 'Attribute Key' }), 'Color')
+    fireEvent.change(screen.getByLabelText('Attribute Value'), { target: { value: '#c8102e' } })
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+
+    expect(await screen.findByText('Price override is invalid')).toBeInTheDocument()
+    expect(screen.getByText('Variant active state is invalid')).toBeInTheDocument()
+    expect(screen.getByText('Variant color is invalid')).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: 'Price Override' })).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getAllByRole('checkbox', { name: 'Active' })[1]).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('Attribute Value')).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('locks aggregate submission while the Product POST is pending', async () => {
+    let resolveCreate!: (value: { id: number }) => void
+    const create = vi.spyOn(productsService, 'create').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve
+        })
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+    await addValidVariant(user)
+    const submit = screen.getByRole('button', { name: 'Create Product' })
+
+    await user.click(submit)
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    expect(submit).toBeDisabled()
+    await user.click(submit)
+    expect(create).toHaveBeenCalledTimes(1)
+
+    await act(async () => resolveCreate({ id: 91 }))
+    expect(await screen.findByText('Product Edit destination')).toBeInTheDocument()
+  })
+
   it('invalidates Product lists and navigates to the created Product Edit page', async () => {
     const create = vi.spyOn(productsService, 'create').mockResolvedValueOnce({ id: 88 })
     const user = userEvent.setup()
     const { invalidate } = renderPage()
     await fillRequiredFields(user)
+    await addValidVariant(user)
 
     await user.click(screen.getByRole('button', { name: 'Create Product' }))
 
@@ -192,7 +411,7 @@ describe('ProductCreatePage', () => {
         name: { ar: 'منتج جديد', en: '' },
         basePrice: 25.5,
         sortOrder: 0,
-        images: [],
+        images: [expect.any(File)],
       })
     )
     expect(invalidate).toHaveBeenCalledWith({ queryKey: productsKeys.lists() })

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '@/config/i18'
 import { productMediaService } from '@/modules/products/api/product-media.service'
 import { productVariantStocksService } from '@/modules/products/api/product-variant-stocks.service'
-import { productVariantsService } from '@/modules/products/api/product-variants.service'
+import { productVariantsHttpTransport, productVariantsService } from '@/modules/products/api/product-variants.service'
 import { useCreateProductVariant } from '@/modules/products/hooks/useCreateProductVariant'
 import { useDeleteProductVariant } from '@/modules/products/hooks/useDeleteProductVariant'
 import { useDeleteProductVariantMedia } from '@/modules/products/hooks/useDeleteProductVariantMedia'
@@ -100,6 +100,70 @@ describe('Product Variant mutation cache ownership', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: productsKeys.lists() })
     expect(toastMocks.success).toHaveBeenCalledTimes(1)
     expect(toastMocks.error).not.toHaveBeenCalled()
+  })
+
+  it('accepts the real nullable is_default Create response and inserts the Variant once', async () => {
+    const createVariant = vi.spyOn(productVariantsHttpTransport, 'createVariant').mockResolvedValue({
+      success: true,
+      message: 'Variant created successfully',
+      data: {
+        id: 58,
+        sku: 'TST-RING-001-SILVER-163231',
+        attributes: { color: '#741616' },
+        price_override: null,
+        is_active: true,
+        is_default: null,
+        images: [],
+        warehouse_stocks: [],
+      },
+    })
+    const { client, invalidate, wrapper } = setup()
+    const { result } = renderHook(() => useCreateProductVariant(7), { wrapper })
+
+    let created: ProductVariant | undefined
+    await act(async () => {
+      created = await result.current.mutateAsync({
+        sku: 'TST-RING-001-SILVER-163231',
+        attributes: { color: '#741616' },
+        priceOverride: null,
+        isActive: true,
+        images: [],
+      })
+    })
+
+    expect(created).toMatchObject({ id: 58, isDefault: false })
+    const cached = client.getQueryData<ProductDetail>(productsKeys.detail(7))
+    expect(cached?.variants.filter((item) => item.id === 58)).toHaveLength(1)
+    expect(createVariant).toHaveBeenCalledTimes(1)
+    expect(invalidate).toHaveBeenCalledTimes(1)
+    expect(toastMocks.success).toHaveBeenCalledTimes(1)
+    expect(toastMocks.error).not.toHaveBeenCalled()
+  })
+
+  it('preserves the Product detail cache and shows safe feedback when Variant Create fails', async () => {
+    const createVariant = vi
+      .spyOn(productVariantsService, 'create')
+      .mockRejectedValue(new Error('internal parser detail'))
+    const { client, wrapper } = setup()
+    const { result } = renderHook(() => useCreateProductVariant(7), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          sku: 'VAR-FAILED',
+          attributes: {},
+          priceOverride: null,
+          isActive: true,
+          images: [],
+        })
+      ).rejects.toThrow('internal parser detail')
+    })
+
+    expect(client.getQueryData<ProductDetail>(productsKeys.detail(7))?.variants).toEqual(product.variants)
+    expect(createVariant).toHaveBeenCalledTimes(1)
+    expect(toastMocks.success).not.toHaveBeenCalled()
+    expect(toastMocks.error).toHaveBeenCalledTimes(1)
+    expect(toastMocks.error).toHaveBeenCalledWith(expect.not.stringContaining('internal parser detail'))
   })
 
   it('removes only the targeted Variant and invalidates Product lists once', async () => {

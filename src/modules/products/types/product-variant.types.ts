@@ -22,7 +22,7 @@ export type RawDashboardProductVariant = {
   attributes: unknown
   price_override: number | string | null
   is_active: boolean | 0 | 1 | '0' | '1'
-  is_default?: boolean | 0 | 1 | '0' | '1'
+  is_default?: boolean | 0 | 1 | '0' | '1' | null
   images: RawProductMedia[]
   warehouse_stocks: RawVariantWarehouseStock[]
 }

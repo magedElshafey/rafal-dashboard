@@ -1,16 +1,20 @@
 import { useMemo, useRef } from 'react'
 import { LoaderCircle } from 'lucide-react'
-import type { UseFormReturn } from 'react-hook-form'
+import type { Path, UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { FormWrapper } from '@/components/core/FormWrapper'
-import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
 import { Button } from '@/components/ui/button'
+import { ProductCreateVariantsFields } from '@/modules/products/components/ProductCreateVariantsFields'
 import { ProductFormSections } from '@/modules/products/components/ProductFormSections'
 import { createProductCreateSchema } from '@/modules/products/schemas/product-create.schema'
 import type { ProductCreateFormValues, ProductCreatePayload } from '@/modules/products/types/product.types'
-import { buildProductCreatePayload } from '@/modules/products/utils/product-create.utils'
+import {
+  buildProductCreatePayload,
+  createEmptyProductCreateFormValues,
+} from '@/modules/products/utils/product-create.utils'
+import { normalizeVariantAttributeKey } from '@/modules/products/utils/product-variant.utils'
 import { Routes } from '@/routes/routes'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
@@ -19,23 +23,7 @@ type ProductCreateFormProps = {
   onSubmit: (payload: ProductCreatePayload) => Promise<unknown>
 }
 
-export const EMPTY_PRODUCT_CREATE_FORM_VALUES: ProductCreateFormValues = {
-  categoryId: null,
-  sku: '',
-  name: { ar: '', en: '' },
-  description: { ar: '', en: '' },
-  basePrice: null,
-  discountPercentage: null,
-  discountEndAt: '',
-  isPersonalizable: false,
-  personalizationMaxLength: null,
-  personalizationFee: null,
-  hidePriceOnPackaging: false,
-  isNewArrival: false,
-  isActive: true,
-  sortOrder: 0,
-  images: EMPTY_IMAGE_UPLOAD_VALUE,
-}
+export const EMPTY_PRODUCT_CREATE_FORM_VALUES = createEmptyProductCreateFormValues()
 
 export const PRODUCT_CREATE_API_FIELD_ALIASES = {
   category_id: 'categoryId',
@@ -58,6 +46,26 @@ export const PRODUCT_CREATE_API_FIELD_ALIASES = {
   'images.*': 'images',
 } as const
 
+function buildProductCreateApiFieldAliases(values: ProductCreateFormValues) {
+  const aliases: Record<string, Path<ProductCreateFormValues>> = { ...PRODUCT_CREATE_API_FIELD_ALIASES }
+  values.variants.forEach((variant, variantIndex) => {
+    aliases[`variants.${variantIndex}.price_override`] = `variants.${variantIndex}.priceOverride`
+    aliases[`variants.${variantIndex}.is_active`] = `variants.${variantIndex}.isActive`
+    variant.attributes.forEach((attribute, attributeIndex) => {
+      const key = normalizeVariantAttributeKey(attribute.key)
+      if (key) {
+        aliases[`variants.${variantIndex}.attributes.${key}`] =
+          `variants.${variantIndex}.attributes.${attributeIndex}.value`
+      }
+    })
+    variant.stocks.forEach((_stock, stockIndex) => {
+      aliases[`variants.${variantIndex}.stocks.${stockIndex}.warehouse_id`] =
+        `variants.${variantIndex}.stocks.${stockIndex}.warehouseId`
+    })
+  })
+  return aliases
+}
+
 export function ProductCreateForm({ isSubmitting, onSubmit }: ProductCreateFormProps) {
   const { t } = useTranslation()
   const submissionLockRef = useRef(false)
@@ -74,6 +82,14 @@ export function ProductCreateForm({ isSubmitting, onSubmit }: ProductCreateFormP
         dateInvalid: t('products.validation.dateInvalid'),
         imageType: t('products.validation.imageType'),
         imageSize: t('products.validation.imageSize'),
+        imageRequired: t('products.validation.imageRequired'),
+        variantRequired: t('products.validation.variantRequired'),
+        duplicateVariantSku: t('products.validation.duplicateVariantSku'),
+        attributeIncomplete: t('products.variants.validation.attributeIncomplete'),
+        attributeDuplicate: t('products.variants.validation.attributeDuplicate'),
+        attributeInvalidKey: t('products.variants.validation.attributeInvalidKey'),
+        attributeInvalidColor: t('products.variants.validation.attributeInvalidColor'),
+        duplicateWarehouse: t('products.validation.duplicateWarehouse'),
       }),
     [t]
   )
@@ -84,7 +100,7 @@ export function ProductCreateForm({ isSubmitting, onSubmit }: ProductCreateFormP
     try {
       await onSubmit(buildProductCreatePayload(values))
     } catch (error) {
-      applyApiValidationErrors(error, methods.setError, PRODUCT_CREATE_API_FIELD_ALIASES)
+      applyApiValidationErrors(error, methods.setError, buildProductCreateApiFieldAliases(values))
     } finally {
       submissionLockRef.current = false
     }
@@ -98,7 +114,8 @@ export function ProductCreateForm({ isSubmitting, onSubmit }: ProductCreateFormP
       onSubmit={handleSubmit}
       className="space-y-5"
     >
-      <ProductFormSections isSubmitting={isSubmitting} />
+      <ProductFormSections isSubmitting={isSubmitting} requireImages />
+      <ProductCreateVariantsFields />
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
         <Button asChild variant="outline" size="lg">
           <Link to={Routes.products}>{t('products.actions.cancel')}</Link>

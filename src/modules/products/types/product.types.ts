@@ -5,6 +5,7 @@ import type {
   JsonValue,
   ProductVariant,
   RawDashboardProductVariant,
+  VariantAttributeRow,
 } from '@/modules/products/types/product-variant.types'
 import type { ProductMedia, RawProductMedia } from '@/modules/products/types/product-media.types'
 
@@ -52,7 +53,7 @@ export type RawProductListItem = {
 
 export type ProductsIndexResponse = PaginatedDashboardResponse<RawProductListItem>
 
-export type ProductCreateFormValues = {
+export type ProductFormValues = {
   categoryId: number | null
   sku: string
   name: LocalizedName
@@ -70,7 +71,22 @@ export type ProductCreateFormValues = {
   images: ImageUploadValue
 }
 
-export type ProductFormValues = ProductCreateFormValues
+export type ProductCreateStockFormValues = {
+  warehouseId: number | null
+  quantity: number | null
+}
+
+export type ProductCreateVariantFormValues = {
+  sku: string
+  attributes: VariantAttributeRow[]
+  priceOverride: number | null
+  isActive: boolean
+  stocks: ProductCreateStockFormValues[]
+}
+
+export type ProductCreateFormValues = ProductFormValues & {
+  variants: ProductCreateVariantFormValues[]
+}
 
 export type RawProductDetail = {
   id: number | string
@@ -165,6 +181,13 @@ export type ProductCreatePayload = {
   isActive: boolean
   sortOrder: number
   images: File[]
+  variants: Array<{
+    sku: string
+    attributes: Record<string, string>
+    priceOverride: number | null
+    isActive: boolean
+    stocks: Array<{ warehouseId: number; quantity: number }>
+  }>
 }
 
 export type ProductCreateResult = { id: number }

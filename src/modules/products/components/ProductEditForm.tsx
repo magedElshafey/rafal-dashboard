@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom'
 import { FormWrapper } from '@/components/core/FormWrapper'
 import { Button } from '@/components/ui/button'
 import { ProductFormSections } from '@/modules/products/components/ProductFormSections'
-import { createProductCreateSchema } from '@/modules/products/schemas/product-create.schema'
+import { createProductFormSchema } from '@/modules/products/schemas/product-create.schema'
 import type { ProductDetail, ProductFormValues, ProductUpdatePayload } from '@/modules/products/types/product.types'
 import { buildProductUpdatePayload, productDetailToFormValues } from '@/modules/products/utils/product-edit.utils'
 import { PRODUCT_CREATE_API_FIELD_ALIASES } from '@/modules/products/components/ProductCreateForm'
@@ -44,7 +44,7 @@ export function ProductEditForm({ product, isSubmitting, onSubmit, onDeleteImage
   const initialValues = useRef(productDetailToFormValues(product)).current
   const schema = useMemo(
     () =>
-      createProductCreateSchema({
+      createProductFormSchema({
         required: t('products.validation.required'),
         validNumber: t('products.validation.validNumber'),
         nonNegative: t('products.validation.nonNegative'),

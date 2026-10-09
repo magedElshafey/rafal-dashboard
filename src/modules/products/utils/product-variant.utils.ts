@@ -125,21 +125,29 @@ export function buildProductVariantUpdatePayload(
   if (hasNewVariantAttributeKeyCollision(values.attributes)) {
     throw new Error('Variant attribute keys must be unique')
   }
-  const changed: VariantAttributes = {}
+  const attributes: VariantAttributes = {}
   values.attributes.forEach((row) => {
     const key = row.isPersisted ? row.key : normalizeVariantAttributeKey(row.key)
-    const value = row.value.trim()
+    const originalValue = row.isPersisted ? (row.originalValue ?? currentFlat[key]) : undefined
+    const isUnchangedPersisted = row.isPersisted && originalValue !== undefined && row.value === originalValue
+    const value = isUnchangedPersisted ? row.value : row.value.trim()
     if (!key && !value) return
     if (!key || !value) throw new Error('Variant attributes require both a key and value')
     if (isDangerousVariantAttributeKey(row.key)) throw new Error('Variant attribute key is unsafe')
     if (!row.isPersisted && !isCanonicalVariantAttributeKey(key)) {
       throw new Error('Variant attribute key is invalid')
     }
-    const originalValue = row.isPersisted ? (row.originalValue ?? currentFlat[key]) : undefined
-    if (row.isPersisted && row.value === originalValue) return
-    const normalizedValue = key === 'color' && isSixDigitHexColor(value) ? value.toUpperCase() : value
-    if (currentFlat[key] !== normalizedValue) changed[key] = normalizedValue
+    if (Object.prototype.hasOwnProperty.call(attributes, key)) throw new Error('Variant attribute keys must be unique')
+    attributes[key] =
+      !isUnchangedPersisted && key === 'color' && isSixDigitHexColor(value) ? value.toUpperCase() : value
   })
-  if (Object.keys(changed).length > 0) payload.attributes = changed
+  const currentKeys = Object.keys(currentFlat)
+  const nextKeys = Object.keys(attributes)
+  const attributesChanged =
+    currentKeys.length !== nextKeys.length ||
+    nextKeys.some(
+      (key) => !Object.prototype.hasOwnProperty.call(currentFlat, key) || currentFlat[key] !== attributes[key]
+    )
+  if (attributesChanged) payload.attributes = attributes
   return payload
 }

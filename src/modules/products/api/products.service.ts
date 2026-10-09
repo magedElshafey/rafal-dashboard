@@ -34,38 +34,7 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
   if (numericValues.some((value) => !Number.isFinite(value))) {
     throw new Error('Product Create contains an invalid numeric value')
   }
-
-  const nameEn = payload.name.en.trim()
-  const descriptionAr = payload.description.ar.trim()
-  const descriptionEn = payload.description.en.trim()
-  const json = {
-    category_id: payload.categoryId,
-    sku: payload.sku.trim(),
-    name: { ar: payload.name.ar.trim(), ...(nameEn ? { en: nameEn } : {}) },
-    ...(descriptionAr || descriptionEn
-      ? {
-          description: {
-            ...(descriptionAr ? { ar: descriptionAr } : {}),
-            ...(descriptionEn ? { en: descriptionEn } : {}),
-          },
-        }
-      : {}),
-    base_price: payload.basePrice,
-    ...(payload.discountPercentage !== null ? { discount_percentage: payload.discountPercentage } : {}),
-    ...(payload.discountEndAt ? { discount_end_at: formatProductDateTime(payload.discountEndAt) } : {}),
-    is_personalizable: toApiBoolean(payload.isPersonalizable),
-    ...(payload.isPersonalizable
-      ? {
-          personalization_max_length: payload.personalizationMaxLength,
-          personalization_fee: payload.personalizationFee,
-        }
-      : {}),
-    hide_price_on_packaging: toApiBoolean(payload.hidePriceOnPackaging),
-    is_new_arrival: toApiBoolean(payload.isNewArrival),
-    is_active: toApiBoolean(payload.isActive),
-    sort_order: payload.sortOrder,
-  }
-  if (payload.images.length === 0) return json
+  if (payload.images.length === 0) throw new Error('Product Create requires at least one image')
 
   const body = new FormData()
   body.set('category_id', String(payload.categoryId))
@@ -87,6 +56,20 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
   body.set('is_active', String(toApiBoolean(payload.isActive)))
   body.set('sort_order', String(payload.sortOrder))
   payload.images.forEach((image) => body.append('images[]', image))
+  payload.variants.forEach((variant, variantIndex) => {
+    const prefix = `variants[${variantIndex}]`
+    body.set(`${prefix}[sku]`, variant.sku.trim())
+    Object.entries(variant.attributes).forEach(([key, value]) => {
+      body.set(`${prefix}[attributes][${key}]`, value)
+    })
+    appendOptional(body, `${prefix}[price_override]`, variant.priceOverride)
+    body.set(`${prefix}[is_active]`, String(toApiBoolean(variant.isActive)))
+    variant.stocks.forEach((stock, stockIndex) => {
+      const stockPrefix = `${prefix}[stocks][${stockIndex}]`
+      body.set(`${stockPrefix}[warehouse_id]`, String(stock.warehouseId))
+      body.set(`${stockPrefix}[quantity]`, String(stock.quantity))
+    })
+  })
   return body
 }
 

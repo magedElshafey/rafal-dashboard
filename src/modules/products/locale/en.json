@@ -47,11 +47,22 @@
       "maxLength": "Enter no more than 255 characters.",
       "dateInvalid": "Enter a valid date and time.",
       "imageType": "Upload image files only.",
-      "imageSize": "Each image must be 5 MB or smaller."
+      "imageSize": "Each image must be 5 MB or smaller.",
+      "imageRequired": "Upload at least one product image.",
+      "variantRequired": "At least one variant is required.",
+      "duplicateVariantSku": "Variant SKUs must be unique.",
+      "duplicateWarehouse": "Each warehouse can be assigned only once per variant."
     },
     "create": {
       "title": "Create Product",
-      "description": "Add the core product information. Variants and stock will be managed after creation.",
+      "description": "Create the product, variants, and warehouse stock in one submission.",
+      "aggregate": {
+        "title": "Variants & Inventory",
+        "description": "Configure purchasable variants, attributes, and warehouse quantities.",
+        "variantHeading": "Variant {{index}}",
+        "removeVariant": "Remove Variant",
+        "removeStock": "Remove stock row {{index}}"
+      },
       "fields": {
         "category": "Category",
         "sku": "SKU",
@@ -98,7 +109,7 @@
         },
         "images": {
           "title": "Product Images",
-          "description": "Upload optional product images up to 5 MB each."
+          "description": "Upload at least one product image, up to 5 MB each."
         },
         "settings": {
           "title": "Product Settings",

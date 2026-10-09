@@ -56,6 +56,7 @@ const createPayload = (overrides: Partial<ProductCreatePayload> = {}): ProductCr
   isActive: true,
   sortOrder: -2,
   images: [],
+  variants: [],
   ...overrides,
 })
 
@@ -226,9 +227,22 @@ describe('products service', () => {
     const secondImage = new File(['second'], 'second.jpg', { type: 'image/jpeg' })
     httpMocks.post.mockResolvedValue({ data: { success: true, message: 'created', data: { id: 81 } } })
 
-    await expect(productsService.create(createPayload({ images: [firstImage, secondImage] }))).resolves.toEqual({
-      id: 81,
-    })
+    await expect(
+      productsService.create(
+        createPayload({
+          images: [firstImage, secondImage],
+          variants: [
+            {
+              sku: ' VAR-1 ',
+              attributes: { color: '#C8102E', size: 'L' },
+              priceOverride: 45,
+              isActive: true,
+              stocks: [{ warehouseId: 3, quantity: 0 }],
+            },
+          ],
+        })
+      )
+    ).resolves.toEqual({ id: 81 })
 
     expect(httpMocks.post).toHaveBeenCalledTimes(1)
     const request = httpMocks.post.mock.calls[0][0]
@@ -257,6 +271,13 @@ describe('products service', () => {
       ['sort_order', '-2'],
       ['images[]', firstImage],
       ['images[]', secondImage],
+      ['variants[0][sku]', 'VAR-1'],
+      ['variants[0][attributes][color]', '#C8102E'],
+      ['variants[0][attributes][size]', 'L'],
+      ['variants[0][price_override]', '45'],
+      ['variants[0][is_active]', '1'],
+      ['variants[0][stocks][0][warehouse_id]', '3'],
+      ['variants[0][stocks][0][quantity]', '0'],
     ])
     expect((request.data as FormData).has('slug')).toBe(false)
     expect((request.data as FormData).has('variants')).toBe(false)
@@ -265,18 +286,14 @@ describe('products service', () => {
     expect((request.data as FormData).has('simulated_orders_count')).toBe(false)
   })
 
-  it('POSTs JSON when Product Create has no media', async () => {
-    httpMocks.post.mockResolvedValue({ data: { success: true, message: 'created', data: { id: 82 } } })
-    await productsService.create(createPayload({ images: [] }))
-    const request = httpMocks.post.mock.calls[0][0]
-    expect(request).not.toHaveProperty('isFormData')
-    expect(request.data).toMatchObject({ sku: 'RFL-CREATE-001', is_active: 1 })
-    expect(request.data).not.toHaveProperty('slug')
-    expect(request.data).not.toHaveProperty('variants')
-    expect(request.data).not.toHaveProperty('warehouse_stocks')
+  it('requires Product media before serializing aggregate Create', () => {
+    expect(() => serializeProductCreate(createPayload({ images: [] }))).toThrow(
+      'Product Create requires at least one image'
+    )
   })
 
   it('omits nullable Create fields and disabled personalization values', () => {
+    const image = new File(['image'], 'product.png', { type: 'image/png' })
     const body = serializeProductCreate(
       createPayload({
         name: { ar: 'منتج', en: '   ' },
@@ -286,20 +303,16 @@ describe('products service', () => {
         isPersonalizable: false,
         personalizationMaxLength: 20,
         personalizationFee: 5,
+        images: [image],
       })
     )
 
-    expect(body).toEqual({
-      category_id: 4,
-      sku: 'RFL-CREATE-001',
-      name: { ar: 'منتج' },
-      base_price: 50.25,
-      is_personalizable: 0,
-      hide_price_on_packaging: 1,
-      is_new_arrival: 0,
-      is_active: 1,
-      sort_order: -2,
-    })
+    expect(body).toBeInstanceOf(FormData)
+    expect((body as FormData).has('name[en]')).toBe(false)
+    expect((body as FormData).has('description[ar]')).toBe(false)
+    expect((body as FormData).has('discount_percentage')).toBe(false)
+    expect((body as FormData).has('personalization_max_length')).toBe(false)
+    expect((body as FormData).has('personalization_fee')).toBe(false)
   })
 
   it.each([{ basePrice: Number.NaN }, { discountPercentage: Number.POSITIVE_INFINITY }, { sortOrder: Number.NaN }])(

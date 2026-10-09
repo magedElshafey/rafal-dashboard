@@ -160,7 +160,7 @@ describe('Product Variant form mapping', () => {
     })
   })
 
-  it('builds Variant Update as changed keys only and preserves machine codes', () => {
+  it('builds Variant Update with the complete attributes object when attributes change', () => {
     expect(
       buildProductVariantUpdatePayload(
         {
@@ -186,7 +186,7 @@ describe('Product Variant form mapping', () => {
     ).toEqual({ attributes: { color: '#D4AF37', size: 'l' }, priceOverride: null })
   })
 
-  it('does not resend unchanged legacy color or whitespace when unrelated fields change', () => {
+  it('omits untouched attributes and preserves exact legacy survivors when another attribute changes', () => {
     const original = {
       id: 1,
       sku: 'VAR',
@@ -237,7 +237,90 @@ describe('Product Variant form mapping', () => {
         },
         original
       )
-    ).toEqual({ attributes: { size: 'L' } })
+    ).toEqual({
+      attributes: { color: 'red', legacy_key: ' Keep Me ', size: 'L' },
+    })
+  })
+
+  it('serializes a new attribute with all existing persisted attributes', () => {
+    const original = {
+      id: 1,
+      sku: 'VAR',
+      attributes: { color: '#C0C0C0', size: 'M' },
+      priceOverride: null,
+      isActive: true,
+      images: [],
+      warehouseStocks: [],
+    }
+
+    expect(
+      buildProductVariantUpdatePayload(
+        {
+          sku: 'VAR',
+          attributes: [
+            { key: 'color', value: '#C0C0C0', isPersisted: true, originalValue: '#C0C0C0' },
+            { key: 'size', value: 'M', isPersisted: true, originalValue: 'M' },
+            { key: 'material', value: 'Gold' },
+          ],
+          priceOverride: null,
+          isActive: true,
+          images: { files: [], removedExistingIds: [] },
+        },
+        original
+      )
+    ).toEqual({
+      attributes: { color: '#C0C0C0', size: 'M', material: 'Gold' },
+    })
+  })
+
+  it('deletes a persisted attribute by omitting it from the complete replacement object', () => {
+    const original = {
+      id: 1,
+      sku: 'VAR',
+      attributes: { color: '#C0C0C0', size: 'M' },
+      priceOverride: null,
+      isActive: true,
+      images: [],
+      warehouseStocks: [],
+    }
+
+    expect(
+      buildProductVariantUpdatePayload(
+        {
+          sku: 'VAR',
+          attributes: [{ key: 'color', value: '#C0C0C0', isPersisted: true, originalValue: '#C0C0C0' }],
+          priceOverride: null,
+          isActive: true,
+          images: { files: [], removedExistingIds: [] },
+        },
+        original
+      )
+    ).toEqual({ attributes: { color: '#C0C0C0' } })
+  })
+
+  it('deletes the final persisted attribute with an empty replacement object', () => {
+    const original = {
+      id: 1,
+      sku: 'VAR',
+      attributes: { color: '#C0C0C0' },
+      priceOverride: null,
+      isActive: true,
+      images: [],
+      warehouseStocks: [],
+    }
+
+    expect(
+      buildProductVariantUpdatePayload(
+        {
+          sku: 'VAR',
+          attributes: [],
+          priceOverride: null,
+          isActive: true,
+          images: { files: [], removedExistingIds: [] },
+        },
+        original
+      )
+    ).toEqual({ attributes: {} })
   })
 
   it('sends only intentional legacy and canonical color changes', () => {
@@ -292,6 +375,35 @@ describe('Product Variant form mapping', () => {
     }
 
     expect(buildProductVariantUpdatePayload(form, original)).toEqual({ attributes: { [key]: '22222' } })
+  })
+
+  it('preserves an unchanged Unicode persisted key when another attribute changes', () => {
+    const key = 'ØªÙŠØ³Øª_ØªÙŠØ³Øª_ØªÙŠØ³Øª'
+    const original = {
+      id: 1,
+      sku: 'VAR',
+      attributes: { [key]: '11117', size: 'M' },
+      priceOverride: null,
+      isActive: true,
+      images: [],
+      warehouseStocks: [],
+    }
+
+    expect(
+      buildProductVariantUpdatePayload(
+        {
+          sku: 'VAR',
+          attributes: [
+            { key, value: '11117', isPersisted: true, originalValue: '11117' },
+            { key: 'size', value: 'L', isPersisted: true, originalValue: 'M' },
+          ],
+          priceOverride: null,
+          isActive: true,
+          images: { files: [], removedExistingIds: [] },
+        },
+        original
+      )
+    ).toEqual({ attributes: { [key]: '11117', size: 'L' } })
   })
 
   it('validates required SKU, nullable nonnegative finite price, attribute rows, and image size', async () => {

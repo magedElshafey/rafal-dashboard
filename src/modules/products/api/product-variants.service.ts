@@ -62,7 +62,7 @@ export function normalizeDashboardProductVariant(raw: RawDashboardProductVariant
     attributes: normalizeVariantAttributes(raw.attributes),
     priceOverride: raw.price_override === null ? null : finiteNumber(raw.price_override, 'price override'),
     isActive: apiBoolean(raw.is_active),
-    isDefault: raw.is_default === undefined ? false : apiBoolean(raw.is_default),
+    isDefault: raw.is_default == null ? false : apiBoolean(raw.is_default),
     images: raw.images.map((image) => ({ id: finiteNumber(image.id, 'image id'), url: image.url })),
     warehouseStocks: raw.warehouse_stocks.map(normalizeVariantWarehouseStock),
   }

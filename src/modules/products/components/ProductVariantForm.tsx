@@ -80,7 +80,7 @@ function VariantAttributesEditor({ disabled, lockedCount }: { disabled: boolean;
             size="icon"
             variant="ghost"
             className="mt-7 text-destructive"
-            disabled={disabled || index < lockedCount}
+            disabled={disabled}
             aria-label={t('products.variants.actions.removeAttribute', { index: index + 1 })}
             onClick={() => remove(index)}
           >

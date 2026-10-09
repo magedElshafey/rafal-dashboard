@@ -45,6 +45,15 @@ describe('Product Variant service', () => {
     })
   })
 
+  it.each([
+    ['absent', undefined, false],
+    ['nullable', null, false],
+    ['true', true, true],
+    ['false', false, false],
+  ] as const)('normalizes %s backend-owned is_default deliberately', (_label, isDefault, expected) => {
+    expect(normalizeDashboardProductVariant(rawVariant({ is_default: isDefault })).isDefault).toBe(expected)
+  })
+
   it.each([['gold'], { nested: { value: 1 } }, { count: 2 }])(
     'rejects malformed attribute data without weakening the dynamic map contract',
     (attributes) => {
@@ -110,11 +119,12 @@ describe('Product Variant service', () => {
     ])
   })
 
-  it('serializes partial Update, explicit price clear, and attribute MERGE keys as JSON', () => {
+  it('serializes partial Update, explicit price clear, and replace-all attributes as JSON', () => {
     expect(serializeProductVariantUpdate({ priceOverride: null, attributes: { color: 'silver' } })).toEqual({
       price_override: null,
       attributes: { color: 'silver' },
     })
+    expect(serializeProductVariantUpdate({ attributes: {} })).toEqual({ attributes: {} })
   })
 
   it('sends textual null and repeated new files in multipart Update without remote images', () => {
@@ -190,5 +200,44 @@ describe('Product Variant service', () => {
       attributes: { any_thing_else: 'Test value' },
     })
     expect(httpMocks.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('resolves the exact HTTP 201 Create response with nullable backend-owned is_default', async () => {
+    httpMocks.post.mockResolvedValue({
+      status: 201,
+      data: {
+        success: true,
+        message: 'Variant created successfully',
+        data: {
+          id: 58,
+          sku: 'TST-RING-001-SILVER-163231',
+          attributes: { color: '#741616' },
+          price_override: null,
+          is_active: true,
+          is_default: null,
+          images: [],
+          warehouse_stocks: [],
+        },
+      },
+    })
+
+    await expect(
+      productVariantsService.create(34, {
+        sku: 'TST-RING-001-SILVER-163231',
+        attributes: { color: '#741616' },
+        priceOverride: null,
+        isActive: true,
+        images: [],
+      })
+    ).resolves.toEqual({
+      id: 58,
+      sku: 'TST-RING-001-SILVER-163231',
+      attributes: { color: '#741616' },
+      priceOverride: null,
+      isActive: true,
+      isDefault: false,
+      images: [],
+      warehouseStocks: [],
+    })
   })
 })

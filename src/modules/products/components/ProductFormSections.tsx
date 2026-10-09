@@ -17,6 +17,7 @@ type ProductFormSectionsProps = {
   existingImages?: Array<{ id: number; url: string }>
   onDeleteExistingImage?: (imageId: number) => Promise<unknown>
   deletingExistingImageId?: number | null
+  requireImages?: boolean
 }
 
 function ProductFormSection({
@@ -44,6 +45,7 @@ export function ProductFormSections({
   existingImages = [],
   onDeleteExistingImage,
   deletingExistingImageId = null,
+  requireImages = false,
 }: ProductFormSectionsProps) {
   const { t, i18n } = useTranslation()
   const { control, setValue } = useFormContext<ProductFormValues>()
@@ -238,6 +240,7 @@ export function ProductFormSections({
           maxFileSize={PRODUCT_IMAGE_MAX_SIZE}
           previewFit="contain"
           disabled={isSubmitting}
+          required={requireImages}
         />
       </ProductFormSection>
 
