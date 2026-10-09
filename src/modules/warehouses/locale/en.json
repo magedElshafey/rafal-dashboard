@@ -7,6 +7,22 @@
     "total_one": "{{count}} warehouse",
     "total_other": "{{count}} warehouses",
     "loadingMore": "Loading more warehouses",
+    "filters": {
+      "title": "Warehouse filters",
+      "all": "All",
+      "city": "City",
+      "citiesEmpty": "No cities available.",
+      "citiesLoading": "Loading cities…",
+      "citiesLoadMore": "Load more cities",
+      "clearCity": "Clear city",
+      "created_from": "Created from",
+      "created_to": "Created to",
+      "invalidRange": "The created-from date cannot be after the created-to date.",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": { "id": "ID", "name": "Name", "created_at": "Created date" },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "fields": {
       "name": "Warehouse Name",
       "cities": "Cities",

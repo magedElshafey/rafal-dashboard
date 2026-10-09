@@ -11,6 +11,7 @@ import {
   warehousesService,
 } from './warehouses.service'
 import type { RawWarehouseUpdatePayload, WarehouseUpdatePayload } from '../types/warehouse.types'
+import { emptyWarehousesFilters } from '../utils/warehouse-filters'
 
 const rawListItem = {
   id: 1,
@@ -39,11 +40,25 @@ describe('warehousesService', () => {
       },
     })
 
-    const result = await warehousesService.list(2, signal)
+    const result = await warehousesService.list(2, signal, {
+      ...emptyWarehousesFilters,
+      cityId: 17,
+      createdFrom: '2026-10-01',
+      createdTo: '2026-10-09',
+      sortBy: 'created_at',
+      sortDir: 'desc',
+    })
 
     expect(httpMocks.get).toHaveBeenCalledWith({
       url: '/dashboard/warehouses',
-      query: { page: 2 },
+      query: {
+        city_id: 17,
+        created_from: '2026-10-01',
+        created_to: '2026-10-09',
+        sort_by: 'created_at',
+        sort_dir: 'desc',
+        page: 2,
+      },
       signal,
       suppressErrorNotification: true,
     })

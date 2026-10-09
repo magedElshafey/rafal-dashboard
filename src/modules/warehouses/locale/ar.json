@@ -11,6 +11,22 @@
     "total_many": "{{count}} مستودعًا",
     "total_other": "{{count}} مستودع",
     "loadingMore": "جارٍ تحميل المزيد من المستودعات",
+    "filters": {
+      "title": "تصفية المستودعات",
+      "all": "الكل",
+      "city": "المدينة",
+      "citiesEmpty": "لا توجد مدن متاحة.",
+      "citiesLoading": "جارٍ تحميل المدن…",
+      "citiesLoadMore": "تحميل المزيد من المدن",
+      "clearCity": "مسح المدينة",
+      "created_from": "تاريخ الإنشاء من",
+      "created_to": "تاريخ الإنشاء إلى",
+      "invalidRange": "لا يمكن أن يكون تاريخ البداية بعد تاريخ النهاية.",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": { "id": "المعرّف", "name": "الاسم", "created_at": "تاريخ الإنشاء" },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "fields": {
       "name": "اسم المستودع",
       "cities": "المدن",

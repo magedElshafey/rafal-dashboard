@@ -36,49 +36,10 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: LayoutDashboard,
     match: 'exact',
   },
-  { to: Routes.orders, labelKey: 'orders.title', icon: Package, match: 'prefix' },
-  { to: Routes.returnRequests, labelKey: 'returnRequests.title', icon: RotateCcw, match: 'prefix' },
-  { to: Routes.contactMessages, labelKey: 'contactMessages.title', icon: Mail, match: 'prefix' },
-  {
-    to: Routes.roles,
-    labelKey: 'dashboard.sidebar.roles',
-    icon: ShieldCheck,
-    match: 'prefix',
-  },
-  {
-    to: Routes.admins,
-    labelKey: 'dashboard.sidebar.admins',
-    icon: UsersRound,
-    match: 'prefix',
-  },
   {
     to: Routes.customers,
     labelKey: 'dashboard.sidebar.customers',
     icon: UserRound,
-    match: 'prefix',
-  },
-  {
-    to: Routes.reviews,
-    labelKey: 'dashboard.sidebar.reviews',
-    icon: MessageSquareText,
-    match: 'prefix',
-  },
-  {
-    to: Routes.testimonials,
-    labelKey: 'dashboard.sidebar.testimonials',
-    icon: MessageSquareQuote,
-    match: 'prefix',
-  },
-  {
-    to: Routes.staticPages,
-    labelKey: 'dashboard.sidebar.staticPages',
-    icon: FileText,
-    match: 'prefix',
-  },
-  {
-    to: Routes.banners,
-    labelKey: 'dashboard.sidebar.banners',
-    icon: Images,
     match: 'prefix',
   },
   {
@@ -111,6 +72,47 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: Building2,
     match: 'prefix',
   },
+  { to: Routes.orders, labelKey: 'orders.title', icon: Package, match: 'prefix' },
+  { to: Routes.returnRequests, labelKey: 'returnRequests.title', icon: RotateCcw, match: 'prefix' },
+  { to: Routes.contactMessages, labelKey: 'contactMessages.title', icon: Mail, match: 'prefix' },
+  {
+    to: Routes.roles,
+    labelKey: 'dashboard.sidebar.roles',
+    icon: ShieldCheck,
+    match: 'prefix',
+  },
+  {
+    to: Routes.admins,
+    labelKey: 'dashboard.sidebar.admins',
+    icon: UsersRound,
+    match: 'prefix',
+  },
+
+  {
+    to: Routes.reviews,
+    labelKey: 'dashboard.sidebar.reviews',
+    icon: MessageSquareText,
+    match: 'prefix',
+  },
+  {
+    to: Routes.testimonials,
+    labelKey: 'dashboard.sidebar.testimonials',
+    icon: MessageSquareQuote,
+    match: 'prefix',
+  },
+  {
+    to: Routes.staticPages,
+    labelKey: 'dashboard.sidebar.staticPages',
+    icon: FileText,
+    match: 'prefix',
+  },
+  {
+    to: Routes.banners,
+    labelKey: 'dashboard.sidebar.banners',
+    icon: Images,
+    match: 'prefix',
+  },
+
   {
     to: Routes.settings,
     labelKey: 'dashboard.sidebar.settings',

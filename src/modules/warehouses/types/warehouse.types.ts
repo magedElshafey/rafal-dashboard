@@ -60,3 +60,14 @@ export type WarehousesIndexResponse = PaginatedDashboardResponse<RawWarehouseLis
 export type RawWarehouseResponse = { success: boolean; message: string; data: RawWarehouseDetail }
 export type WarehouseResponse = { success: boolean; message: string; data: WarehouseDetail }
 export type DeleteWarehouseResponse = { success: boolean; message: string }
+
+export type WarehouseSortBy = 'id' | 'name' | 'created_at'
+export type WarehouseSortDir = 'asc' | 'desc'
+
+export type WarehousesFilters = {
+  cityId: number | null
+  createdFrom: string
+  createdTo: string
+  sortBy: WarehouseSortBy | null
+  sortDir: WarehouseSortDir | null
+}

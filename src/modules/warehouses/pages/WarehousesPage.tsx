@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Warehouse as WarehouseIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,26 +15,37 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { WarehouseDrawer } from '@/modules/warehouses/components/WarehouseDrawer'
+import { WarehouseFilters } from '@/modules/warehouses/components/WarehouseFilters'
 import { WarehousesList } from '@/modules/warehouses/components/WarehousesList'
 import { WarehousesListSkeleton } from '@/modules/warehouses/components/WarehousesListSkeleton'
 import { useDeleteWarehouse } from '@/modules/warehouses/hooks/useDeleteWarehouse'
 import { useWarehouses } from '@/modules/warehouses/hooks/useWarehouses'
 import type { WarehouseListItem } from '@/modules/warehouses/types/warehouse.types'
+import {
+  readWarehousesFilters,
+  validWarehousesCreatedRange,
+  warehouseFilterNames,
+} from '@/modules/warehouses/utils/warehouse-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function WarehousesPage() {
+function WarehousesContent() {
   const { t } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const query = useWarehouses()
+  const filters = readWarehousesFilters(forwardQuery)
+  const query = useWarehouses(filters)
   const deleteWarehouse = useDeleteWarehouse()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const [warehouseToDelete, setWarehouseToDelete] = useState<WarehouseListItem | null>(null)
   const warehouses = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? warehouses?.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages?.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -79,8 +91,23 @@ function WarehousesPage() {
   }
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('warehouses.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={warehouseFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('warehouses.filters.title')}
+        onFilter={() => setShowFilterValidation(false)}
+        onReset={() => setShowFilterValidation(false)}
+        onApply={(draftQuery) => {
+          const valid = validWarehousesCreatedRange(readWarehousesFilters(draftQuery))
+          setShowFilterValidation(!valid)
+          return valid ? undefined : false
+        }}
+      >
+        <WarehouseFilters showValidation={showFilterValidation} />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -151,4 +178,10 @@ function WarehousesPage() {
   )
 }
 
-export default WarehousesPage
+export default function WarehousesPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <WarehousesContent />
+    </QueryProvider>
+  )
+}

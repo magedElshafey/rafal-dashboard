@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -131,13 +132,15 @@ function apiError(message: string, errors?: Record<string, string[]>) {
   })
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/warehouses') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={client}>
-      <WarehousesPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <WarehousesPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -173,6 +176,78 @@ describe('WarehousesPage', () => {
     expect(list).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     expect(screen.queryByText(/coverage/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+    expect(list.mock.calls.map(([page]) => page)).toEqual([1, 2])
+    expect(list.mock.calls.every(([, , filters]) => filters?.cityId === null)).toBe(true)
+  })
+
+  it('keeps drafts unapplied, retains filters on next pages, restarts pagination, and resets', async () => {
+    seedWarehouses(Array.from({ length: 16 }, (_, index) => detail(index + 1)))
+    const list = vi.mocked(warehousesService.list)
+    const user = userEvent.setup()
+
+    renderPage('/dashboard/warehouses?page=4&city_id=2')
+
+    expect(await screen.findAllByText('Warehouse 16')).toHaveLength(2)
+    await waitFor(() => expect(list.mock.calls.some(([page]) => page === 2)).toBe(true))
+    expect(list.mock.calls.filter(([page]) => page <= 2).every(([, , filters]) => filters?.cityId === 2)).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const citySelect = screen.getByRole('combobox', { name: 'City' })
+    await waitFor(() => expect(citySelect).toHaveTextContent('City 2'))
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(citySelect)
+    await user.click(await screen.findByRole('option', { name: 'City 1' }))
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.cityId === 1 && page === 1)).toBe(true)
+    )
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.cityId === 1 && page === 2)).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.cityId === null && page === 1)).toBe(true)
+    )
+  })
+
+  it('surfaces an invalid created range only after Apply and does not replace the applied query', async () => {
+    seedWarehouses([detail(1)])
+    const list = vi.mocked(warehousesService.list)
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await screen.findAllByText('Warehouse 1')
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Created from'), '2026-10-10')
+    await user.type(screen.getByLabelText('Created to'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Created from')).toHaveAttribute('aria-invalid', 'false')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The created-from date cannot be after the created-to date.'
+    )
+    expect(screen.getByLabelText('Created from')).toHaveAttribute('aria-describedby', 'warehouses-created-range-error')
+    expect(screen.getByLabelText('Created to')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+  })
+
+  it('does not execute the Warehouse request for an invalid applied deep-link range', async () => {
+    const list = vi.mocked(warehousesService.list)
+
+    renderPage('/dashboard/warehouses?created_from=2026-10-10&created_to=2026-10-09')
+
+    await waitFor(() => expect(list).not.toHaveBeenCalled())
   })
 
   it('shows safe retry and empty states with a Create action', async () => {

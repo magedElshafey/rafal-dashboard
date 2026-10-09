@@ -11,7 +11,9 @@ import type {
   WarehouseResponse,
   WarehousesIndexResponse,
   WarehouseUpdatePayload,
+  WarehousesFilters,
 } from '@/modules/warehouses/types/warehouse.types'
+import { emptyWarehousesFilters, serializeWarehousesFilters } from '@/modules/warehouses/utils/warehouse-filters'
 import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
 
@@ -69,11 +71,15 @@ function normalizeResponse(response: RawWarehouseResponse): WarehouseResponse {
 }
 
 export const warehousesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<WarehouseListItem>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: WarehousesFilters = emptyWarehousesFilters
+  ): Promise<PaginatedData<WarehouseListItem>> {
     const response = (
       await $http.get<WarehousesIndexResponse>({
         url: '/dashboard/warehouses',
-        query: { page },
+        query: { ...serializeWarehousesFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })
