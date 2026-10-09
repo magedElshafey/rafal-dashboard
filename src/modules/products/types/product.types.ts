@@ -53,6 +53,21 @@ export type RawProductListItem = {
 
 export type ProductsIndexResponse = PaginatedDashboardResponse<RawProductListItem>
 
+export type ProductSortBy = 'sort_order' | 'name' | 'base_price' | 'created_at' | 'rating_average'
+export type ProductSortDir = 'asc' | 'desc'
+
+export type ProductsFilters = {
+  isPersonalizable: boolean | null
+  isNewArrival: boolean | null
+  hasDiscount: boolean | null
+  priceMin: number | null
+  priceMax: number | null
+  createdFrom: string
+  createdTo: string
+  sortBy: ProductSortBy | null
+  sortDir: ProductSortDir | null
+}
+
 export type ProductFormValues = {
   categoryId: number | null
   sku: string

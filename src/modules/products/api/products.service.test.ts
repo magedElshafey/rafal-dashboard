@@ -11,6 +11,7 @@ import {
   serializeProductUpdate,
 } from './products.service'
 import type { ProductCreatePayload, RawProductDetail, RawProductListItem } from '../types/product.types'
+import { emptyProductsFilters } from '../utils/product-filters'
 
 const rawProduct = (overrides: Partial<RawProductListItem> = {}): RawProductListItem => ({
   id: 1,
@@ -124,15 +125,38 @@ const realDashboardProductShow: RawProductDetail = {
 describe('products service', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('requests only the exact page query and forwards AbortSignal', async () => {
+  it('requests the exact supported filters and page while forwarding AbortSignal', async () => {
     const controller = new AbortController()
     mockIndex(rawProduct())
+    const filters = {
+      ...emptyProductsFilters,
+      isPersonalizable: false,
+      isNewArrival: true,
+      hasDiscount: false,
+      priceMin: 0,
+      priceMax: 100,
+      createdFrom: '2026-10-01',
+      createdTo: '2026-10-09',
+      sortBy: 'base_price' as const,
+      sortDir: 'desc' as const,
+    }
 
-    await productsHttpTransport.list(3, controller.signal)
+    await productsHttpTransport.list(filters, 3, controller.signal)
 
     expect(httpMocks.get).toHaveBeenCalledWith({
       url: '/dashboard/products',
-      query: { page: 3 },
+      query: {
+        is_personalizable: 0,
+        is_new_arrival: 1,
+        has_discount: 0,
+        price_min: 0,
+        price_max: 100,
+        created_from: '2026-10-01',
+        created_to: '2026-10-09',
+        sort_by: 'base_price',
+        sort_dir: 'desc',
+        page: 3,
+      },
       signal: controller.signal,
       suppressErrorNotification: true,
     })
@@ -150,7 +174,7 @@ describe('products service', () => {
     })
     mockIndex(product)
 
-    const result = await productsService.list(2)
+    const result = await productsService.list(emptyProductsFilters, 2)
 
     expect(result.items[0]).toEqual({
       id: 1,
@@ -189,7 +213,7 @@ describe('products service', () => {
   it('preserves null discounts, empty images, and zero variants', async () => {
     mockIndex(rawProduct({ discount_percentage: null, images: [], variants: [] }))
 
-    const result = await productsService.list(1)
+    const result = await productsService.list(emptyProductsFilters, 1)
 
     expect(result.items[0]).toMatchObject({
       basePrice: 50,
@@ -202,7 +226,7 @@ describe('products service', () => {
   it('normalizes legacy string-only Index media only at the Index boundary', async () => {
     mockIndex(rawProduct({ images: ['https://example.com/legacy.jpg'] }))
 
-    await expect(productsService.list(1)).resolves.toMatchObject({
+    await expect(productsService.list(emptyProductsFilters, 1)).resolves.toMatchObject({
       items: [{ images: [{ id: -1, url: 'https://example.com/legacy.jpg' }] }],
     })
   })
@@ -212,14 +236,16 @@ describe('products service', () => {
     async (base_price) => {
       mockIndex(rawProduct({ base_price }))
 
-      await expect(productsService.list(1)).rejects.toThrow('Product base price is unavailable')
+      await expect(productsService.list(emptyProductsFilters, 1)).rejects.toThrow('Product base price is unavailable')
     }
   )
 
   it.each(['', 'not-a-discount'])('rejects an invalid numeric discount %s', async (discount_percentage) => {
     mockIndex(rawProduct({ discount_percentage }))
 
-    await expect(productsService.list(1)).rejects.toThrow('Product discount percentage is unavailable')
+    await expect(productsService.list(emptyProductsFilters, 1)).rejects.toThrow(
+      'Product discount percentage is unavailable'
+    )
   })
 
   it('POSTs the exact multipart Product Create contract with trimmed values and repeated images', async () => {

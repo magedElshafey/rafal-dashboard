@@ -59,7 +59,7 @@ const FiltersWrapperDialog = ({
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <header className="flex shrink-0 items-center justify-between bg-black-50  px-5 py-5">
-            <h2 className="text-lg text-neutral-800 font-semibold flex items-center gap-2">
+            <h2 className="text-lg text-foreground font-semibold flex items-center gap-2">
               {typeof title === 'string' ? (
                 <>
                   <Funnel aria-hidden="true" className="size-4" />
@@ -201,7 +201,11 @@ const FiltersWrapper = ({
   }, [handleOpenChange, onCancel])
 
   const handleApply = useCallback(() => {
-    const nextDraftQuery = onApply?.(draftQuery) ?? draftQuery
+    const applyResult = onApply?.(draftQuery)
+
+    if (applyResult === false) return
+
+    const nextDraftQuery = applyResult ?? draftQuery
 
     forwardReplaceQueries(managedFilterNames, nextDraftQuery, queryUpdateOptions)
     handleOpenChange(false)

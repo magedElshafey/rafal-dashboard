@@ -9,6 +9,30 @@
     "loadingMore": "Loading more products",
     "noImage": "No product image",
     "imageAlt": "Image of {{name}}",
+    "filters": {
+      "title": "Product filters",
+      "all": "All",
+      "yes": "Yes",
+      "no": "No",
+      "is_personalizable": "Personalizable",
+      "is_new_arrival": "New arrival",
+      "has_discount": "Has discount",
+      "price_min": "Minimum price",
+      "price_max": "Maximum price",
+      "created_from": "Created from",
+      "created_to": "Created to",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "invalidRange": "The minimum value or start date cannot be after the maximum value or end date.",
+      "sort": {
+        "sort_order": "Sort order",
+        "name": "Name",
+        "base_price": "Base price",
+        "created_at": "Created date",
+        "rating_average": "Average rating"
+      },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "actions": {
       "create": "Create Product",
       "creating": "Creating Product",

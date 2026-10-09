@@ -3,6 +3,7 @@ import { Package, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -20,11 +21,17 @@ import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAler
 import { useDeleteProduct } from '@/modules/products/hooks/useDeleteProduct'
 import type { ProductListItem } from '@/modules/products/types/product.types'
 import { getLocalizedProductName } from '@/modules/products/utils/product-list.utils'
+import { ProductFilters } from '@/modules/products/components/ProductFilters'
+import { productFilterNames, readProductsFilters, validProductsRanges } from '@/modules/products/utils/product-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function ProductsPage() {
+function ProductsContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const navigate = useNavigate()
-  const query = useProducts()
+  const filters = readProductsFilters(forwardQuery)
+  const query = useProducts(filters)
   const deleteProduct = useDeleteProduct()
   const deleteAlertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
@@ -34,7 +41,7 @@ function ProductsPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
   const listHeader = (
     <div className="min-w-0">
@@ -76,8 +83,17 @@ function ProductsPage() {
   const deleteName = productToDelete ? getLocalizedProductName(productToDelete.name, i18n.language) : ''
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('products.title')} actions={createAction} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={productFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('products.filters.title')}
+        onApply={(draftQuery) => (validProductsRanges(readProductsFilters(draftQuery)) ? undefined : false)}
+      >
+        <ProductFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -142,4 +158,10 @@ function ProductsPage() {
   )
 }
 
-export default ProductsPage
+export default function ProductsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <ProductsContent />
+    </QueryProvider>
+  )
+}

@@ -5,12 +5,14 @@ import type {
   ProductDetail,
   ProductDeleteResponse,
   ProductListItem,
+  ProductsFilters,
   ProductUpdatePayload,
   ProductsIndexResponse,
   RawProductDetail,
   RawProductDetailResponse,
   RawProductListItem,
 } from '@/modules/products/types/product.types'
+import { serializeProductsFilters } from '@/modules/products/utils/product-filters'
 import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
 
@@ -260,11 +262,11 @@ export function normalizeProductListItem(raw: RawProductListItem): ProductListIt
 }
 
 export const productsHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(filters: ProductsFilters, page: number, signal?: AbortSignal) {
     return (
       await $http.get<ProductsIndexResponse>({
         url: '/dashboard/products',
-        query: { page },
+        query: { ...serializeProductsFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })
@@ -315,8 +317,8 @@ export const productsHttpTransport = {
 }
 
 export const productsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ProductListItem>> {
-    const response = await productsHttpTransport.list(page, signal)
+  async list(filters: ProductsFilters, page: number, signal?: AbortSignal): Promise<PaginatedData<ProductListItem>> {
+    const response = await productsHttpTransport.list(filters, page, signal)
     const items = response.data.map(normalizeProductListItem)
 
     return {

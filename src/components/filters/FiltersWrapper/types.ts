@@ -34,7 +34,7 @@ export interface FiltersWrapperProps {
   onFilter?: () => void
   onCancel?: () => void
   onReset?: () => void
-  onApply?: (draftQuery: QueryRecord) => QueryInput | QueryRecord | void
+  onApply?: (draftQuery: QueryRecord) => QueryInput | QueryRecord | false | void
   resetQueryNamesOnChange?: string[]
   resetLabel?: ReactNode
   applyLabel?: ReactNode
