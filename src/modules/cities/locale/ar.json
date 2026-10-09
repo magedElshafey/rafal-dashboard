@@ -11,6 +11,21 @@
     "total_many": "{{count}} مدينة",
     "total_other": "{{count}} مدينة",
     "loadingMore": "جارٍ تحميل المزيد من المدن",
+    "filters": {
+      "title": "تصفية المدن",
+      "all": "الكل",
+      "yes": "نعم",
+      "no": "لا",
+      "is_active": "نشطة",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": {
+        "sort_order": "ترتيب العرض",
+        "name": "الاسم",
+        "created_at": "تاريخ الإنشاء"
+      },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "fields": {
       "city": "المدينة",
       "region": "المنطقة",

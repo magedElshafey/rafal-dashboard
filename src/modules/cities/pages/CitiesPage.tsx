@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Building2, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -13,28 +14,34 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { CityDrawer } from '@/modules/cities/components/CityDrawer'
+import { CityFilters } from '@/modules/cities/components/CityFilters'
 import { CitiesList } from '@/modules/cities/components/CitiesList'
 import { CitiesListSkeleton } from '@/modules/cities/components/CitiesListSkeleton'
 import { useCities } from '@/modules/cities/hooks/useCities'
 import { useDeleteCity } from '@/modules/cities/hooks/useDeleteCity'
 import type { City } from '@/modules/cities/types/city.types'
+import { cityFilterNames, readCitiesFilters } from '@/modules/cities/utils/city-filters'
 import { getLocalizedName } from '@/modules/cities/utils/city.utils'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function CitiesPage() {
+function CitiesContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
   const deleteCity = useDeleteCity()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
   const [cityToDelete, setCityToDelete] = useState<City | null>(null)
-  const query = useCities()
+  const filters = readCitiesFilters(forwardQuery)
+  const query = useCities(filters)
   const cities = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const editCity = drawer.mode === 'edit' ? (cities.find((city) => city.id === drawer.entityId) ?? null) : null
   const total = query.data?.pages.at(-1)?.paginate.total ?? cities.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -73,8 +80,16 @@ function CitiesPage() {
   )
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('cities.title')} actions={createButton} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={cityFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('cities.filters.title')}
+      >
+        <CityFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -142,5 +157,11 @@ function CitiesPage() {
   )
 }
 
-export default CitiesPage
+export default function CitiesPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <CitiesContent />
+    </QueryProvider>
+  )
+}
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'

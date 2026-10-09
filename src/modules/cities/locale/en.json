@@ -7,6 +7,21 @@
     "total_one": "{{count}} city",
     "total_other": "{{count}} cities",
     "loadingMore": "Loading more cities",
+    "filters": {
+      "title": "City filters",
+      "all": "All",
+      "yes": "Yes",
+      "no": "No",
+      "is_active": "Active",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": {
+        "sort_order": "Sort order",
+        "name": "Name",
+        "created_at": "Created date"
+      },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "fields": {
       "city": "City",
       "region": "Region",

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -164,7 +165,7 @@ function installServiceFixtures() {
   vi.spyOn(regionsService, 'list').mockImplementation(async (page) => paginated(regions, page))
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/cities') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
@@ -172,7 +173,9 @@ function renderPage() {
     client,
     ...render(
       <QueryClientProvider client={client}>
-        <CitiesPage />
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <CitiesPage />
+        </MemoryRouter>
       </QueryClientProvider>
     ),
   }
@@ -233,9 +236,44 @@ describe('CitiesPage', () => {
     expect(screen.getAllByText('-1')).toHaveLength(2)
     expect(screen.getAllByText('Inactive').length).toBeGreaterThan(0)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Actions for/ }).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /view/i })).not.toBeInTheDocument()
+    expect(list.mock.calls.map(([page]) => page)).toEqual([1, 2])
+    expect(list.mock.calls.every(([, , filters]) => filters?.isActive === null)).toBe(true)
+  })
+
+  it('retains filters on next pages, restarts pagination after Apply, and resets to the unfiltered list', async () => {
+    cities = Array.from({ length: 16 }, (_, index) => city(index + 1))
+    const list = vi.mocked(citiesService.list)
+    const user = userEvent.setup()
+
+    renderPage('/dashboard/cities?page=4&is_active=0&per_page=25')
+
+    expect(await screen.findAllByText('City 16')).toHaveLength(2)
+    await waitFor(() => expect(list.mock.calls.some(([page]) => page === 2)).toBe(true))
+    expect(list.mock.calls.filter(([page]) => page <= 2).every(([, , filters]) => filters?.isActive === false)).toBe(
+      true
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    expect(screen.queryByRole('spinbutton', { name: /items per page/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('combobox', { name: 'Active' }))
+    await user.click(screen.getByRole('option', { name: 'Yes' }))
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.isActive === true && page === 1)).toBe(true)
+    )
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.isActive === true && page === 2)).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.isActive === null && page === 1)).toBe(true)
+    )
   })
 
   it('shows a safe retry and the shared empty state', async () => {

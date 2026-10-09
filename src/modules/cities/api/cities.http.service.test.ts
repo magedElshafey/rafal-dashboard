@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { City } from '@/modules/cities/types/city.types'
+import { emptyCitiesFilters } from '@/modules/cities/utils/city-filters'
 
 const httpMocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -87,12 +88,19 @@ describe('Cities HTTP transport', () => {
       sortOrder: 1,
     }
 
-    await expect(citiesService.list(1)).resolves.toMatchObject({ items: [city], paginate: { total: 1 } })
+    await expect(
+      citiesService.list(1, undefined, {
+        ...emptyCitiesFilters,
+        isActive: false,
+        sortBy: 'created_at',
+        sortDir: 'desc',
+      })
+    ).resolves.toMatchObject({ items: [city], paginate: { total: 1 } })
     await citiesService.create(createPayload)
 
     expect(httpMocks.get).toHaveBeenCalledWith({
       url: '/dashboard/cities',
-      query: { page: 1 },
+      query: { is_active: 0, sort_by: 'created_at', sort_dir: 'desc', page: 1 },
       signal: undefined,
       suppressErrorNotification: true,
     })

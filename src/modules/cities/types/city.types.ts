@@ -54,3 +54,12 @@ export type DeleteCityResponse = { success: boolean; message: string }
 
 export type CitiesIndexResponse = PaginatedDashboardResponse<City>
 export type CityResponse = { success: boolean; message: string; data: City & { warehouse?: unknown } }
+
+export type CitySortBy = 'sort_order' | 'name' | 'created_at'
+export type CitySortDir = 'asc' | 'desc'
+
+export type CitiesFilters = {
+  isActive: boolean | null
+  sortBy: CitySortBy | null
+  sortDir: CitySortDir | null
+}

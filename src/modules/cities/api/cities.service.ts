@@ -4,9 +4,11 @@ import type {
   CityPayload,
   CityResponse,
   CityUpdatePayload,
+  CitiesFilters,
   CitiesIndexResponse,
   DeleteCityResponse,
 } from '@/modules/cities/types/city.types'
+import { emptyCitiesFilters, serializeCitiesFilters } from '@/modules/cities/utils/city-filters'
 import { $http } from '@/utils/http'
 
 function assertRequiredGeometry(
@@ -78,11 +80,11 @@ function normalizeCity(city: City): City {
 }
 
 const citiesHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(page: number, signal?: AbortSignal, filters: CitiesFilters = emptyCitiesFilters) {
     return (
       await $http.get<CitiesIndexResponse>({
         url: '/dashboard/cities',
-        query: { page },
+        query: { ...serializeCitiesFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })
@@ -121,8 +123,12 @@ const citiesHttpTransport = {
 }
 
 export const citiesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<City>> {
-    const response = await citiesHttpTransport.list(page, signal)
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: CitiesFilters = emptyCitiesFilters
+  ): Promise<PaginatedData<City>> {
+    const response = await citiesHttpTransport.list(page, signal, filters)
     const items = response.data.map(normalizeCity)
     return {
       items,
