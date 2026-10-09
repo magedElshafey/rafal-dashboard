@@ -223,6 +223,18 @@ describe('CategoriesPage', () => {
     expect(list).toHaveBeenCalledTimes(appliedRequestCount)
   })
 
+  it('does not request an invalid deep-linked created range', async () => {
+    const list = vi.mocked(categoriesService.list)
+    const user = userEvent.setup()
+
+    renderPage('/dashboard/categories?created_from=2026-10-10&created_to=2026-10-09')
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    expect(screen.getByLabelText('Created from')).toHaveValue('2026-10-10')
+    expect(screen.getByLabelText('Created to')).toHaveValue('2026-10-09')
+    expect(list).not.toHaveBeenCalled()
+  })
+
   it('uses standard empty and safe retry states', async () => {
     categoryStore = []
     vi.mocked(categoriesService.list).mockRejectedValueOnce(new Error('unsafe database detail'))

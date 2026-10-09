@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,6 +9,18 @@ import i18n from '@/config/i18'
 import { staticPagesService } from '@/modules/static-pages/api/static-pages.service'
 import StaticPagesPage from '@/modules/static-pages/pages/StaticPagesPage'
 import type { StaticPage } from '@/modules/static-pages/types/static-page.types'
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+Element.prototype.scrollIntoView = vi.fn()
+HTMLElement.prototype.hasPointerCapture = vi.fn(() => false)
+HTMLElement.prototype.setPointerCapture = vi.fn()
+HTMLElement.prototype.releasePointerCapture = vi.fn()
 
 const page = (id: number, overrides: Partial<StaticPage> = {}): StaticPage => ({
   id,
@@ -38,13 +50,13 @@ function paginated(items: StaticPage[], current = 1, totalPages = 1): PaginatedD
   }
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/pages') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   const view = render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <StaticPagesPage />
       </MemoryRouter>
     </QueryClientProvider>
@@ -98,9 +110,106 @@ describe('StaticPagesPage', () => {
     expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem')).not.toBeInTheDocument()
     expect(screen.queryByText(/{{|}}/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Search pages' })).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByText('محتوى')).not.toBeInTheDocument()
+  })
+
+  it('resets pagination for search and Apply, retains filters on next pages, and resets all filters once', async () => {
+    const items = Array.from({ length: 16 }, (_, index) => page(index + 1))
+    const list = vi
+      .spyOn(staticPagesService, 'list')
+      .mockImplementation(async (pageNumber) =>
+        paginated(items.slice((pageNumber - 1) * 15, pageNumber * 15), pageNumber, 2)
+      )
+    const user = userEvent.setup()
+    renderPage('/dashboard/pages?page=4&search=privacy&is_published=0&sort_by=slug&sort_dir=asc')
+
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([pageNumber, , filters]) =>
+            pageNumber === 2 &&
+            filters?.search === 'privacy' &&
+            filters.isPublished === false &&
+            filters.sortBy === 'slug' &&
+            filters.sortDir === 'asc'
+        )
+      ).toBe(true)
+    )
+
+    const search = screen.getByRole('textbox', { name: 'Search pages' })
+    await user.clear(search)
+    await user.type(search, 'terms')
+    await waitFor(
+      () =>
+        expect(
+          list.mock.calls.some(
+            ([pageNumber, , filters]) =>
+              pageNumber === 1 &&
+              filters?.search === 'terms' &&
+              filters.isPublished === false &&
+              filters.sortBy === 'slug' &&
+              filters.sortDir === 'asc'
+          )
+        ).toBe(true),
+      { timeout: 2000 }
+    )
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([pageNumber, , filters]) => pageNumber === 2 && filters?.search === 'terms' && filters.sortBy === 'slug'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const requestCountBeforeDraftChange = list.mock.calls.length
+    await user.click(screen.getByRole('combobox', { name: 'Sort direction' }))
+    await user.click(await screen.findByRole('option', { name: 'Descending' }))
+    expect(list).toHaveBeenCalledTimes(requestCountBeforeDraftChange)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([pageNumber, , filters]) =>
+            pageNumber === 1 &&
+            filters?.search === 'terms' &&
+            filters.isPublished === false &&
+            filters.sortBy === 'slug' &&
+            filters.sortDir === 'desc'
+        )
+      ).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const resetRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(
+        list.mock.calls.some(
+          ([pageNumber, , filters]) =>
+            pageNumber === 1 &&
+            filters?.search === '' &&
+            filters.isPublished === null &&
+            filters.sortBy === null &&
+            filters.sortDir === null
+        )
+      ).toBe(true)
+    )
+    expect(
+      list.mock.calls
+        .slice(resetRequestCount)
+        .filter(
+          ([pageNumber, , filters]) =>
+            pageNumber === 1 &&
+            filters?.search === '' &&
+            filters.isPublished === null &&
+            filters.sortBy === null &&
+            filters.sortDir === null
+        )
+    ).toHaveLength(1)
+    expect(search).toHaveValue('')
   })
 
   it('preserves loaded rows while retrying a failed next page', async () => {

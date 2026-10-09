@@ -70,6 +70,24 @@
       "updated": "Static page updated.",
       "createError": "The static page could not be created.",
       "updateError": "The static page could not be updated."
+    },
+    "filters": {
+      "title": "Filter pages",
+      "search": "Search pages",
+      "all": "All",
+      "isPublished": "Published",
+      "published": "Published",
+      "unpublished": "Unpublished",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": {
+        "created_at": "Created At",
+        "slug": "Slug"
+      },
+      "direction": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      }
     }
   }
 }

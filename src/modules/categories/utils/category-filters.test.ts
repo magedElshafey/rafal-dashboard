@@ -14,6 +14,9 @@ describe('Categories server query serialization', () => {
     expect(serializeCategoriesFilters(emptyCategoriesFilters)).toEqual({})
     expect(serializeCategoriesFilters({ ...emptyCategoriesFilters, isActive: true })).toEqual({ is_active: 1 })
     expect(serializeCategoriesFilters({ ...emptyCategoriesFilters, isActive: false })).toEqual({ is_active: 0 })
+    expect(serializeCategoriesFilters(emptyCategoriesFilters)).not.toHaveProperty('search')
+    expect(serializeCategoriesFilters(emptyCategoriesFilters)).not.toHaveProperty('per_page')
+    expect(readCategoriesFilters({ search: 'jewelry' })).toEqual(emptyCategoriesFilters)
   })
 
   it('serializes created dates unchanged', () => {

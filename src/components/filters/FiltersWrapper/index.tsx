@@ -192,8 +192,8 @@ const FiltersWrapper = ({
   const handleResetDraft = useCallback(() => {
     setDraftQuery(null)
     onReset?.()
-    forwardReplaceQueries(managedFilterNames, null, queryUpdateOptions)
-  }, [forwardReplaceQueries, managedFilterNames, onReset, queryUpdateOptions])
+    forwardReplaceQueries([searchName, ...managedFilterNames], null, queryUpdateOptions)
+  }, [forwardReplaceQueries, managedFilterNames, onReset, queryUpdateOptions, searchName])
 
   const handleCancel = useCallback(() => {
     onCancel?.()

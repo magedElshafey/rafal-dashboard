@@ -9,6 +9,7 @@ import type {
   StaticPageCreatePayload,
   StaticPageUpdatePayload,
 } from '@/modules/static-pages/types/static-page.types'
+import { emptyPagesFilters } from '@/modules/static-pages/utils/static-page-filters'
 
 const rawPage: RawStaticPage = {
   id: 2,
@@ -68,6 +69,34 @@ describe('staticPagesService', () => {
       createdAt: rawPage.created_at,
       updatedAt: rawPage.updated_at,
     })
+  })
+
+  it('forwards supported Index filters without per_page', async () => {
+    const signal = new AbortController().signal
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [],
+        meta: { current_page: 2, last_page: 2, per_page: 15, total: 16 },
+      },
+    })
+
+    await staticPagesService.list(2, signal, {
+      ...emptyPagesFilters,
+      search: 'privacy',
+      isPublished: false,
+      sortBy: 'slug',
+      sortDir: 'asc',
+    })
+
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/pages',
+      query: { search: 'privacy', is_published: 0, sort_by: 'slug', sort_dir: 'asc', page: 2 },
+      signal,
+      suppressErrorNotification: true,
+    })
+    expect(httpMocks.get.mock.calls[0][0].query).not.toHaveProperty('per_page')
   })
 
   it('GETs authoritative Show by id and normalizes the detail', async () => {

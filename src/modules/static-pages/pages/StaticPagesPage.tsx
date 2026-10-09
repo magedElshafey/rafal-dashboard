@@ -3,6 +3,7 @@ import { FileText, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -14,19 +15,25 @@ import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { StaticPagesList } from '@/modules/static-pages/components/StaticPagesList'
 import { StaticPagesListSkeleton } from '@/modules/static-pages/components/StaticPagesListSkeleton'
+import { StaticPageFilters } from '@/modules/static-pages/components/StaticPageFilters'
 import { useStaticPages } from '@/modules/static-pages/hooks/useStaticPages'
+import { readPagesFilters, staticPageFilterNames } from '@/modules/static-pages/utils/static-page-filters'
 import { Routes } from '@/routes/routes'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function StaticPagesPage() {
+function StaticPagesContent() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const query = useStaticPages()
+  const { forwardQuery } = useQuery()
+  const filters = readPagesFilters(forwardQuery)
+  const query = useStaticPages(filters)
   const pages = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? pages.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
   const listHeader = (
     <div className="min-w-0">
@@ -55,12 +62,21 @@ function StaticPagesPage() {
   )
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader
         title={t('staticPages.title')}
         description={t('staticPages.description')}
         actions={createAction}
       />
+      <FiltersWrapper
+        filterNames={staticPageFilterNames}
+        resetQueryNamesOnChange={['page']}
+        searchLabel={t('staticPages.filters.search')}
+        searchPlaceholder={t('staticPages.filters.search')}
+        dialogTitle={t('staticPages.filters.title')}
+      >
+        <StaticPageFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -109,4 +125,10 @@ function StaticPagesPage() {
   )
 }
 
-export default StaticPagesPage
+export default function StaticPagesPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <StaticPagesContent />
+    </QueryProvider>
+  )
+}

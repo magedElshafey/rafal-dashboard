@@ -1,4 +1,5 @@
 import type {
+  PagesFilters,
   RawStaticPage,
   RawStaticPageResponse,
   RawStaticPageUpdateResponse,
@@ -7,6 +8,7 @@ import type {
   StaticPagesIndexResponse,
   StaticPageUpdatePayload,
 } from '@/modules/static-pages/types/static-page.types'
+import { emptyPagesFilters, serializePagesFilters } from '@/modules/static-pages/utils/static-page-filters'
 import { normalizeStaticPageSlug } from '@/modules/static-pages/utils/static-page.utils'
 import { $http } from '@/utils/http'
 
@@ -72,11 +74,15 @@ export function serializeStaticPageUpdate(payload: StaticPageUpdatePayload): For
 }
 
 export const staticPagesService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<StaticPage>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: PagesFilters = emptyPagesFilters
+  ): Promise<PaginatedData<StaticPage>> {
     const response = (
       await $http.get<StaticPagesIndexResponse>({
         url: '/dashboard/pages',
-        query: { page },
+        query: { ...serializePagesFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })

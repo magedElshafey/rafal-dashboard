@@ -26,6 +26,16 @@ export type StaticPageFormValues = {
 export type StaticPageCreatePayload = StaticPageFormValues
 export type StaticPageUpdatePayload = StaticPageFormValues
 
+export type StaticPageSortBy = 'created_at' | 'slug'
+export type StaticPageSortDir = 'asc' | 'desc'
+
+export type PagesFilters = {
+  search: string
+  isPublished: boolean | null
+  sortBy: StaticPageSortBy | null
+  sortDir: StaticPageSortDir | null
+}
+
 export type RawStaticPage = {
   id: number
   slug: string
