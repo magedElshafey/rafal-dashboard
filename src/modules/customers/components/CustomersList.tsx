@@ -59,7 +59,7 @@ export function CustomersList({ customers, onView, onAccessChange }: Props) {
                   </bdi>
                 </ResponsiveDataTableCell>
                 <ResponsiveDataTableCell className="max-w-64 whitespace-normal">
-                  <div className="break-all">{valueOrDash(customer.email)}</div>
+                  <div className="break-all lowercase">{valueOrDash(customer.email)}</div>
                   <div className="text-xs text-muted-foreground">{valueOrDash(customer.phone)}</div>
                 </ResponsiveDataTableCell>
                 <ResponsiveDataTableCell>{access(customer)}</ResponsiveDataTableCell>

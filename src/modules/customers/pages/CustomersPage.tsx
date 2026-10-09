@@ -3,6 +3,7 @@ import { UsersRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -12,24 +13,35 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { CustomerAccessDialog, type CustomerAccessTarget } from '@/modules/customers/components/CustomerAccessDialog'
+import { CustomerFilters } from '@/modules/customers/components/CustomerFilters'
 import { CustomersList } from '@/modules/customers/components/CustomersList'
 import { CustomersListSkeleton } from '@/modules/customers/components/CustomersListSkeleton'
 import { useCustomers } from '@/modules/customers/hooks/useCustomers'
 import type { CustomerListItem } from '@/modules/customers/types/customer.types'
+import {
+  customerFilterNames,
+  readCustomersFilters,
+  validCustomersDateRange,
+} from '@/modules/customers/utils/customer-filters'
 import { getCustomerDisplayName } from '@/modules/customers/utils/customer.utils'
 import { Routes } from '@/routes/routes'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function CustomersPage() {
+function CustomersContent() {
   const { t } = useTranslation()
+  const { forwardQuery } = useQuery()
   const navigate = useNavigate()
-  const query = useCustomers()
+  const filters = readCustomersFilters(forwardQuery)
+  const query = useCustomers(filters)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const [accessTarget, setAccessTarget] = useState<CustomerAccessTarget | null>(null)
   const customers = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? customers.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
   const header = (
     <div className="min-w-0">
@@ -51,8 +63,23 @@ function CustomersPage() {
   }
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('customers.title')} description={t('customers.description')} />
+      <FiltersWrapper
+        showSearch={false}
+        filterNames={customerFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('customers.filters.title')}
+        onFilter={() => setShowFilterValidation(false)}
+        onReset={() => setShowFilterValidation(false)}
+        onApply={(draftQuery) => {
+          const valid = validCustomersDateRange(readCustomersFilters(draftQuery))
+          setShowFilterValidation(!valid)
+          return valid ? undefined : false
+        }}
+      >
+        <CustomerFilters showValidation={showFilterValidation} />
+      </FiltersWrapper>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -105,4 +132,10 @@ function CustomersPage() {
   )
 }
 
-export default CustomersPage
+export default function CustomersPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <CustomersContent />
+    </QueryProvider>
+  )
+}

@@ -5,10 +5,12 @@ import type {
   CustomerOrdersIndexResponse,
   CustomerListItem,
   CustomersIndexResponse,
+  CustomersFilters,
   RawCustomerDetail,
   RawCustomerListItem,
   RawCustomerOrderListItem,
 } from '@/modules/customers/types/customer.types'
+import { emptyCustomersFilters, serializeCustomersFilters } from '@/modules/customers/utils/customer-filters'
 import { $http } from '@/utils/http'
 
 function normalizeId(value: number, entity: string): number {
@@ -105,11 +107,15 @@ function toPaginatedData<T>(
 }
 
 export const customersService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<CustomerListItem>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: CustomersFilters = emptyCustomersFilters
+  ): Promise<PaginatedData<CustomerListItem>> {
     const response = (
       await $http.get<CustomersIndexResponse>({
         url: '/dashboard/customers',
-        query: { page },
+        query: { ...serializeCustomersFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })

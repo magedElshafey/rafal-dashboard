@@ -10,6 +10,17 @@
     "total_many": "{{count}} عميلاً",
     "total_other": "{{count}} عميل",
     "loadingMore": "جارٍ تحميل المزيد من العملاء",
+    "filters": {
+      "title": "تصفية العملاء",
+      "all": "الكل",
+      "date_from": "التاريخ من",
+      "date_to": "التاريخ إلى",
+      "invalidRange": "لا يمكن أن يكون تاريخ البداية بعد تاريخ النهاية.",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": { "created_at": "تاريخ الإنشاء", "name": "الاسم", "email": "البريد الإلكتروني" },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "identityFallback": "العميل رقم {{id}}",
     "empty": {
       "title": "لا يوجد عملاء بعد",

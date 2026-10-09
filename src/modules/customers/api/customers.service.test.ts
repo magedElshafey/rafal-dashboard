@@ -14,6 +14,7 @@ import type {
   RawCustomerListItem,
   RawCustomerOrderListItem,
 } from '@/modules/customers/types/customer.types'
+import { emptyCustomersFilters } from '@/modules/customers/utils/customer-filters'
 
 const rawCustomer: RawCustomerListItem = {
   id: 6,
@@ -67,7 +68,7 @@ const rawOrder: RawCustomerOrderListItem = {
 describe('customersService', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('GETs the exact Customer Index endpoint with only pagination', async () => {
+  it('GETs the exact filtered Customer Index endpoint', async () => {
     const signal = new AbortController().signal
     httpMocks.get.mockResolvedValue({
       data: {
@@ -78,11 +79,23 @@ describe('customersService', () => {
       },
     })
 
-    const result = await customersService.list(2, signal)
+    const result = await customersService.list(2, signal, {
+      ...emptyCustomersFilters,
+      dateFrom: '2026-10-01',
+      dateTo: '2026-10-09',
+      sortBy: 'email',
+      sortDir: 'desc',
+    })
 
     expect(httpMocks.get).toHaveBeenCalledWith({
       url: '/dashboard/customers',
-      query: { page: 2 },
+      query: {
+        date_from: '2026-10-01',
+        date_to: '2026-10-09',
+        sort_by: 'email',
+        sort_dir: 'desc',
+        page: 2,
+      },
       signal,
       suppressErrorNotification: true,
     })

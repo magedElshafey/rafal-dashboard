@@ -6,6 +6,17 @@
     "total_one": "{{count}} customer",
     "total_other": "{{count}} customers",
     "loadingMore": "Loading more customers",
+    "filters": {
+      "title": "Customer filters",
+      "all": "All",
+      "date_from": "Date from",
+      "date_to": "Date to",
+      "invalidRange": "The date-from value cannot be after the date-to value.",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "sort": { "created_at": "Created date", "name": "Name", "email": "Email" },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "identityFallback": "Customer #{{id}}",
     "empty": {
       "title": "No customers yet",

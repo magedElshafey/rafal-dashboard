@@ -111,3 +111,13 @@ export type CustomerDetailResponse = {
 }
 
 export type CustomerAccessAction = 'block' | 'unblock'
+
+export type CustomerSortBy = 'created_at' | 'name' | 'email'
+export type CustomerSortDir = 'asc' | 'desc'
+
+export type CustomersFilters = {
+  dateFrom: string
+  dateTo: string
+  sortBy: CustomerSortBy | null
+  sortDir: CustomerSortDir | null
+}

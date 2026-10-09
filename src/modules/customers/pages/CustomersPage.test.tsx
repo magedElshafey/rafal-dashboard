@@ -32,27 +32,30 @@ const customer = (id: number, overrides: Partial<CustomerListItem> = {}): Custom
 })
 
 function paginated(items: CustomerListItem[], page = 1): PaginatedData<CustomerListItem> {
+  const pageSize = 15
+  const pageItems = items.slice((page - 1) * pageSize, page * pageSize)
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
   return {
-    items,
+    items: pageItems,
     paginate: {
       current_page: page,
-      total_pages: 1,
-      per_page: 15,
+      total_pages: totalPages,
+      per_page: pageSize,
       total: items.length,
-      count: items.length,
-      next_page_url: null,
-      prev_page_url: null,
+      count: pageItems.length,
+      next_page_url: page < totalPages ? String(page + 1) : null,
+      prev_page_url: page > 1 ? String(page - 1) : null,
     },
     extra: null,
   }
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/dashboard/customers') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   return render(
-    <MemoryRouter initialEntries={['/dashboard/customers']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <QueryClientProvider client={client}>
         <CustomersPage />
       </QueryClientProvider>
@@ -101,7 +104,7 @@ describe('CustomersPage', () => {
     expect(await screen.findByText('No customers yet')).toBeInTheDocument()
   })
 
-  it('renders one source into responsive rows/cards without unsupported search or filters', async () => {
+  it('renders one source into responsive rows/cards without unsupported search', async () => {
     vi.spyOn(customersService, 'list').mockResolvedValue(
       paginated([
         customer(1, { name: '', firstName: 'Maged', lastName: 'Elshafey' }),
@@ -115,12 +118,80 @@ describe('CustomersPage', () => {
     expect(screen.getAllByText('Customer #2')).toHaveLength(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('button', { name: 'Actions for Maged Elshafey' })[0])
     expect(await screen.findByRole('menuitem', { name: 'Block Maged Elshafey' })).toBeInTheDocument()
     await user.keyboard('{Escape}')
     await user.click(screen.getAllByRole('button', { name: 'Actions for Customer #2' })[0])
     expect(await screen.findByRole('menuitem', { name: 'Unblock Customer #2' })).toBeInTheDocument()
+  })
+
+  it('keeps drafts unapplied, retains filters on next pages, restarts pagination, and resets', async () => {
+    const customers = Array.from({ length: 16 }, (_, index) => customer(index + 1))
+    const list = vi.spyOn(customersService, 'list').mockImplementation(async (page) => paginated(customers, page))
+    const user = userEvent.setup()
+
+    renderPage('/dashboard/customers?page=4&date_from=2026-10-01')
+
+    expect(await screen.findAllByText('Customer 16')).toHaveLength(2)
+    await waitFor(() => expect(list.mock.calls.some(([page]) => page === 2)).toBe(true))
+    expect(
+      list.mock.calls.filter(([page]) => page <= 2).every(([, , filters]) => filters?.dateFrom === '2026-10-01')
+    ).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    const dateFrom = screen.getByLabelText('Date from')
+    const appliedRequestCount = list.mock.calls.length
+    await user.clear(dateFrom)
+    await user.type(dateFrom, '2026-10-02')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.dateFrom === '2026-10-02' && page === 1)).toBe(true)
+    )
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.dateFrom === '2026-10-02' && page === 2)).toBe(true)
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(list.mock.calls.some(([page, , filters]) => filters?.dateFrom === '' && page === 1)).toBe(true)
+    )
+  })
+
+  it('surfaces an invalid date range only after Apply and does not replace the applied query', async () => {
+    const list = vi.spyOn(customersService, 'list').mockResolvedValue(paginated([customer(1)]))
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await screen.findAllByText('Customer 1')
+    const appliedRequestCount = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Date from'), '2026-10-10')
+    await user.type(screen.getByLabelText('Date to'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Date from')).toHaveAttribute('aria-invalid', 'false')
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The date-from value cannot be after the date-to value.')
+    expect(screen.getByLabelText('Date from')).toHaveAttribute('aria-describedby', 'customers-date-range-error')
+    expect(screen.getByLabelText('Date to')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(appliedRequestCount)
+  })
+
+  it('does not execute the Customers request for an invalid applied deep-link range', async () => {
+    const list = vi.spyOn(customersService, 'list')
+
+    renderPage('/dashboard/customers?date_from=2026-10-10&date_to=2026-10-09')
+
+    await waitFor(() => expect(list).not.toHaveBeenCalled())
   })
 
   it('requires confirmation and prevents duplicate block submissions', async () => {
