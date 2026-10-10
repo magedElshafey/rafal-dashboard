@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -16,20 +17,27 @@ import {
 } from '@/modules/reviews/components/ReviewModerationDialog'
 import { ReviewsList } from '@/modules/reviews/components/ReviewsList'
 import { ReviewsListSkeleton } from '@/modules/reviews/components/ReviewsListSkeleton'
+import { ReviewFilters } from '@/modules/reviews/components/ReviewFilters'
 import { useReviews } from '@/modules/reviews/hooks/useReviews'
 import type { ReviewListItem, ReviewModerationTarget } from '@/modules/reviews/types/review.types'
 import { getReviewerDisplayName } from '@/modules/reviews/utils/review.utils'
+import { readReviewsFilters, reviewFilterNames, validReviewsFilters } from '@/modules/reviews/utils/review-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function ReviewsPage() {
+function ReviewsContent() {
   const { t } = useTranslation()
-  const query = useReviews()
+  const { forwardQuery } = useQuery()
+  const filters = readReviewsFilters(forwardQuery)
+  const query = useReviews(filters)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const [moderationTarget, setModerationTarget] = useState<ReviewModerationTargetState | null>(null)
   const reviews = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? reviews.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
   const header = (
     <div className="min-w-0">
@@ -55,6 +63,23 @@ function ReviewsPage() {
   return (
     <main className="min-w-0">
       <DashboardPageHeader title={t('reviews.title')} description={t('reviews.description')} />
+      <div className="mb-4">
+        <FiltersWrapper
+          searchName="search"
+          filterNames={reviewFilterNames}
+          resetQueryNamesOnChange={['page']}
+          dialogTitle={t('reviews.filters.title')}
+          onFilter={() => setShowFilterValidation(false)}
+          onReset={() => setShowFilterValidation(false)}
+          onApply={(draftQuery) => {
+            const valid = validReviewsFilters(readReviewsFilters(draftQuery))
+            setShowFilterValidation(!valid)
+            return valid ? undefined : false
+          }}
+        >
+          <ReviewFilters showValidation={showFilterValidation} />
+        </FiltersWrapper>
+      </div>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -103,4 +128,10 @@ function ReviewsPage() {
   )
 }
 
-export default ReviewsPage
+export default function ReviewsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <ReviewsContent />
+    </QueryProvider>
+  )
+}

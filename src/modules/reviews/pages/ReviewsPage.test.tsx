@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
@@ -61,13 +62,15 @@ function moderationResponse(item: ReviewListItem, status: 'approved' | 'rejected
   return { success: true, message: 'moderated', data: { ...item, status } }
 }
 
-function renderPage() {
+function renderPage(route = '/dashboard/reviews') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={client}>
-      <ReviewsPage />
+      <MemoryRouter initialEntries={[route]}>
+        <ReviewsPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -127,6 +130,26 @@ describe('ReviewsPage', () => {
     expect(screen.queryByText('unsafe database detail')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /try again/i }))
     expect(await screen.findByText('No reviews yet')).toBeInTheDocument()
+  })
+
+  it('blocks invalid date Apply and invalid applied ranges do not request', async () => {
+    const list = vi.spyOn(reviewsService, 'list').mockResolvedValue(paginated([]))
+    const user = userEvent.setup()
+    renderPage('/dashboard/reviews?search=kept')
+    await screen.findByText('No reviews yet')
+    const appliedCalls = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Date From'), '2026-10-10')
+    await user.type(screen.getByLabelText('Date To'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Date from cannot be after date to.')
+    expect(screen.getByLabelText('Date From')).toHaveAttribute('aria-invalid', 'true')
+    expect(list).toHaveBeenCalledTimes(appliedCalls)
+
+    list.mockClear()
+    renderPage('/dashboard/reviews?rating_min=5&rating_max=2')
+    await waitFor(() => expect(list).not.toHaveBeenCalled())
   })
 
   it('renders responsive provisional rows and exposes moderation only for pending reviews', async () => {

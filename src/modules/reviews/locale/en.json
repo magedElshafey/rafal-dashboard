@@ -8,6 +8,24 @@
     "loadingMore": "Loading more reviews",
     "reviewerFallback": "User #{{id}}",
     "ratingOutOfFive": "{{rating}} / 5",
+    "filters": {
+      "title": "Filter reviews",
+      "all": "All",
+      "product": "Product",
+      "user": "User",
+      "userFallback": "User #{{id}}",
+      "rating": "Rating",
+      "rating_min": "Minimum Rating",
+      "rating_max": "Maximum Rating",
+      "date_from": "Date From",
+      "date_to": "Date To",
+      "invalidRatingRange": "Minimum rating cannot exceed maximum rating.",
+      "invalidDateRange": "Date from cannot be after date to.",
+      "sortBy": "Sort By",
+      "sortDir": "Sort Direction",
+      "sort": { "created_at": "Created At", "rating": "Rating", "helpful_count": "Helpful Count" },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "empty": {
       "title": "No reviews yet",
       "description": "Product reviews will appear here when customers submit them."

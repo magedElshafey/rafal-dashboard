@@ -58,6 +58,21 @@ export type RawReview = {
 }
 
 export type ReviewsIndexResponse = PaginatedDashboardResponse<RawReview>
+export type ReviewRatingFilter = 1 | 2 | 3 | 4 | 5
+export type ReviewSortBy = 'created_at' | 'rating' | 'helpful_count'
+export type ReviewSortDir = 'asc' | 'desc'
+export type ReviewsFilters = {
+  search: string
+  productId: number | null
+  userId: number | null
+  rating: ReviewRatingFilter | null
+  ratingMin: ReviewRatingFilter | null
+  ratingMax: ReviewRatingFilter | null
+  dateFrom: string
+  dateTo: string
+  sortBy: ReviewSortBy | null
+  sortDir: ReviewSortDir | null
+}
 export type RawReviewResponse = {
   success: boolean
   message: string

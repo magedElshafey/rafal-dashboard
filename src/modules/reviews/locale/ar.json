@@ -12,6 +12,24 @@
     "loadingMore": "جارٍ تحميل المزيد من التقييمات",
     "reviewerFallback": "المستخدم رقم {{id}}",
     "ratingOutOfFive": "{{rating}} / 5",
+    "filters": {
+      "title": "تصفية التقييمات",
+      "all": "الكل",
+      "product": "المنتج",
+      "user": "المستخدم",
+      "userFallback": "المستخدم رقم {{id}}",
+      "rating": "التقييم",
+      "rating_min": "الحد الأدنى للتقييم",
+      "rating_max": "الحد الأقصى للتقييم",
+      "date_from": "التاريخ من",
+      "date_to": "التاريخ إلى",
+      "invalidRatingRange": "لا يمكن أن يتجاوز الحد الأدنى الحد الأقصى للتقييم.",
+      "invalidDateRange": "لا يمكن أن يكون تاريخ البداية بعد تاريخ النهاية.",
+      "sortBy": "الترتيب حسب",
+      "sortDir": "اتجاه الترتيب",
+      "sort": { "created_at": "تاريخ الإنشاء", "rating": "التقييم", "helpful_count": "عدد المفيد" },
+      "direction": { "asc": "تصاعدي", "desc": "تنازلي" }
+    },
     "empty": {
       "title": "لا توجد تقييمات بعد",
       "description": "ستظهر تقييمات المنتجات هنا عندما يرسلها العملاء."

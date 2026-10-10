@@ -6,7 +6,9 @@ import type {
   ReviewResponse,
   ReviewsIndexResponse,
   ReviewStatus,
+  ReviewsFilters,
 } from '@/modules/reviews/types/review.types'
+import { emptyReviewsFilters, serializeReviewsFilters } from '@/modules/reviews/utils/review-filters'
 import { $http } from '@/utils/http'
 
 const reviewStatuses = new Set<ReviewStatus>(['pending', 'approved', 'rejected'])
@@ -75,11 +77,15 @@ function normalizeResponse(response: RawReviewResponse): ReviewResponse {
 }
 
 export const reviewsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<ReviewListItem>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: ReviewsFilters = emptyReviewsFilters
+  ): Promise<PaginatedData<ReviewListItem>> {
     const response = (
       await $http.get<ReviewsIndexResponse>({
         url: '/dashboard/reviews',
-        query: { page },
+        query: { ...serializeReviewsFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })

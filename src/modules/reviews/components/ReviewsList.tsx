@@ -63,11 +63,11 @@ export function ReviewsList({ reviews, onModerate }: Props) {
             const name = reviewerName(review)
             return (
               <ResponsiveDataTableRow key={review.id}>
-                <ResponsiveDataTableCell className="max-w-48 whitespace-normal">
+                <ResponsiveDataTableCell className="max-w-48 whitespace-normal text-center">
                   <div className="font-medium" dir="auto">
                     {name}
                   </div>
-                  <div className="break-all text-xs text-muted-foreground">{review.reviewer.email}</div>
+                  <div className="break-all text-xs text-muted-foreground lowercase">{review.reviewer.email}</div>
                 </ResponsiveDataTableCell>
                 <ResponsiveDataTableCell className="max-w-48 whitespace-normal">
                   {review.product.name}
