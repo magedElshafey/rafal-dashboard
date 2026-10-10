@@ -52,7 +52,7 @@ const createPayload = (overrides: Partial<ProductCreatePayload> = {}): ProductCr
   isPersonalizable: true,
   personalizationMaxLength: 20,
   personalizationFee: 5.5,
-  hidePriceOnPackaging: true,
+  maxCartItemQuantity: 8,
   isNewArrival: false,
   isActive: true,
   sortOrder: -2,
@@ -66,7 +66,7 @@ const rawDetail = (overrides: Partial<RawProductDetail> = {}): RawProductDetail 
   description: [],
   personalization_max_length: null,
   personalization_fee: null,
-  hide_price_on_packaging: false,
+  max_cart_item_quantity: 10,
   variants: [],
   images: [{ id: 12, url: 'https://example.com/product.jpg' }],
   ...overrides,
@@ -90,7 +90,7 @@ const realDashboardProductShow: RawProductDetail = {
   personalization_max_length: null,
   personalization_fee: null,
   personalization_languages: ['ar', 'en'],
-  hide_price_on_packaging: true,
+  max_cart_item_quantity: 10,
   is_new_arrival: true,
   is_active: true,
   sort_order: 2,
@@ -291,7 +291,7 @@ describe('products service', () => {
       ['is_personalizable', '1'],
       ['personalization_max_length', '20'],
       ['personalization_fee', '5.5'],
-      ['hide_price_on_packaging', '1'],
+      ['max_cart_item_quantity', '8'],
       ['is_new_arrival', '0'],
       ['is_active', '1'],
       ['sort_order', '-2'],
@@ -310,6 +310,7 @@ describe('products service', () => {
     expect((request.data as FormData).has('stocks')).toBe(false)
     expect((request.data as FormData).has('simulated_viewers_count')).toBe(false)
     expect((request.data as FormData).has('simulated_orders_count')).toBe(false)
+    expect((request.data as FormData).has('hide_price_on_packaging')).toBe(false)
   })
 
   it('requires Product media before serializing aggregate Create', () => {
@@ -467,6 +468,10 @@ describe('products service', () => {
       personalization_max_length: null,
       personalization_fee: null,
     })
+  })
+
+  it('serializes a dirty cart quantity limit without the removed packaging flag', () => {
+    expect(serializeProductUpdate({ maxCartItemQuantity: 6 })).toEqual({ max_cart_item_quantity: 6 })
   })
 
   it('PUTs partial JSON without Product children and normalizes the complete authoritative response', async () => {

@@ -17,7 +17,7 @@
       },
       "customerLimits": {
         "title": "Customer Limits",
-        "description": "Set practical limits for saved addresses and cart quantities."
+        "description": "Set practical limits for saved customer addresses."
       },
       "security": {
         "title": "Security",
@@ -35,7 +35,6 @@
       "giftWrapEnabled": "Enable Gift Wrap",
       "giftWrapFee": "Gift Wrap Fee",
       "maxAddressesPerUser": "Maximum Addresses Per User",
-      "maxCartItemQuantity": "Maximum Cart Item Quantity",
       "otpResendCooldownSeconds": "OTP Resend Cooldown",
       "guestOrderVerificationMinutes": "Guest Order Verification Window",
       "lowStockThreshold": "Low Stock Threshold",

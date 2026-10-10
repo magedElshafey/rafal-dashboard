@@ -249,10 +249,15 @@ export function ProductFormSections({
         description={t('products.create.sections.settings.description')}
       >
         <div className="grid items-start gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <FormCheckbox
-            name="hidePriceOnPackaging"
-            label={t('products.create.fields.hidePriceOnPackaging')}
+          <FormInput
+            name="maxCartItemQuantity"
+            label={t('products.create.fields.maxCartItemQuantity')}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
             disabled={isSubmitting}
+            required
           />
           <FormCheckbox name="isNewArrival" label={t('products.create.fields.isNewArrival')} disabled={isSubmitting} />
           <FormCheckbox name="isActive" label={t('products.create.fields.isActive')} disabled={isSubmitting} />

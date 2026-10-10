@@ -17,7 +17,7 @@
       },
       "customerLimits": {
         "title": "حدود العملاء",
-        "description": "تحديد حدود العناوين المحفوظة وكميات سلة التسوق."
+        "description": "تحديد حدود العناوين المحفوظة للعملاء."
       },
       "security": {
         "title": "الأمان",
@@ -35,7 +35,6 @@
       "giftWrapEnabled": "تفعيل تغليف الهدايا",
       "giftWrapFee": "رسوم تغليف الهدايا",
       "maxAddressesPerUser": "الحد الأقصى للعناوين لكل مستخدم",
-      "maxCartItemQuantity": "الحد الأقصى لكمية المنتج في السلة",
       "otpResendCooldownSeconds": "مدة انتظار إعادة إرسال رمز التحقق",
       "guestOrderVerificationMinutes": "مهلة التحقق من طلب الزائر",
       "lowStockThreshold": "حد انخفاض المخزون",

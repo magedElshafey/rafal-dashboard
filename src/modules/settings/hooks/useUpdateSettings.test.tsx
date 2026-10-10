@@ -18,7 +18,6 @@ const authoritativeSettings: Settings = {
   giftWrapEnabled: true,
   giftWrapFee: 15,
   maxAddressesPerUser: 10,
-  maxCartItemQuantity: 10,
   otpResendCooldownSeconds: 1,
   guestOrderVerificationMinutes: 30,
   lowStockThreshold: 5,

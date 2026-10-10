@@ -38,7 +38,7 @@ export const PRODUCT_CREATE_API_FIELD_ALIASES = {
   is_personalizable: 'isPersonalizable',
   personalization_max_length: 'personalizationMaxLength',
   personalization_fee: 'personalizationFee',
-  hide_price_on_packaging: 'hidePriceOnPackaging',
+  max_cart_item_quantity: 'maxCartItemQuantity',
   is_new_arrival: 'isNewArrival',
   is_active: 'isActive',
   sort_order: 'sortOrder',

@@ -26,7 +26,6 @@ const initialSettings: Settings = {
   giftWrapEnabled: true,
   giftWrapFee: 15,
   maxAddressesPerUser: 10,
-  maxCartItemQuantity: 10,
   otpResendCooldownSeconds: 1,
   guestOrderVerificationMinutes: 30,
   lowStockThreshold: 5,
@@ -73,6 +72,7 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('spinbutton', { name: /Guest Order Verification Window/ })).toHaveValue(30)
     expect(screen.getByRole('spinbutton', { name: /Low Stock Threshold/ })).toHaveValue(5)
     expect(screen.getByRole('spinbutton', { name: /Return Window/ })).toHaveValue(14)
+    expect(screen.queryByRole('spinbutton', { name: /Maximum Cart Item Quantity/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
   })
 
@@ -174,14 +174,14 @@ describe('SettingsPage', () => {
     vi.spyOn(settingsService, 'update').mockRejectedValueOnce(new Error('database secret'))
     const user = userEvent.setup()
     renderPage()
-    const cart = await screen.findByRole('spinbutton', { name: /Maximum Cart Item Quantity/ })
-    await user.clear(cart)
-    await user.type(cart, '12')
+    const addresses = await screen.findByRole('spinbutton', { name: /Maximum Addresses/ })
+    await user.clear(addresses)
+    await user.type(addresses, '12')
     await user.click(screen.getByRole('button', { name: 'Save Changes' }))
     await waitFor(() =>
       expect(toastMocks.error).toHaveBeenCalledWith('Settings could not be updated. Your changes have been preserved.')
     )
-    expect(cart).toHaveValue(12)
+    expect(addresses).toHaveValue(12)
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled()
     expect(screen.queryByText('database secret')).not.toBeInTheDocument()
   })

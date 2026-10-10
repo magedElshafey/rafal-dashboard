@@ -53,6 +53,7 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>, incl
   await user.type(screen.getByRole('textbox', { name: 'SKU' }), ' RFL-NEW ')
   await user.type(screen.getByRole('textbox', { name: 'Arabic Name' }), ' منتج جديد ')
   await user.type(screen.getByRole('spinbutton', { name: 'Base Price' }), '25.5')
+  await user.type(screen.getByRole('spinbutton', { name: 'Maximum Cart Item Quantity' }), '10')
   if (includeImage) {
     await user.upload(screen.getByLabelText('Browse images'), new File(['image'], 'product.png', { type: 'image/png' }))
   }
@@ -129,6 +130,8 @@ describe('ProductCreatePage', () => {
     expect(screen.getByRole('heading', { name: 'Personalization' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Product Images' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Product Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'Hide Price on Packaging' })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /slug/i })).not.toBeInTheDocument()
 
     const category = screen.getByRole('combobox', { name: 'Category' })
@@ -252,6 +255,7 @@ describe('ProductCreatePage', () => {
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
+        maxCartItemQuantity: 10,
         variants: [expect.objectContaining({ sku: 'VAR-ONE', stocks: [] })],
       })
     )

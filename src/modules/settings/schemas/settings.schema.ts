@@ -37,7 +37,6 @@ export function createSettingsSchema(messages: SettingsValidationMessages) {
     giftWrapEnabled: yup.boolean().required(messages.required).defined(),
     giftWrapFee: optionalNumberField(messages).min(0, messages.nonNegative),
     maxAddressesPerUser: numberField(messages).integer(messages.integer).min(1, messages.minimumOne),
-    maxCartItemQuantity: numberField(messages).integer(messages.integer).min(1, messages.minimumOne),
     otpResendCooldownSeconds: numberField(messages).integer(messages.integer).min(0, messages.nonNegative),
     guestOrderVerificationMinutes: numberField(messages).integer(messages.integer),
     lowStockThreshold: numberField(messages).integer(messages.integer),

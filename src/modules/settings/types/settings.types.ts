@@ -5,7 +5,6 @@ export type Settings = {
   giftWrapEnabled: boolean
   giftWrapFee: number
   maxAddressesPerUser: number
-  maxCartItemQuantity: number
   otpResendCooldownSeconds: number
   guestOrderVerificationMinutes: number
   lowStockThreshold: number
@@ -25,7 +24,7 @@ export type RawSettings = {
   gift_wrap_enabled: ApiBoolean
   gift_wrap_fee: number
   max_addresses_per_user: number
-  max_cart_item_quantity: number
+  max_cart_item_quantity?: number
   otp_resend_cooldown_seconds: number
   guest_order_verification_minutes: number
   low_stock_threshold: number
@@ -39,7 +38,6 @@ export type RawSettingsUpdatePayload = Partial<{
   gift_wrap_enabled: 0 | 1
   gift_wrap_fee: number
   max_addresses_per_user: number
-  max_cart_item_quantity: number
   otp_resend_cooldown_seconds: number
   guest_order_verification_minutes: number
   low_stock_threshold: number

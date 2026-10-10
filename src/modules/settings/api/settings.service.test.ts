@@ -37,7 +37,6 @@ describe('settingsService', () => {
       giftWrapEnabled: false,
       giftWrapFee: 15,
       maxAddressesPerUser: 10,
-      maxCartItemQuantity: 10,
       otpResendCooldownSeconds: 1,
       guestOrderVerificationMinutes: 30,
       lowStockThreshold: 5,
@@ -64,7 +63,6 @@ describe('settingsService', () => {
     ['giftWrapEnabled', false, { gift_wrap_enabled: 0 }],
     ['giftWrapFee', 20, { gift_wrap_fee: 20 }],
     ['maxAddressesPerUser', 12, { max_addresses_per_user: 12 }],
-    ['maxCartItemQuantity', 14, { max_cart_item_quantity: 14 }],
     ['otpResendCooldownSeconds', 30, { otp_resend_cooldown_seconds: 30 }],
     ['guestOrderVerificationMinutes', 45, { guest_order_verification_minutes: 45 }],
     ['lowStockThreshold', 4, { low_stock_threshold: 4 }],
@@ -92,7 +90,6 @@ describe('settingsService', () => {
       giftWrapEnabled: false,
       giftWrapFee: 0,
       maxAddressesPerUser: 10,
-      maxCartItemQuantity: 10,
       otpResendCooldownSeconds: 1,
       guestOrderVerificationMinutes: 30,
       lowStockThreshold: 5,
@@ -105,5 +102,9 @@ describe('settingsService', () => {
       free_shipping_enabled: 0,
       free_shipping_threshold: null,
     })
+  })
+
+  it('never serializes the legacy cart quantity setting', () => {
+    expect(serializeSettingsUpdate({ maxAddressesPerUser: 12 })).not.toHaveProperty('max_cart_item_quantity')
   })
 })

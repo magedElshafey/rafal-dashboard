@@ -73,7 +73,10 @@ export function createProductFormSchema(messages: ProductCreateValidationMessage
       .integer(messages.integer)
       .min(1, messages.minimumOne),
     personalizationFee: nullableNumber(messages).min(0, messages.nonNegative),
-    hidePriceOnPackaging: yup.boolean().required(messages.required).defined(),
+    maxCartItemQuantity: nullableNumber(messages)
+      .required(messages.required)
+      .integer(messages.integer)
+      .min(1, messages.minimumOne),
     isNewArrival: yup.boolean().required(messages.required).defined(),
     isActive: yup.boolean().required(messages.required).defined(),
     sortOrder: nullableNumber(messages).required(messages.required).integer(messages.integer),

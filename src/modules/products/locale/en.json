@@ -101,7 +101,7 @@
         "personalizationMaxLength": "Maximum Personalization Length",
         "personalizationFee": "Personalization Fee",
         "images": "Product Images",
-        "hidePriceOnPackaging": "Hide Price on Packaging",
+        "maxCartItemQuantity": "Maximum Cart Item Quantity",
         "isNewArrival": "New Arrival",
         "isActive": "Active",
         "sortOrder": "Sort Order"

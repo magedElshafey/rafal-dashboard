@@ -124,16 +124,6 @@ function SettingsFields({ isSubmitting }: { isSubmitting: boolean }) {
           disabled={isSubmitting}
           required
         />
-        <FormInput
-          name="maxCartItemQuantity"
-          label={t('settings.fields.maxCartItemQuantity')}
-          type="number"
-          inputMode="numeric"
-          min={1}
-          step={1}
-          disabled={isSubmitting}
-          required
-        />
       </SettingsSection>
 
       <SettingsSection
@@ -223,7 +213,6 @@ export function SettingsForm({ settings, isSubmitting, onSubmit }: SettingsFormP
         gift_wrap_enabled: 'giftWrapEnabled',
         gift_wrap_fee: 'giftWrapFee',
         max_addresses_per_user: 'maxAddressesPerUser',
-        max_cart_item_quantity: 'maxCartItemQuantity',
         otp_resend_cooldown_seconds: 'otpResendCooldownSeconds',
         guest_order_verification_minutes: 'guestOrderVerificationMinutes',
         low_stock_threshold: 'lowStockThreshold',

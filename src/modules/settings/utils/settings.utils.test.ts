@@ -10,7 +10,6 @@ const values: SettingsFormValues = {
   giftWrapEnabled: true,
   giftWrapFee: 15,
   maxAddressesPerUser: 10,
-  maxCartItemQuantity: 10,
   otpResendCooldownSeconds: 1,
   guestOrderVerificationMinutes: 30,
   lowStockThreshold: 5,
@@ -20,9 +19,6 @@ const values: SettingsFormValues = {
 describe('buildSettingsUpdatePayload', () => {
   it('includes only dirty domain fields', () => {
     expect(buildSettingsUpdatePayload({ ...values, vatRate: 20 }, { vatRate: true })).toEqual({ vatRate: 20 })
-    expect(buildSettingsUpdatePayload({ ...values, maxCartItemQuantity: 12 }, { maxCartItemQuantity: true })).toEqual({
-      maxCartItemQuantity: 12,
-    })
   })
 
   it('includes required dependent zeros when toggles are turned off', () => {

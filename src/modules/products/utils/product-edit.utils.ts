@@ -16,7 +16,7 @@ export function productDetailToFormValues(product: ProductDetail): ProductFormVa
     isPersonalizable: product.isPersonalizable,
     personalizationMaxLength: product.personalizationMaxLength,
     personalizationFee: product.personalizationFee,
-    hidePriceOnPackaging: product.hidePriceOnPackaging,
+    maxCartItemQuantity: product.maxCartItemQuantity,
     isNewArrival: product.isNewArrival,
     isActive: product.isActive,
     sortOrder: product.sortOrder,
@@ -48,7 +48,9 @@ export function buildProductUpdatePayload(
   if (dirty.personalizationMaxLength && values.isPersonalizable)
     payload.personalizationMaxLength = values.personalizationMaxLength
   if (dirty.personalizationFee && values.isPersonalizable) payload.personalizationFee = values.personalizationFee
-  if (dirty.hidePriceOnPackaging) payload.hidePriceOnPackaging = values.hidePriceOnPackaging
+  if (dirty.maxCartItemQuantity && values.maxCartItemQuantity !== null) {
+    payload.maxCartItemQuantity = values.maxCartItemQuantity
+  }
   if (dirty.isNewArrival) payload.isNewArrival = values.isNewArrival
   if (dirty.isActive) payload.isActive = values.isActive
   if (dirty.sortOrder && values.sortOrder !== null) payload.sortOrder = values.sortOrder

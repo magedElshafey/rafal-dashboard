@@ -16,7 +16,7 @@ const detail: ProductDetail = {
   isPersonalizable: true,
   personalizationMaxLength: 20,
   personalizationFee: 5,
-  hidePriceOnPackaging: false,
+  maxCartItemQuantity: 10,
   isNewArrival: true,
   isActive: true,
   sortOrder: 3,
@@ -32,9 +32,17 @@ describe('Product Edit mapping', () => {
   it('hydrates backend datetime without timezone conversion', () => {
     expect(productDetailToFormValues(detail)).toMatchObject({
       discountEndAt: '2026-10-03T14:05',
+      maxCartItemQuantity: 10,
       description: detail.description,
       images: { files: [], removedExistingIds: [] },
     })
+  })
+
+  it('includes the cart quantity limit only when dirty', () => {
+    const values = productDetailToFormValues(detail)
+    expect(buildProductUpdatePayload(values, {})).not.toHaveProperty('maxCartItemQuantity')
+    values.maxCartItemQuantity = 12
+    expect(buildProductUpdatePayload(values, { maxCartItemQuantity: true })).toEqual({ maxCartItemQuantity: 12 })
   })
 
   it('builds granular localized updates and textual-clear domain values', () => {

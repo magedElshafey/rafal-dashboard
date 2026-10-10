@@ -45,7 +45,7 @@ const validValues = (overrides: Partial<ProductCreateFormValues> = {}): ProductC
   isPersonalizable: false,
   personalizationMaxLength: null,
   personalizationFee: null,
-  hidePriceOnPackaging: false,
+  maxCartItemQuantity: 10,
   isNewArrival: false,
   isActive: true,
   sortOrder: 0,
@@ -115,6 +115,18 @@ describe('aggregate Product Create validation', () => {
     await expect(schema.validateAt('sortOrder', validValues({ sortOrder: null }))).rejects.toThrow('required')
     await expect(schema.validateAt('sortOrder', validValues({ sortOrder: 1.2 }))).rejects.toThrow('integer')
     await expect(schema.validateAt('sortOrder', validValues({ sortOrder: -8 }))).resolves.toBe(-8)
+  })
+
+  it('requires a cart quantity limit that is an integer of at least one', async () => {
+    await expect(schema.validateAt('maxCartItemQuantity', validValues({ maxCartItemQuantity: null }))).rejects.toThrow(
+      'required'
+    )
+    await expect(schema.validateAt('maxCartItemQuantity', validValues({ maxCartItemQuantity: 0 }))).rejects.toThrow(
+      'minimum-one'
+    )
+    await expect(schema.validateAt('maxCartItemQuantity', validValues({ maxCartItemQuantity: 1.5 }))).rejects.toThrow(
+      'integer'
+    )
   })
 
   it('accepts an independent nullable discount datetime and rejects invalid values', async () => {

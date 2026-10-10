@@ -39,7 +39,7 @@ const product: ProductDetail = {
   isPersonalizable: true,
   personalizationMaxLength: 20,
   personalizationFee: 5,
-  hidePriceOnPackaging: false,
+  maxCartItemQuantity: 10,
   isNewArrival: true,
   isActive: true,
   sortOrder: 2,
@@ -72,7 +72,7 @@ const realDashboardProductShow: RawProductDetail = {
   personalization_max_length: null,
   personalization_fee: null,
   personalization_languages: ['ar', 'en'],
-  hide_price_on_packaging: true,
+  max_cart_item_quantity: 10,
   is_new_arrival: true,
   is_active: true,
   sort_order: 2,
@@ -136,6 +136,8 @@ describe('ProductEditPage', () => {
     renderPage()
     expect(screen.queryByRole('textbox', { name: 'SKU' })).not.toBeInTheDocument()
     expect(await screen.findByRole('textbox', { name: 'SKU' })).toHaveValue('ORIGINAL')
+    expect(screen.getByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })).toHaveValue(10)
+    expect(screen.queryByRole('checkbox', { name: 'Hide Price on Packaging' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
     expect(screen.getByRole('img', { name: 'Existing product image 12' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete existing product image 12' })).toBeInTheDocument()
@@ -174,6 +176,17 @@ describe('ProductEditPage', () => {
     expect(queryClient.getQueryData(productsKeys.detail(7))).toMatchObject({ sku: 'AUTHORITATIVE' })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: productsKeys.lists() })
     expect(toastMocks.success).toHaveBeenCalledWith('Product updated successfully.')
+  })
+
+  it('sends the cart quantity limit only when changed', async () => {
+    const update = vi.spyOn(productsService, 'update').mockResolvedValue({ ...product, maxCartItemQuantity: 12 })
+    const user = userEvent.setup()
+    renderPage()
+    const limit = await screen.findByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })
+    await user.clear(limit)
+    await user.type(limit, '12')
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, { maxCartItemQuantity: 12 }))
   })
 
   it('enables Save only for dirty valid values', async () => {

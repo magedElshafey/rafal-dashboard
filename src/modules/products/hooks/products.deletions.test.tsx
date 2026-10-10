@@ -28,7 +28,7 @@ const product: ProductDetail = {
   isPersonalizable: false,
   personalizationMaxLength: null,
   personalizationFee: null,
-  hidePriceOnPackaging: false,
+  maxCartItemQuantity: 10,
   isNewArrival: false,
   isActive: true,
   sortOrder: 0,

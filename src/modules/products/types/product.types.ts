@@ -79,7 +79,7 @@ export type ProductFormValues = {
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
-  hidePriceOnPackaging: boolean
+  maxCartItemQuantity: number | null
   isNewArrival: boolean
   isActive: boolean
   sortOrder: number | null
@@ -118,7 +118,7 @@ export type RawProductDetail = {
   personalization_max_length: number | string | null
   personalization_fee: number | string | null
   personalization_languages?: JsonValue
-  hide_price_on_packaging: boolean | 0 | 1 | '0' | '1'
+  max_cart_item_quantity: number | string
   is_new_arrival: boolean | 0 | 1 | '0' | '1'
   is_active: boolean | 0 | 1 | '0' | '1'
   sort_order: number | string
@@ -146,7 +146,7 @@ export type ProductDetail = {
   personalizationMaxLength: number | null
   personalizationFee: number | null
   personalizationLanguages?: JsonValue | null
-  hidePriceOnPackaging: boolean
+  maxCartItemQuantity: number
   isNewArrival: boolean
   isActive: boolean
   sortOrder: number
@@ -173,7 +173,7 @@ export type ProductUpdatePayload = Partial<{
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
-  hidePriceOnPackaging: boolean
+  maxCartItemQuantity: number
   isNewArrival: boolean
   isActive: boolean
   sortOrder: number
@@ -191,7 +191,7 @@ export type ProductCreatePayload = {
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
-  hidePriceOnPackaging: boolean
+  maxCartItemQuantity: number
   isNewArrival: boolean
   isActive: boolean
   sortOrder: number

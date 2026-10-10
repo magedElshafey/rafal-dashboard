@@ -33,7 +33,7 @@ export function createEmptyProductCreateFormValues(): ProductCreateFormValues {
     isPersonalizable: false,
     personalizationMaxLength: null,
     personalizationFee: null,
-    hidePriceOnPackaging: false,
+    maxCartItemQuantity: null,
     isNewArrival: false,
     isActive: true,
     sortOrder: 0,
@@ -43,7 +43,12 @@ export function createEmptyProductCreateFormValues(): ProductCreateFormValues {
 }
 
 export function buildProductCreatePayload(values: ProductCreateFormValues): ProductCreatePayload {
-  if (values.categoryId === null || values.basePrice === null || values.sortOrder === null) {
+  if (
+    values.categoryId === null ||
+    values.basePrice === null ||
+    values.maxCartItemQuantity === null ||
+    values.sortOrder === null
+  ) {
     throw new Error('Required Product Create values are missing')
   }
 
@@ -58,7 +63,7 @@ export function buildProductCreatePayload(values: ProductCreateFormValues): Prod
     isPersonalizable: values.isPersonalizable,
     personalizationMaxLength: values.isPersonalizable ? values.personalizationMaxLength : null,
     personalizationFee: values.isPersonalizable ? values.personalizationFee : null,
-    hidePriceOnPackaging: values.hidePriceOnPackaging,
+    maxCartItemQuantity: values.maxCartItemQuantity,
     isNewArrival: values.isNewArrival,
     isActive: values.isActive,
     sortOrder: values.sortOrder,

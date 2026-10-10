@@ -22,7 +22,6 @@ export function normalizeSettings(settings: RawSettings): Settings {
     settings.vat_rate,
     settings.gift_wrap_fee,
     settings.max_addresses_per_user,
-    settings.max_cart_item_quantity,
     settings.otp_resend_cooldown_seconds,
     settings.guest_order_verification_minutes,
     settings.low_stock_threshold,
@@ -39,7 +38,6 @@ export function normalizeSettings(settings: RawSettings): Settings {
     giftWrapEnabled: normalizeApiBoolean(settings.gift_wrap_enabled),
     giftWrapFee: settings.gift_wrap_fee,
     maxAddressesPerUser: settings.max_addresses_per_user,
-    maxCartItemQuantity: settings.max_cart_item_quantity,
     otpResendCooldownSeconds: settings.otp_resend_cooldown_seconds,
     guestOrderVerificationMinutes: settings.guest_order_verification_minutes,
     lowStockThreshold: settings.low_stock_threshold,
@@ -57,7 +55,6 @@ export function serializeSettingsUpdate(payload: SettingsUpdatePayload): RawSett
     ...(payload.giftWrapEnabled !== undefined ? { gift_wrap_enabled: toApiBoolean(payload.giftWrapEnabled) } : {}),
     ...(payload.giftWrapFee !== undefined ? { gift_wrap_fee: payload.giftWrapFee } : {}),
     ...(payload.maxAddressesPerUser !== undefined ? { max_addresses_per_user: payload.maxAddressesPerUser } : {}),
-    ...(payload.maxCartItemQuantity !== undefined ? { max_cart_item_quantity: payload.maxCartItemQuantity } : {}),
     ...(payload.otpResendCooldownSeconds !== undefined
       ? { otp_resend_cooldown_seconds: payload.otpResendCooldownSeconds }
       : {}),

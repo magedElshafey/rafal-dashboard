@@ -13,7 +13,6 @@ export function buildSettingsUpdatePayload(
   if (dirtyFields.giftWrapEnabled) payload.giftWrapEnabled = values.giftWrapEnabled
   if (dirtyFields.giftWrapFee && values.giftWrapFee !== null) payload.giftWrapFee = values.giftWrapFee
   if (dirtyFields.maxAddressesPerUser) payload.maxAddressesPerUser = values.maxAddressesPerUser
-  if (dirtyFields.maxCartItemQuantity) payload.maxCartItemQuantity = values.maxCartItemQuantity
   if (dirtyFields.otpResendCooldownSeconds) {
     payload.otpResendCooldownSeconds = values.otpResendCooldownSeconds
   }

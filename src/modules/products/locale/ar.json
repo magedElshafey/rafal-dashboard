@@ -109,7 +109,7 @@
         "personalizationMaxLength": "الحد الأقصى لطول التخصيص",
         "personalizationFee": "رسوم التخصيص",
         "images": "صور المنتج",
-        "hidePriceOnPackaging": "إخفاء السعر على التغليف",
+        "maxCartItemQuantity": "الحد الأقصى لكمية المنتج في السلة",
         "isNewArrival": "وصل حديثًا",
         "isActive": "نشط",
         "sortOrder": "ترتيب العرض"

@@ -28,6 +28,7 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
   const numericValues = [
     payload.categoryId,
     payload.basePrice,
+    payload.maxCartItemQuantity,
     payload.sortOrder,
     payload.discountPercentage,
     payload.isPersonalizable ? payload.personalizationMaxLength : null,
@@ -53,7 +54,7 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
     appendOptional(body, 'personalization_max_length', payload.personalizationMaxLength)
     appendOptional(body, 'personalization_fee', payload.personalizationFee)
   }
-  body.set('hide_price_on_packaging', String(toApiBoolean(payload.hidePriceOnPackaging)))
+  body.set('max_cart_item_quantity', String(payload.maxCartItemQuantity))
   body.set('is_new_arrival', String(toApiBoolean(payload.isNewArrival)))
   body.set('is_active', String(toApiBoolean(payload.isActive)))
   body.set('sort_order', String(payload.sortOrder))
@@ -127,7 +128,7 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
     personalizationMaxLength: nullableFiniteNumber(raw.personalization_max_length, 'personalization max length'),
     personalizationFee: nullableFiniteNumber(raw.personalization_fee, 'personalization fee'),
     personalizationLanguages: raw.personalization_languages ?? null,
-    hidePriceOnPackaging: apiBoolean(raw.hide_price_on_packaging, 'packaging price flag'),
+    maxCartItemQuantity: finiteNumber(raw.max_cart_item_quantity, 'maximum cart item quantity'),
     isNewArrival: apiBoolean(raw.is_new_arrival, 'new arrival flag'),
     isActive: apiBoolean(raw.is_active, 'active flag'),
     sortOrder: finiteNumber(raw.sort_order, 'sort order'),
@@ -181,9 +182,7 @@ export function serializeProductUpdate(payload: ProductUpdatePayload) {
       ? { personalization_max_length: payload.personalizationMaxLength }
       : {}),
     ...(payload.personalizationFee !== undefined ? { personalization_fee: payload.personalizationFee } : {}),
-    ...(payload.hidePriceOnPackaging !== undefined
-      ? { hide_price_on_packaging: toApiBoolean(payload.hidePriceOnPackaging) }
-      : {}),
+    ...(payload.maxCartItemQuantity !== undefined ? { max_cart_item_quantity: payload.maxCartItemQuantity } : {}),
     ...(payload.isNewArrival !== undefined ? { is_new_arrival: toApiBoolean(payload.isNewArrival) } : {}),
     ...(payload.isActive !== undefined ? { is_active: toApiBoolean(payload.isActive) } : {}),
     ...(payload.sortOrder !== undefined ? { sort_order: payload.sortOrder } : {}),
@@ -210,8 +209,7 @@ export function serializeProductUpdate(payload: ProductUpdatePayload) {
     body.set('is_personalizable', String(toApiBoolean(payload.isPersonalizable)))
   appendPartial(body, 'personalization_max_length', payload.personalizationMaxLength)
   appendPartial(body, 'personalization_fee', payload.personalizationFee)
-  if (payload.hidePriceOnPackaging !== undefined)
-    body.set('hide_price_on_packaging', String(toApiBoolean(payload.hidePriceOnPackaging)))
+  appendPartial(body, 'max_cart_item_quantity', payload.maxCartItemQuantity)
   if (payload.isNewArrival !== undefined) body.set('is_new_arrival', String(toApiBoolean(payload.isNewArrival)))
   if (payload.isActive !== undefined) body.set('is_active', String(toApiBoolean(payload.isActive)))
   appendPartial(body, 'sort_order', payload.sortOrder)
