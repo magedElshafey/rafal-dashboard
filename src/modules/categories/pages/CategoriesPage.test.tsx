@@ -80,7 +80,7 @@ function installCategoryServiceFixtures() {
       parent_id: payload.parent_id,
       name: payload.name,
       slug: 'backend-owned',
-      description: payload.description,
+      description: payload.description ?? null,
       is_active: payload.is_active,
       sort_order: payload.sort_order,
       image_url: `https://example.test/category-${id}.jpg`,
@@ -98,7 +98,7 @@ function installCategoryServiceFixtures() {
       ...categoryStore[index],
       parent_id: payload.parent_id,
       name: payload.name,
-      description: payload.description,
+      description: payload.description ?? categoryStore[index].description,
       is_active: payload.is_active,
       sort_order: payload.sort_order,
       image_url: payload.image ? `https://example.test/category-${id}-replacement.jpg` : categoryStore[index].image_url,
@@ -299,7 +299,7 @@ describe('CategoriesPage', () => {
     await user.upload(input, replacement)
     expect(screen.getByText('1 image selected')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: 'category-new.png' })).not.toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'replacement.webp' })).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: 'replacement.webp' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
     await waitFor(() => expect(create).toHaveBeenCalled())
     expect(create.mock.calls[0][0].image).toBe(replacement)
@@ -311,18 +311,35 @@ describe('CategoriesPage', () => {
     renderPage()
     await screen.findAllByText('Jewelry')
     await user.click(screen.getByRole('button', { name: 'Create Category' }))
-    await fillRequired(user, '-child')
     await user.click(screen.getByRole('combobox', { name: 'Parent Category' }))
     await user.click(screen.getByRole('option', { name: 'Jewelry' }))
-    await user.type(screen.getByRole('textbox', { name: 'English Description' }), 'Optional description')
+    await user.type(screen.getByRole('textbox', { name: /^Arabic Name/ }), 'قسم فرعي')
+    await user.type(screen.getByRole('textbox', { name: /^English Name/ }), 'Child Category')
+    expect(screen.queryByLabelText('Browse images')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Arabic Description' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'English Description' })).not.toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: /^Sort Order/ })).toHaveValue(0)
+    expect(screen.getByRole('checkbox', { name: 'Active' })).toBeChecked()
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        parent_id: 1,
-        description: { ar: '', en: 'Optional description' },
-      })
-    )
+    expect(create).toHaveBeenCalledWith({
+      parent_id: 1,
+      name: { ar: 'قسم فرعي', en: 'Child Category' },
+      is_active: true,
+      sort_order: 0,
+    })
+  })
+
+  it('edits a child without main-category media and description fields', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await openAction(user, 'Rings', 'Edit')
+    expect(await screen.findByRole('textbox', { name: /^English Name/ })).toHaveValue('Rings')
+    expect(screen.getByRole('combobox', { name: 'Parent Category' })).toHaveTextContent('Jewelry')
+    expect(screen.queryByLabelText('Browse images')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /Description/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: /^Sort Order/ })).toHaveValue(2)
+    expect(screen.getByRole('checkbox', { name: 'Active' })).not.toBeChecked()
   })
 
   it('create another resets localized values, parent, sort order, and errors', async () => {
@@ -331,11 +348,11 @@ describe('CategoriesPage', () => {
     await screen.findAllByText('Jewelry')
     await user.click(screen.getByRole('button', { name: 'Create Category' }))
     await fillRequired(user)
-    await user.click(screen.getByRole('combobox', { name: 'Parent Category' }))
-    await user.click(screen.getByRole('option', { name: 'Jewelry' }))
     const order = screen.getByRole('spinbutton', { name: /^Sort Order/ })
     await user.clear(order)
     await user.type(order, '5')
+    await user.click(screen.getByRole('combobox', { name: 'Parent Category' }))
+    await user.click(screen.getByRole('option', { name: 'Jewelry' }))
     await user.click(screen.getByRole('button', { name: 'Create & Create Another' }))
     await waitFor(() => expect(screen.getByRole('textbox', { name: /^Arabic Name/ })).toHaveValue(''))
     expect(screen.getByRole('textbox', { name: /^English Name/ })).toHaveValue('')
@@ -357,7 +374,7 @@ describe('CategoriesPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Parent Category' }))
     expect(screen.queryByRole('option', { name: 'Rings' })).not.toBeInTheDocument()
     await user.keyboard('{Escape}')
-    expect(screen.getByText('0 images selected')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Browse images')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled()
     expect(update).not.toHaveBeenCalled()
   })
@@ -401,7 +418,7 @@ describe('CategoriesPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Replace Jewelry' }))
     await user.upload(within(dialog).getByLabelText('Choose a replacement image'), replacement)
     expect(within(dialog).getByText('1 image selected')).toBeInTheDocument()
-    expect(within(dialog).getByRole('img', { name: 'replacement.png' })).toBeInTheDocument()
+    expect(await within(dialog).findByRole('img', { name: 'replacement.png' })).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Update' }))
     await waitFor(() => expect(update).toHaveBeenCalled())
     expect(update.mock.calls[0][1].image).toBe(replacement)

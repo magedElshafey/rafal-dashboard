@@ -23,11 +23,13 @@ export function serializeCategory(payload: CategoryPayload) {
   body.set('is_active', payload.is_active ? '1' : '0')
   body.set('sort_order', String(payload.sort_order))
   body.set('parent_id', payload.parent_id === null ? '' : String(payload.parent_id))
-  if (payload.description) {
-    body.set('description[ar]', payload.description.ar)
-    body.set('description[en]', payload.description.en)
+  if (payload.parent_id === null) {
+    if (payload.description) {
+      body.set('description[ar]', payload.description.ar)
+      body.set('description[en]', payload.description.en)
+    }
+    if (payload.image) body.set('image', payload.image)
   }
-  if (payload.image) body.set('image', payload.image)
   return body
 }
 

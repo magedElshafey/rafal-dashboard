@@ -17,14 +17,25 @@ export type Category = {
   updated_at: string
 }
 
-export type CategoryPayload = {
-  parent_id: number | null
+type BaseCategoryPayload = {
   name: LocalizedText
-  description: LocalizedText | null
   is_active: boolean
   sort_order: number
-  image?: File
 }
+
+export type CategoryPayload = BaseCategoryPayload &
+  (
+    | {
+        parent_id: null
+        description: LocalizedText | null
+        image?: File
+      }
+    | {
+        parent_id: number
+        description?: never
+        image?: never
+      }
+  )
 
 export type CategoryFormValues = {
   parent_id: number | null

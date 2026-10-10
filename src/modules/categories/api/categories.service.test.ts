@@ -54,12 +54,29 @@ describe('categories service boundary', () => {
   })
 
   it('omits both an unchanged image and an entirely empty normalized description', () => {
-    const body = serializeCategory({ ...payload, parent_id: 3, description: null, is_active: false })
-    expect(body.get('parent_id')).toBe('3')
+    const body = serializeCategory({ ...payload, description: null, is_active: false })
+    expect(body.get('parent_id')).toBe('')
     expect(body.get('is_active')).toBe('0')
     expect(body.has('description[ar]')).toBe(false)
     expect(body.has('image')).toBe(false)
     expect(body.has('slug')).toBe(false)
+  })
+
+  it('serializes a sub-category without root-only fields', () => {
+    const body = serializeCategory({
+      parent_id: 3,
+      name: payload.name,
+      is_active: false,
+      sort_order: 4,
+    })
+
+    expect([...body.entries()]).toEqual([
+      ['name[ar]', payload.name.ar],
+      ['name[en]', payload.name.en],
+      ['is_active', '0'],
+      ['sort_order', '4'],
+      ['parent_id', '3'],
+    ])
   })
 
   it('uses the real category endpoints through the shared HTTP client', async () => {

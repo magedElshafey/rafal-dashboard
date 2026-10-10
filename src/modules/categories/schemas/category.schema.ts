@@ -33,8 +33,8 @@ export function createCategorySchema(mode: 'create' | 'edit', hasExistingImage: 
     image: yup
       .mixed<ImageUploadValue>()
       .defined()
-      .test('required-image', messages.imageRequired, (value) => {
-        if (value.files.length > 0) return true
+      .test('required-image', messages.imageRequired, function (value) {
+        if (this.parent.parent_id !== null || value.files.length > 0) return true
         return mode === 'edit' && hasExistingImage && value.removedExistingIds.length === 0
       })
       .test('single-image', messages.imageRequired, (value) => value.files.length <= 1),

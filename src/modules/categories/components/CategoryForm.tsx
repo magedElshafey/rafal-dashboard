@@ -1,6 +1,6 @@
-import type { BaseSyntheticEvent } from 'react'
+import type { BaseSyntheticEvent, ReactNode } from 'react'
 import { useMemo } from 'react'
-import type { UseFormReturn } from 'react-hook-form'
+import { type UseFormReturn, useFormContext, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { FormWrapper } from '@/components/core/FormWrapper'
@@ -11,6 +11,7 @@ import { FormSortOrder } from '@/components/form/FormSortOrder'
 import { FormTextArea } from '@/components/form/FormTextArea'
 import { FormImageUploader } from '@/components/form/image-upload'
 import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
+import { AnimatedContent } from '@/components/shared/animation/AnimatedContent'
 import { useCategories } from '@/modules/categories/hooks/useCategories'
 import { createCategorySchema } from '@/modules/categories/schemas/category.schema'
 import type { Category, CategoryFormValues } from '@/modules/categories/types/category.types'
@@ -38,6 +39,13 @@ export const EMPTY_CATEGORY_FORM_VALUES: CategoryFormValues = {
   is_active: true,
   sort_order: 0,
   image: EMPTY_IMAGE_UPLOAD_VALUE,
+}
+
+function MainCategoryOnly({ children }: { children: ReactNode }) {
+  const { control } = useFormContext<CategoryFormValues>()
+  const isSubcategory = useWatch({ control, name: 'parent_id' }) !== null
+
+  return isSubcategory ? null : <AnimatedContent animationKey="main-category-field">{children}</AnimatedContent>
 }
 
 export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChange, onSubmit }: CategoryFormProps) {
@@ -124,27 +132,9 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
       onFormStateChange={({ isDirty }) => onDirtyChange(isDirty)}
       onSubmit={handleSubmit}
     >
-      <FormImageUploader<CategoryFormValues>
-        name="image"
-        label={t('categories.fields.image')}
-        mode="single"
-        accept="image/*"
-        existingImages={
-          category?.image_url ? [{ id: category.id, url: category.image_url, alt: category.name[language] }] : []
-        }
-        allowExistingRemoval={false}
-        previewFit="contain"
-        disabled={isSubmitting}
-        required
-      />
       <div className="grid gap-5">
         <FormInput name="name.ar" label={t('categories.fields.nameAr')} dir="rtl" required autoFocus />
         <FormInput name="name.en" label={t('categories.fields.nameEn')} dir="ltr" required />
-      </div>
-
-      <div className="grid gap-5">
-        <FormTextArea name="description.ar" label={t('categories.fields.descriptionAr')} dir="rtl" />
-        <FormTextArea name="description.en" label={t('categories.fields.descriptionEn')} dir="ltr" />
       </div>
       <FormSelect
         name="parent_id"
@@ -168,6 +158,29 @@ export function CategoryForm({ formId, mode, category, isSubmitting, onDirtyChan
         errorMessage={t('categories.parent.error')}
         retryLabel={t('categories.parent.retry')}
       />
+      <MainCategoryOnly>
+        <FormImageUploader<CategoryFormValues>
+          name="image"
+          label={t('categories.fields.image')}
+          mode="single"
+          accept="image/*"
+          existingImages={
+            category?.image_url ? [{ id: category.id, url: category.image_url, alt: category.name[language] }] : []
+          }
+          allowExistingRemoval={false}
+          previewFit="contain"
+          disabled={isSubmitting}
+          required
+        />
+      </MainCategoryOnly>
+
+      <MainCategoryOnly>
+        <div className="grid gap-5">
+          <FormTextArea name="description.ar" label={t('categories.fields.descriptionAr')} dir="rtl" />
+          <FormTextArea name="description.en" label={t('categories.fields.descriptionEn')} dir="ltr" />
+        </div>
+      </MainCategoryOnly>
+
       <div className="grid items-start gap-5">
         <FormSortOrder
           name="sort_order"

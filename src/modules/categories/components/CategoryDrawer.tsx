@@ -25,6 +25,15 @@ type CategoryDrawerProps = {
 const FORM_ID = 'category-form'
 
 function toPayload(values: CategoryFormValues): CategoryPayload {
+  if (values.parent_id !== null) {
+    return {
+      parent_id: values.parent_id,
+      name: values.name,
+      is_active: values.is_active,
+      sort_order: values.sort_order,
+    }
+  }
+
   const description = values.description.ar || values.description.en ? values.description : null
   const image = values.image.files[0]
   return {
