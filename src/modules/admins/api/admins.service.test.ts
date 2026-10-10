@@ -33,6 +33,31 @@ describe('admins service serialization', () => {
     expect(body.has('password_confirmation')).toBe(false)
   })
 
+  it('forwards active index filters without per_page', async () => {
+    httpMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [],
+        meta: { current_page: 2, last_page: 2, per_page: 15, total: 15 },
+      },
+    })
+
+    await adminsService.list(2, undefined, {
+      search: '  owner  ',
+      roleId: 3,
+      sortBy: 'created_at',
+      sortDir: 'asc',
+    })
+
+    expect(httpMocks.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/dashboard/admins',
+        query: { search: 'owner', role: 3, sort_by: 'created_at', sort_dir: 'asc', page: 2 },
+      })
+    )
+    expect(httpMocks.get.mock.calls[0][0].query).not.toHaveProperty('per_page')
+  })
   it('calls only the real Admin endpoints through shared HTTP', async () => {
     const admin = { id: 7, name: 'Test Admin', email: 'test@example.com', roles: ['Super Admin'] }
     const listResponse = {

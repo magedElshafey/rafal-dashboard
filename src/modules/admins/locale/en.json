@@ -14,6 +14,16 @@
     "noRoles": "No roles",
     "loadingForm": "Loading admin form…",
     "loadingMore": "Loading more admins…",
+    "filters": {
+      "title": "Filter admins",
+      "search": "Search admins",
+      "all": "All",
+      "role": "Role",
+      "sortBy": "Sort By",
+      "sortDir": "Sort Direction",
+      "sort": { "name": "Name", "email": "Email", "created_at": "Created At" },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "moreRoles_one": "{{count}} more role",
     "moreRoles_other": "{{count}} more roles",
     "actions": {

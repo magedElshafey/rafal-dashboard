@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, UsersRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
+
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,16 +16,22 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { AdminDrawer } from '@/modules/admins/components/AdminDrawer'
+import { AdminFilters } from '@/modules/admins/components/AdminFilters'
 import { AdminsList } from '@/modules/admins/components/AdminsList'
 import { AdminsListSkeleton } from '@/modules/admins/components/AdminsListSkeleton'
 import { useAdmins } from '@/modules/admins/hooks/useAdmins'
 import { useDeleteAdmin } from '@/modules/admins/hooks/useDeleteAdmin'
 import type { Admin } from '@/modules/admins/types/admin.types'
+import { adminFilterNames, readAdminsFilters } from '@/modules/admins/utils/admin-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function AdminsPage() {
+function AdminsContent() {
   const { t } = useTranslation()
+  const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
-  const adminsQuery = useAdmins()
+  const filters = readAdminsFilters(forwardQuery)
+  const adminsQuery = useAdmins(filters)
   const deleteAdmin = useDeleteAdmin()
   const deleteAlertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
@@ -34,7 +42,7 @@ function AdminsPage() {
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(adminsQuery.hasNextPage && !adminsQuery.isFetchingNextPage),
     onLoadMore: adminsQuery.fetchNextPage,
-    operationKey: adminsQuery.data?.pages.length,
+    operationKey: JSON.stringify([filters, adminsQuery.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -74,8 +82,18 @@ function AdminsPage() {
   }
 
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 space-y-4">
       <DashboardPageHeader title={t('admins.title')} actions={createButton} />
+      <FiltersWrapper
+        searchName="search"
+        filterNames={adminFilterNames}
+        resetQueryNamesOnChange={['page']}
+        searchLabel={t('admins.filters.search')}
+        searchPlaceholder={t('admins.filters.search')}
+        dialogTitle={t('admins.filters.title')}
+      >
+        <AdminFilters />
+      </FiltersWrapper>
 
       <QueryStateBoundary
         loadingFallback={loadingSurface}
@@ -144,4 +162,10 @@ function AdminsPage() {
   )
 }
 
-export default AdminsPage
+export default function AdminsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <AdminsContent />
+    </QueryProvider>
+  )
+}

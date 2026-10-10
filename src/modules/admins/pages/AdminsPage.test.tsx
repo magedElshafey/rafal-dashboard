@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -89,9 +90,11 @@ function renderAdminsPage() {
   return {
     queryClient,
     ...render(
-      <QueryClientProvider client={queryClient}>
-        <AdminsPage />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AdminsPage />
+        </QueryClientProvider>
+      </MemoryRouter>
     ),
   }
 }
@@ -123,7 +126,7 @@ describe('AdminsPage', () => {
 
   afterEach(() => vi.restoreAllMocks())
 
-  it('renders a mirrored loading state and one responsive data source without search', async () => {
+  it('renders a mirrored loading state, one responsive data source, and shared search', async () => {
     renderAdminsPage()
 
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
@@ -131,7 +134,7 @@ describe('AdminsPage', () => {
     expect(await screen.findAllByText('admin@admin.com')).toHaveLength(2)
     expect(document.querySelector('[data-slot="responsive-data-desktop"]')).toBeInTheDocument()
     expect(document.querySelector('[data-slot="responsive-data-mobile-cards"]')).toBeInTheDocument()
-    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Search admins' })).toBeInTheDocument()
   })
 
   it('uses the shared empty state and create action', async () => {
@@ -169,7 +172,7 @@ describe('AdminsPage', () => {
 
     expect(await screen.findAllByText('Admin 16')).toHaveLength(2)
     expect(list).toHaveBeenCalledTimes(2)
-    expect(list).toHaveBeenCalledWith(2, expect.any(AbortSignal))
+    expect(list).toHaveBeenCalledWith(2, expect.any(AbortSignal), expect.objectContaining({ search: '' }))
   })
 
   it('blocks missing, invalid-email, and mismatched-password create submissions', async () => {
@@ -217,7 +220,7 @@ describe('AdminsPage', () => {
       roles: ['Super Admin', 'Content Manager'],
     })
     expect(await screen.findAllByText('new-admin@example.com')).toHaveLength(2)
-    expect(JSON.stringify(queryClient.getQueryData(['admins', 'list']))).not.toContain('password')
+    expect(JSON.stringify(queryClient.getQueriesData({ queryKey: ['admins', 'list'] }))).not.toContain('password')
     expect(toastMocks.success).toHaveBeenCalledWith('Admin created successfully.')
   })
 

@@ -2,10 +2,12 @@ import type {
   Admin,
   AdminResponse,
   AdminsIndexResponse,
+  AdminsFilters,
   CreateAdminPayload,
   DeleteAdminResponse,
   UpdateAdminPayload,
 } from '@/modules/admins/types/admin.types'
+import { emptyAdminsFilters, serializeAdminsFilters } from '@/modules/admins/utils/admin-filters'
 import { $http } from '@/utils/http'
 
 function appendRoles(body: FormData, roles: readonly string[]) {
@@ -31,10 +33,10 @@ export function serializeUpdateAdmin(payload: UpdateAdminPayload) {
 }
 
 const adminsHttpTransport = {
-  async list(page: number, signal?: AbortSignal) {
+  async list(page: number, signal?: AbortSignal, filters: AdminsFilters = emptyAdminsFilters) {
     const response = await $http.get<AdminsIndexResponse>({
       url: '/dashboard/admins',
-      query: { page },
+      query: { ...serializeAdminsFilters(filters), page },
       signal,
       suppressErrorNotification: true,
     })
@@ -79,8 +81,12 @@ const adminsHttpTransport = {
 }
 
 export const adminsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Admin>> {
-    const response = await adminsHttpTransport.list(page, signal)
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: AdminsFilters = emptyAdminsFilters
+  ): Promise<PaginatedData<Admin>> {
+    const response = await adminsHttpTransport.list(page, signal, filters)
     return {
       items: response.data,
       paginate: {

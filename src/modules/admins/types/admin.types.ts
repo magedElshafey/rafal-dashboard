@@ -7,6 +7,16 @@ export type Admin = {
   roles: string[]
 }
 
+export type AdminSortBy = 'name' | 'email' | 'created_at'
+export type AdminSortDir = 'asc' | 'desc'
+
+export type AdminsFilters = {
+  search: string
+  roleId: number | null
+  sortBy: AdminSortBy | null
+  sortDir: AdminSortDir | null
+}
+
 export type AdminsIndexResponse = PaginatedDashboardResponse<Admin>
 
 export type AdminResponse = {
