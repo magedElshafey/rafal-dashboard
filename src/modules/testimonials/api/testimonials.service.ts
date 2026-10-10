@@ -5,9 +5,14 @@ import type {
   Testimonial,
   TestimonialResponse,
   TestimonialsIndexResponse,
+  TestimonialsFilters,
   TestimonialWritePayload,
   UpdateTestimonialResponse,
 } from '@/modules/testimonials/types/testimonial.types'
+import {
+  emptyTestimonialsFilters,
+  serializeTestimonialsFilters,
+} from '@/modules/testimonials/utils/testimonial-filters'
 import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
 import { $http } from '@/utils/http'
 
@@ -48,11 +53,15 @@ export function serializeTestimonial(payload: TestimonialWritePayload) {
 }
 
 export const testimonialsService = {
-  async list(page: number, signal?: AbortSignal): Promise<PaginatedData<Testimonial>> {
+  async list(
+    page: number,
+    signal?: AbortSignal,
+    filters: TestimonialsFilters = emptyTestimonialsFilters
+  ): Promise<PaginatedData<Testimonial>> {
     const response = (
       await $http.get<TestimonialsIndexResponse>({
         url: '/dashboard/testimonials',
-        query: { page },
+        query: { ...serializeTestimonialsFilters(filters), page },
         signal,
         suppressErrorNotification: true,
       })

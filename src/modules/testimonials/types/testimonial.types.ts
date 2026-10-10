@@ -49,6 +49,17 @@ export type RawTestimonial = {
 }
 
 export type TestimonialsIndexResponse = PaginatedDashboardResponse<RawTestimonial>
+export type TestimonialRatingFilter = 1 | 2 | 3 | 4 | 5
+export type TestimonialSortBy = 'sort_order' | 'id' | 'created_at' | 'rating' | 'is_published'
+export type TestimonialSortDir = 'asc' | 'desc'
+
+export type TestimonialsFilters = {
+  rating: TestimonialRatingFilter | null
+  createdFrom: string
+  createdTo: string
+  sortBy: TestimonialSortBy | null
+  sortDir: TestimonialSortDir | null
+}
 export type RawTestimonialResponse = { success: boolean; message: string; data: RawTestimonial }
 export type TestimonialResponse = { success: boolean; message: string; data: Testimonial }
 export type UpdateTestimonialResponse = { success: boolean; message: string; data?: RawTestimonial }

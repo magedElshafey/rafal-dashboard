@@ -9,6 +9,24 @@
     "editTestimonial": "Edit Testimonial",
     "loadingMore": "Loading more testimonials",
     "ratingValue": "Rating: {{rating}}",
+    "filters": {
+      "title": "Filter testimonials",
+      "all": "All",
+      "rating": "Rating",
+      "created_from": "Created From",
+      "created_to": "Created To",
+      "invalidRange": "The created-from value cannot be after the created-to value.",
+      "sortBy": "Sort By",
+      "sortDir": "Sort Direction",
+      "sort": {
+        "sort_order": "Sort Order",
+        "id": "ID",
+        "created_at": "Created At",
+        "rating": "Rating",
+        "is_published": "Published State"
+      },
+      "direction": { "asc": "Ascending", "desc": "Descending" }
+    },
     "empty": {
       "title": "No testimonials yet",
       "description": "Create a testimonial to share customer feedback."

@@ -2,6 +2,7 @@ import { MessageSquareQuote, Plus } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -14,28 +15,39 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableProvider } from '@/components/ui/Table/TableProvider'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { TestimonialDrawer } from '@/modules/testimonials/components/TestimonialDrawer'
+import { TestimonialFilters } from '@/modules/testimonials/components/TestimonialFilters'
 import { TestimonialsList } from '@/modules/testimonials/components/TestimonialsList'
 import { TestimonialsListSkeleton } from '@/modules/testimonials/components/TestimonialsListSkeleton'
 import { useDeleteTestimonial } from '@/modules/testimonials/hooks/useDeleteTestimonial'
 import { useTestimonials } from '@/modules/testimonials/hooks/useTestimonials'
 import type { Testimonial } from '@/modules/testimonials/types/testimonial.types'
 import { getLocalizedTestimonialValue } from '@/modules/testimonials/utils/testimonial.utils'
+import {
+  readTestimonialsFilters,
+  testimonialFilterNames,
+  validTestimonialsCreatedRange,
+} from '@/modules/testimonials/utils/testimonial-filters'
+import QueryProvider from '@/store/queryContext/queryContext'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 
-function TestimonialsPage() {
+function TestimonialsContent() {
   const { t, i18n } = useTranslation()
+  const { forwardQuery } = useQuery()
+  const filters = readTestimonialsFilters(forwardQuery)
   const drawer = useEntityFormDrawer<number>()
-  const query = useTestimonials()
+  const query = useTestimonials(filters)
   const deleteTestimonial = useDeleteTestimonial()
   const alertRef = useRef<DeleteAlertRef>(null)
   const deleteLockRef = useRef(false)
   const [testimonialToEdit, setTestimonialToEdit] = useState<Testimonial | null>(null)
   const [testimonialToDelete, setTestimonialToDelete] = useState<Testimonial | null>(null)
+  const [showFilterValidation, setShowFilterValidation] = useState(false)
   const testimonials = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? testimonials.length
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
-    operationKey: query.data?.pages.length,
+    operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
   useEffect(() => {
@@ -102,6 +114,23 @@ function TestimonialsPage() {
         description={t('testimonials.description')}
         actions={createButton}
       />
+      <div className="mb-4">
+        <FiltersWrapper
+          showSearch={false}
+          filterNames={testimonialFilterNames}
+          resetQueryNamesOnChange={['page']}
+          dialogTitle={t('testimonials.filters.title')}
+          onFilter={() => setShowFilterValidation(false)}
+          onReset={() => setShowFilterValidation(false)}
+          onApply={(draftQuery) => {
+            const valid = validTestimonialsCreatedRange(readTestimonialsFilters(draftQuery))
+            setShowFilterValidation(!valid)
+            return valid ? undefined : false
+          }}
+        >
+          <TestimonialFilters showValidation={showFilterValidation} />
+        </FiltersWrapper>
+      </div>
       <QueryStateBoundary
         loadingFallback={loading}
         isLoading={query.isLoading}
@@ -177,4 +206,10 @@ function TestimonialsPage() {
   )
 }
 
-export default TestimonialsPage
+export default function TestimonialsPage() {
+  return (
+    <QueryProvider resetQueryNamesOnChange={['page']}>
+      <TestimonialsContent />
+    </QueryProvider>
+  )
+}

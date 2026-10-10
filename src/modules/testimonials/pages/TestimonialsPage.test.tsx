@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
@@ -82,13 +83,15 @@ function installServiceFixtures() {
   })
 }
 
-function renderPage() {
+function renderPage(route = '/dashboard/testimonials') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
   render(
     <QueryClientProvider client={client}>
-      <TestimonialsPage />
+      <MemoryRouter initialEntries={[route]}>
+        <TestimonialsPage />
+      </MemoryRouter>
     </QueryClientProvider>
   )
   return client
@@ -164,7 +167,7 @@ describe('TestimonialsPage', () => {
     expect(screen.getAllByLabelText('Rating: 4')).toHaveLength(2)
     expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
 
     await i18n.changeLanguage('ar')
     expect(await screen.findAllByText('سارة أحمد')).toHaveLength(2)
@@ -283,11 +286,72 @@ describe('TestimonialsPage', () => {
       if (requestedPage === 1) return page(testimonials, 1, 2)
       throw new Error('next page failed')
     })
-    renderPage()
+    renderPage('/dashboard/testimonials?rating=5&sort_by=rating&sort_dir=desc')
     expect(await screen.findAllByText('Sarah Ahmed')).toHaveLength(2)
-    await waitFor(() => expect(testimonialsService.list).toHaveBeenCalledWith(2, expect.any(AbortSignal)))
+    await waitFor(() =>
+      expect(testimonialsService.list).toHaveBeenCalledWith(
+        2,
+        expect.any(AbortSignal),
+        expect.objectContaining({ rating: 5, createdFrom: '', createdTo: '', sortBy: 'rating', sortDir: 'desc' })
+      )
+    )
     expect(screen.getAllByText('Sarah Ahmed')).toHaveLength(2)
     expect(await screen.findByTestId('query-state-refetch-error')).toBeInTheDocument()
+  })
+
+  it('blocks invalid Apply, retains applied filters, and does not request invalid deep links', async () => {
+    const list = vi.mocked(testimonialsService.list)
+    const user = userEvent.setup()
+    renderPage('/dashboard/testimonials?rating=4&sort_by=id&sort_dir=asc')
+    await screen.findAllByText('Sarah Ahmed')
+    const callsBeforeDraft = list.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Created From'), '2026-10-10')
+    await user.type(screen.getByLabelText('Created To'), '2026-10-09')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(callsBeforeDraft)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The created-from value cannot be after the created-to value.'
+    )
+    expect(screen.getByLabelText('Created From')).toHaveAttribute(
+      'aria-describedby',
+      'testimonials-created-range-error'
+    )
+    expect(screen.getByLabelText('Created To')).toHaveAttribute('aria-invalid', 'true')
+    expect(list).toHaveBeenCalledTimes(callsBeforeDraft)
+    expect(list.mock.calls.at(-1)?.[2]).toMatchObject({ rating: 4, sortBy: 'id', sortDir: 'asc' })
+
+    list.mockClear()
+    renderPage('/dashboard/testimonials?created_from=bad-date&created_to=2026-10-09')
+    await waitFor(() => expect(list).not.toHaveBeenCalled())
+  })
+
+  it('applies from page one and Reset restores unfiltered page one', async () => {
+    const list = vi.mocked(testimonialsService.list)
+    const user = userEvent.setup()
+    renderPage('/dashboard/testimonials?page=4&rating=3')
+    await screen.findAllByText('Sarah Ahmed')
+    expect(list).toHaveBeenCalledWith(1, expect.any(AbortSignal), expect.objectContaining({ rating: 3 }))
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.type(screen.getByLabelText('Created From'), '2026-10-01')
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await waitFor(() =>
+      expect(list).toHaveBeenCalledWith(
+        1,
+        expect.any(AbortSignal),
+        expect.objectContaining({ rating: 3, createdFrom: '2026-10-01' })
+      )
+    )
+    await user.click(screen.getByRole('button', { name: 'Filter' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() =>
+      expect(list).toHaveBeenCalledWith(
+        1,
+        expect.any(AbortSignal),
+        expect.objectContaining({ rating: null, createdFrom: '', createdTo: '', sortBy: null, sortDir: null })
+      )
+    )
   })
 
   it('uses a stable Index-row snapshot for Edit, performs no Show request, and sends the full body for one changed field', async () => {
