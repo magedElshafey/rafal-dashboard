@@ -257,7 +257,7 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
       data-slot="select-item"
       className={cn(
         [
-          'relative flex w-full cursor-default select-none items-center gap-2',
+          'flex w-full cursor-default select-none items-center gap-2',
           'rounded-[10px] px-3 py-2 text-sm text-content-primary outline-none',
           'transition-colors',
           'focus:bg-brand-50 focus:text-brand-700',
@@ -268,7 +268,7 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
       )}
       {...props}
     >
-      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+      <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <CheckIcon className="size-4" />
         </SelectPrimitive.ItemIndicator>

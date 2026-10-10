@@ -488,7 +488,7 @@ function MultiSelectComponent<T>(
                             : 'bg-background text-transparent'
                         )}
                       >
-                        <CheckIcon className="size-3.5" />
+                        {allVisibleOptionsSelected ? <CheckIcon className="size-3.5" /> : null}
                       </span>
 
                       <span>{selectAllLabel ?? t('label.select_all')}</span>
@@ -531,7 +531,7 @@ function MultiSelectComponent<T>(
                             isSelected ? 'bg-primary text-primary-foreground' : 'bg-background text-transparent'
                           )}
                         >
-                          <CheckIcon className="size-3.5" />
+                          {isSelected ? <CheckIcon className="size-3.5" /> : null}
                         </span>
 
                         {Icon && <Icon className="size-4 text-muted-foreground" />}
