@@ -311,6 +311,7 @@ describe('Contact Messages Index', () => {
     const { client } = renderMessages()
     await screen.findByText('New Messages: 4')
     const invalidate = vi.spyOn(client, 'invalidateQueries')
+    expect(client.getQueryState(contactMessagesKeys.detail(49))).toBeUndefined()
     await userEvent.click(screen.getAllByRole('button', { name: 'Delete contact message 49' })[0])
     expect(http.delete).not.toHaveBeenCalled()
     const confirm = screen.getByRole('button', { name: 'Confirm Delete' })

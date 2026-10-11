@@ -1,28 +1,37 @@
 import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { getApiErrorMessage } from '@/utils/error/api-error.helpers'
 import { useDeleteContactMessage } from '../hooks/useContactMessages'
 import type { ContactMessage } from '../types/contact-message.types'
+import { hasTrustworthyContactMessage } from '../utils/contact-message-freshness'
 
 export function ContactMessageDeleteDialog({
   target,
   onClose,
   onDeleted,
+  disabled = false,
+  requireDetail = false,
 }: {
   target: ContactMessage
   onClose: () => void
   onDeleted: () => void
+  disabled?: boolean
+  requireDetail?: boolean
 }) {
   const { t } = useTranslation()
   const alert = useRef<DeleteAlertRef>(null)
   const lock = useRef(false)
   const mutation = useDeleteContactMessage(target.id)
+  const client = useQueryClient()
   useEffect(() => {
     alert.current?.handleOpen(true)
   }, [])
   const remove = async () => {
-    if (lock.current || mutation.isPending) return
+    if (lock.current || mutation.isPending || disabled) return
+    // Index deletion uses its list record; Detail requires a trustworthy Show cache.
+    if (requireDetail && !hasTrustworthyContactMessage(client, target.id)) return
     lock.current = true
     try {
       await mutation.mutateAsync()
@@ -52,6 +61,7 @@ export function ContactMessageDeleteDialog({
         </>
       }
       isPending={mutation.isPending}
+      disabled={disabled}
       confirmLabel={t('contactMessages.confirmDelete')}
       cancelLabel={t('contactMessages.cancel')}
       pendingLabel={t('contactMessages.deleting')}

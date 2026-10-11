@@ -33,7 +33,17 @@ function Location() {
 }
 export function createClient() {
   return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: Infinity,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+        refetchOnMount: false,
+      },
+      mutations: { retry: false },
+    },
   })
 }
 export function renderMessages(path = '/dashboard/contact-messages') {

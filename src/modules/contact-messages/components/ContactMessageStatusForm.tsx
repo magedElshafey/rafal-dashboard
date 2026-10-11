@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import * as Yup from 'yup'
 import { FormWrapper } from '@/components/core/FormWrapper'
@@ -8,10 +9,12 @@ import { getApiErrorMessage } from '@/utils/error/api-error.helpers'
 import { useUpdateContactMessageStatus } from '../hooks/useContactMessages'
 import { contactMessageWritableStatusSchema } from '../schemas/contact-message.schema'
 import type { ContactMessage } from '../types/contact-message.types'
+import { hasTrustworthyContactMessage } from '../utils/contact-message-freshness'
 
 export function ContactMessageStatusForm({ message, disabled }: { message: ContactMessage; disabled: boolean }) {
   const { t } = useTranslation()
   const mutation = useUpdateContactMessageStatus(message.id)
+  const client = useQueryClient()
   const lock = useRef(false)
   const options = contactMessageWritableStatusSchema.options
     .filter((value) => value !== message.status)
@@ -35,6 +38,7 @@ export function ContactMessageStatusForm({ message, disabled }: { message: Conta
         submissionDisabled={pending}
         onSubmit={async ({ status }) => {
           if (lock.current || pending || status === message.status) return
+          if (!hasTrustworthyContactMessage(client, message.id)) return
           const parsed = contactMessageWritableStatusSchema.safeParse(status)
           if (!parsed.success) return
           lock.current = true
