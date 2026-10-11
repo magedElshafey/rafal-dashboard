@@ -44,6 +44,7 @@ describe('DashboardShell', () => {
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Products' })).toHaveAttribute('href', '/dashboard/products')
+    expect(screen.getByRole('link', { name: 'Store Ratings' })).toHaveAttribute('href', '/dashboard/store-ratings')
     expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Switch to Arabic' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Use light theme' })).toBeInTheDocument()

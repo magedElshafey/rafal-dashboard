@@ -9,6 +9,16 @@ import { useAuth } from '@/store/auth'
 import { dashboardNavigation } from '@/modules/dashboard/layout/dashboard-navigation'
 
 describe('core routes', () => {
+  it('registers Store Ratings Index and navigation without unsupported detail routes', () => {
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(AppRoutes.storeRatings).toBe('/dashboard/store-ratings')
+    expect(children.find((route) => route.path === AppRoutes.storeRatings)?.Component).toBeDefined()
+    expect(children.filter((route) => route.path?.startsWith(AppRoutes.storeRatings))).toHaveLength(1)
+    expect(dashboardNavigation.find((item) => item.to === AppRoutes.storeRatings)).toMatchObject({
+      labelKey: 'storeRatings.title',
+      match: 'prefix',
+    })
+  })
   it('registers only Contact Messages Index and full-page Detail routes', () => {
     const children = PrivateRoutes.flatMap((route) => route.children ?? [])
     expect(children.find((route) => route.path === AppRoutes.contactMessages)?.Component).toBeDefined()

@@ -42,6 +42,8 @@ import * as customersAr from '@/modules/customers/locale/ar.json'
 import * as customersEn from '@/modules/customers/locale/en.json'
 import * as reviewsAr from '@/modules/reviews/locale/ar.json'
 import * as reviewsEn from '@/modules/reviews/locale/en.json'
+import * as storeRatingsAr from '@/modules/store-ratings/locale/ar.json'
+import * as storeRatingsEn from '@/modules/store-ratings/locale/en.json'
 import * as testimonialsAr from '@/modules/testimonials/locale/ar.json'
 import * as testimonialsEn from '@/modules/testimonials/locale/en.json'
 import * as staticPagesAr from '@/modules/static-pages/locale/ar.json'
@@ -72,6 +74,7 @@ export const resources = {
       ...aboutUsEn,
       ...customersEn,
       ...reviewsEn,
+      ...storeRatingsEn,
       ...testimonialsEn,
       ...staticPagesEn,
     },
@@ -100,6 +103,7 @@ export const resources = {
       ...aboutUsAr,
       ...customersAr,
       ...reviewsAr,
+      ...storeRatingsAr,
       ...testimonialsAr,
       ...staticPagesAr,
     },

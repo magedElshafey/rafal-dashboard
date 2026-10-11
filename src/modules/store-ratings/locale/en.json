@@ -1,0 +1,41 @@
+{
+  "storeRatings": {
+    "title": "Store Ratings",
+    "description": "Review customer feedback about the store.",
+    "listTitle": "Store rating moderation",
+    "total_one": "{{count}} rating",
+    "total_other": "{{count}} ratings",
+    "loadingMore": "Loading more store ratings",
+    "filters": {
+      "title": "Filter store ratings",
+      "ratingRange": "Rating range",
+      "invalidDateRange": "Enter valid dates with the start date on or before the end date."
+    },
+    "fields": { "order": "Order", "adminResponse": "Admin response" },
+    "empty": {
+      "title": "No store ratings found",
+      "description": "Store ratings will appear here when available. If filters are applied, adjust or reset them to see more results."
+    },
+    "actions": {
+      "forRating": "Moderation actions for {{name}} — {{order}} — Rating #{{id}}",
+      "approveNamed": "Approve store rating #{{id}} by {{name}} for {{order}}",
+      "rejectNamed": "Reject store rating #{{id}} by {{name}} for {{order}}"
+    },
+    "confirm": {
+      "approve": {
+        "title": "Approve store rating?",
+        "description": "Approve rating #{{id}} by {{name}} for order {{order}}?"
+      },
+      "reject": {
+        "title": "Reject store rating?",
+        "description": "Reject rating #{{id}} by {{name}} for order {{order}}?"
+      }
+    },
+    "feedback": {
+      "approved": "Store rating approved successfully.",
+      "rejected": "Store rating rejected successfully.",
+      "approveError": "Store rating could not be approved.",
+      "rejectError": "Store rating could not be rejected."
+    }
+  }
+}
