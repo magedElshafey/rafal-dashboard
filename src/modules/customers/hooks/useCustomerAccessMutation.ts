@@ -16,6 +16,7 @@ export function useCustomerAccessMutation() {
   const { t } = useTranslation()
 
   return useMutation({
+    retry: false,
     mutationFn: ({ id, action }: CustomerAccessVariables) =>
       action === 'block' ? customersService.block(id) : customersService.unblock(id),
     onSuccess: async (_data, { id, action }) => {

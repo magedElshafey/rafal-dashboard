@@ -149,7 +149,7 @@ describe('customersService', () => {
       suppressErrorNotification: true,
     })
     expect(result.items[0]).toMatchObject({
-      total: 277.5,
+      total: '277.50',
       placedAt: null,
       status: 'future-order-status',
       paymentStatus: 'future-payment-status',
@@ -189,5 +189,12 @@ describe('customersService', () => {
     expect(() => normalizeCustomerDetail({ ...rawDetail, addresses_count: Number.NaN })).toThrow(
       'Customer addresses count is unavailable'
     )
+  })
+
+  it('preserves exact decimal strings for order totals and retains numeric-response support', () => {
+    expect(normalizeCustomerOrder({ ...rawOrder, total: '999999999999999999.123' }).total).toBe(
+      '999999999999999999.123'
+    )
+    expect(normalizeCustomerOrder({ ...rawOrder, total: 277.5 }).total).toBe('277.5')
   })
 })

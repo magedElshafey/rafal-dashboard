@@ -73,13 +73,15 @@ export function normalizeCustomerDetail(raw: RawCustomerDetail): CustomerDetail 
 }
 
 export function normalizeCustomerOrder(raw: RawCustomerOrderListItem): CustomerOrderListItem {
+  const total = String(raw.total).trim()
+  if (!/^\d+(?:\.\d+)?$/.test(total)) throw new Error('Order total is unavailable')
   return {
     id: normalizeId(raw.id, 'Order'),
     orderNumber: raw.order_number,
     displayNumber: raw.display_number,
     status: raw.status,
     itemsCount: normalizeCount(raw.items_count, 'Order items count'),
-    total: normalizeNumericAmount(raw.total, 'Order total'),
+    total,
     currency: raw.currency,
     paymentStatus: raw.payment_status,
     isGift: normalizeBoolean(raw.is_gift),

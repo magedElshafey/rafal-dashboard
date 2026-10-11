@@ -41,7 +41,7 @@ export type CustomerOrderListItem = {
   displayNumber: string
   status: string
   itemsCount: number
-  total: number
+  total: string
   currency: string
   paymentStatus: string
   isGift: boolean

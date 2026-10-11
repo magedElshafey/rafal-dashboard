@@ -27,6 +27,7 @@
       "description": "ستظهر حسابات العملاء هنا عند توفرها."
     },
     "fields": {
+      "id": "معرّف العميل",
       "customer": "العميل",
       "name": "الاسم",
       "firstName": "الاسم الأول",
@@ -39,7 +40,6 @@
       "ordersCount": "الطلبات",
       "lifetimeSpend": "إجمالي الإنفاق",
       "blockedAt": "تاريخ الحظر",
-      "blockedReason": "سبب الحظر",
       "termsAcceptedAt": "تاريخ قبول الشروط",
       "marketingOptIn": "الموافقة على التسويق",
       "addressesCount": "العناوين",
@@ -100,17 +100,22 @@
       "unblockError": "تعذر إلغاء حظر العميل."
     },
     "detail": {
+      "access": "حالة الوصول",
+      "memberSince": "عضو منذ",
+      "metadata": "البيانات الزمنية",
       "title": "تفاصيل العميل",
       "description": "تفاصيل حساب العميل وسجل الطلبات للقراءة فقط.",
       "identity": "الهوية",
       "account": "الحساب",
       "metrics": "الإحصاءات",
       "invalid": {
-        "title": "العميل غير متاح",
-        "description": "معرّف العميل غير صالح."
+        "title": "العميل غير موجود",
+        "description": "هذا العميل غير متاح أو الرابط غير صالح."
       }
     },
     "orders": {
+      "identityFallback": "طلب #{{id}}",
+      "loadMore": "تحميل المزيد من الطلبات",
       "title": "سجل الطلبات",
       "total_zero": "لا توجد طلبات",
       "total_one": "طلب واحد",
@@ -125,6 +130,7 @@
         "description": "لا يوجد سجل طلبات لهذا العميل."
       },
       "fields": {
+        "gift": "هدية",
         "number": "الطلب",
         "status": "الحالة",
         "items": "العناصر",

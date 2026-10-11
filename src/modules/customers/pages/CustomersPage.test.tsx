@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
@@ -50,6 +50,10 @@ function paginated(items: CustomerListItem[], page = 1): PaginatedData<CustomerL
   }
 }
 
+function CurrentLocation() {
+  return <output data-testid="customer-location">{useLocation().pathname}</output>
+}
+
 function renderPage(initialEntry = '/dashboard/customers') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
@@ -58,6 +62,7 @@ function renderPage(initialEntry = '/dashboard/customers') {
     <MemoryRouter initialEntries={[initialEntry]}>
       <QueryClientProvider client={client}>
         <CustomersPage />
+        <CurrentLocation />
       </QueryClientProvider>
     </MemoryRouter>
   )
@@ -69,6 +74,16 @@ async function openCustomerAction(user: ReturnType<typeof userEvent.setup>, name
 }
 
 describe('CustomersPage', () => {
+  it('preserves named View and access actions and navigates to the canonical detail route by keyboard', async () => {
+    vi.spyOn(customersService, 'list').mockResolvedValue(paginated([customer(6)]))
+    const user = userEvent.setup()
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Actions for Customer 6' }))[0])
+    expect(screen.getByRole('menuitem', { name: 'Block Customer 6' })).toBeInTheDocument()
+    screen.getByRole('menuitem', { name: 'View Customer 6' }).focus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('customer-location')).toHaveTextContent('/dashboard/customers/6')
+  })
   beforeEach(async () => {
     vi.restoreAllMocks()
     toastMocks.success.mockReset()

@@ -36,7 +36,7 @@ const order: CustomerOrderListItem = {
   displayNumber: '#RF-10064',
   status: 'processing',
   itemsCount: 0,
-  total: 277.5,
+  total: '277.50',
   currency: 'SAR',
   paymentStatus: 'paid',
   isGift: true,
