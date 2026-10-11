@@ -105,7 +105,7 @@ describe('Return Requests real read contracts', () => {
       { ...show.data, id: 0 },
       { ...show.data, order: { ...show.data.order, id: '47' } },
       { ...show.data, order: { ...show.data.order, order_number: '' } },
-      { ...show.data, user: { ...show.data.user, email: '' } },
+      { ...show.data, user: { ...show.data.user, email: 7 } },
       { ...show.data, status: '' },
       { ...show.data, created_at: null },
     ])
@@ -114,6 +114,13 @@ describe('Return Requests real read contracts', () => {
 })
 
 describe('Return Request decisions', () => {
+  it.each(['approve', 'reject'] as const)(
+    'never accepts explicit %s failure even with malformed error metadata',
+    async (action) => {
+      http.post.mockResolvedValue({ data: { success: false, message: { private: 'backend internals' }, errors: [] } })
+      await expect(returnRequestsService[action](31, 'Reason')).rejects.toThrow('Return request decision rejected')
+    }
+  )
   it.each([undefined, {}, { ...approved.data, comment: true }])(
     'keeps Show and Approve strict when entity data is invalid: %j',
     async (data) => {
@@ -130,13 +137,20 @@ describe('Return Request decisions', () => {
       await expect(returnRequestsService.reject(31, 'Reason')).resolves.toMatchObject({ detail: null })
     }
   )
-  it('consumes valid Reject entity data opportunistically and ignores mismatched identity', async () => {
+  it('ignores Reject entity data even if it happens to resemble Show', async () => {
     http.post.mockResolvedValue({ data: show })
     await expect(returnRequestsService.reject(31, 'Reason')).resolves.toMatchObject({
-      detail: normalizeReturnRequest(show.data),
+      detail: null,
     })
     await expect(returnRequestsService.reject(32, 'Reason')).resolves.toMatchObject({ detail: null })
   })
+  it.each([undefined, null, '', {}, { result: 'ok' }])(
+    'accepts successful Reject transport with undocumented body %j',
+    async (data) => {
+      http.post.mockResolvedValue({ data })
+      await expect(returnRequestsService.reject(31, 'Reason')).resolves.toEqual({ message: undefined, detail: null })
+    }
+  )
   it('POSTs approval as JSON with nullable or trimmed decision_note and normalizes the confirmed entity', async () => {
     http.post.mockResolvedValue({ data: approved })
     const blank = await returnRequestsService.approve(31, '   ')

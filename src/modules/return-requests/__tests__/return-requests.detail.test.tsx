@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/config/i18'
+import { ordersKeys } from '@/modules/orders/queries/orders.keys'
 import ReturnRequestDetailPage from '../pages/ReturnRequestDetailPage'
 import { returnRequestsKeys } from '../queries/return-requests.keys'
 import { normalizeReturnRequest } from '../utils/return-request-normalizers'
@@ -34,8 +35,15 @@ describe('Return Request Show', () => {
     const section = screen.getByRole('heading', { name: i18n.t('returnRequests.sections.reason') }).closest('section')
     if (!section) throw new Error('Missing reason section')
     expect(within(section).getByText(i18n.t('returnRequests.unavailable'))).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'RF-10022' })).toHaveAttribute('href', '/dashboard/orders/22')
-    expect(screen.getAllByText('magedelshafey98@gmail.com')).toHaveLength(2)
+    expect(
+      screen.getByRole('link', { name: i18n.t('returnRequests.workspace.viewOrderNamed', { number: 'RF-10022' }) })
+    ).toHaveAttribute('href', '/dashboard/orders/22')
+    expect(screen.getAllByText('magedelshafey98@gmail.com')).toHaveLength(1)
+    expect(
+      screen.getByRole('link', {
+        name: i18n.t('returnRequests.workspace.viewCustomerNamed', { name: 'magedelshafey98@gmail.com' }),
+      })
+    ).toBeInTheDocument()
     expect(client.getQueryData(returnRequestsKeys.detail(1))).toMatchObject({ comment: null })
   })
   it.each(['', '   '])('shows unavailable for blank detail comment %j', async (comment) => {
@@ -53,7 +61,7 @@ describe('Return Request Show', () => {
     }
     renderReturnRequests(<ReturnRequestDetailPage />, '/dashboard/return-requests/31')
     await screen.findByRole('heading', { name: 'Return Request #31' })
-    expect(screen.getAllByText('future status')).toHaveLength(2)
+    expect(screen.getAllByText('future status')).toHaveLength(3)
     expect(screen.getByText('Other reason')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
@@ -61,15 +69,22 @@ describe('Return Request Show', () => {
   it('renders the exact pending detail, safe user fallback, Order link, decision fallback, and pending actions', async () => {
     renderReturnRequests(<ReturnRequestDetailPage />, '/dashboard/return-requests/31')
     await screen.findByRole('heading', { name: 'Return Request #31', level: 1 })
-    for (const title of ['Return Request', 'Order', 'Customer', 'Return Reason', 'Decision', 'Dates'])
+    for (const title of ['Order', 'Customer', 'Return Reason', 'Review decision', 'Request lifecycle', 'Metadata'])
       expect(screen.getByRole('heading', { name: title, level: 2 })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'RF-10047' })).toHaveAttribute('href', '/dashboard/orders/47')
+    expect(screen.getByRole('link', { name: 'View full order RF-10047' })).toHaveAttribute(
+      'href',
+      '/dashboard/orders/47'
+    )
+    expect(screen.getByRole('link', { name: 'View customer abdullah.essam@gmail.com' })).toHaveAttribute(
+      'href',
+      '/dashboard/customers/1'
+    )
     expect(screen.getAllByText('abdullah.essam@gmail.com').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Pending').length).toBeGreaterThan(0)
     expect(screen.getByText('Damaged')).toBeInTheDocument()
-    const decision = screen.getByRole('heading', { name: 'Decision', level: 2 }).closest('section')
+    const decision = screen.getByRole('heading', { name: 'Review decision', level: 2 }).closest('section')
     if (!decision) throw new Error('Missing Decision section')
-    expect(within(decision).getAllByText('Unavailable')).toHaveLength(4)
+    expect(within(decision).getByText(i18n.t('returnRequests.workspace.reviewGuidance'))).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reject' })).toBeInTheDocument()
   })
@@ -78,15 +93,17 @@ describe('Return Request Show', () => {
     renderReturnRequests(<ReturnRequestDetailPage />, '/dashboard/return-requests/31')
     await screen.findByRole('heading', { name: 'Return Request #31' })
     expect(screen.getAllByText('Approved').length).toBeGreaterThan(0)
-    expect(screen.getByText('returned')).toBeInTheDocument()
-    expect(screen.getByText('Super Admin')).toBeInTheDocument()
+    expect(screen.getAllByText('Returned')).toHaveLength(2)
+    expect(
+      within(screen.getByRole('region', { name: 'Decision summary' })).getByText('Super Admin')
+    ).toBeInTheDocument()
     expect(screen.getByText('admin@admin.com')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
   })
   it('rejects invalid route IDs and recovers a failed Show through Retry', async () => {
     const invalid = renderReturnRequests(<ReturnRequestDetailPage />, '/dashboard/return-requests/invalid')
-    expect(screen.getByRole('alert')).toHaveTextContent('This return request ID is invalid')
+    expect(screen.getByRole('heading', { name: 'Return request not found' })).toBeInTheDocument()
     expect(http.get).not.toHaveBeenCalled()
     invalid.unmount()
     http.get.mockRejectedValueOnce(new Error('raw database error'))
@@ -99,7 +116,7 @@ describe('Return Request Show', () => {
 })
 
 describe('Approve Return Request', () => {
-  it('sends nullable JSON once, locks duplicates, updates exact cache, refetches detail, and invalidates only lists', async () => {
+  it('sends nullable JSON once, locks duplicates, updates exact cache without Show, and marks Order caches stale', async () => {
     let resolve: (value: unknown) => void = () => {}
     http.post.mockImplementation(
       () =>
@@ -111,10 +128,17 @@ describe('Approve Return Request', () => {
     client.setQueryDefaults(['unrelated'], { gcTime: Infinity })
     client.setQueryData(returnRequestsKeys.list(), { items: [], meta: { currentPage: 1, perPage: 15 } })
     client.setQueryData(['unrelated'], ['keep'])
+    client.setQueryDefaults(ordersKeys.all, { gcTime: Infinity })
+    client.setQueryData(ordersKeys.detail(47), { status: 'delivered' })
+    client.setQueryData([...ordersKeys.lists(), {}], { items: [] })
+    client.setQueryData(ordersKeys.detail(99), { status: 'delivered' })
     await screen.findByRole('heading', { name: 'Return Request #31' })
     const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const cancel = vi.spyOn(client, 'cancelQueries')
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }))
     const confirm = screen.getByRole('button', { name: 'Confirm Approval' })
+    expect(http.post).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Decision Note' })).not.toBeRequired()
     fireEvent.click(confirm)
     fireEvent.click(confirm)
     await waitFor(() => expect(http.post).toHaveBeenCalledTimes(1))
@@ -131,11 +155,17 @@ describe('Approve Return Request', () => {
     expect(toast.success).toHaveBeenCalledTimes(1)
     expect(client.getQueryData(returnRequestsKeys.detail(31))).toEqual(normalizeReturnRequest(approved.data))
     expect(invalidate.mock.calls.map((call) => call[0])).toEqual([
-      { queryKey: returnRequestsKeys.detail(31), exact: true },
       { queryKey: returnRequestsKeys.lists() },
+      { queryKey: ordersKeys.detail(47), exact: true, refetchType: 'none' },
+      { queryKey: ordersKeys.lists(), refetchType: 'none' },
     ])
+    expect(cancel).toHaveBeenCalledWith({ queryKey: returnRequestsKeys.detail(31), exact: true })
+    expect(client.getQueryState(ordersKeys.detail(47))?.isInvalidated).toBe(true)
+    expect(client.getQueryState([...ordersKeys.lists(), {}])?.isInvalidated).toBe(true)
+    expect(client.getQueryState(ordersKeys.detail(99))?.isInvalidated).toBe(false)
+    expect(client.getQueryData(ordersKeys.detail(47))).toEqual({ status: 'delivered' })
     expect(client.getQueryState(['unrelated'])?.isInvalidated).toBe(false)
-    expect(http.get).toHaveBeenCalledTimes(2)
+    expect(http.get).toHaveBeenCalledTimes(1)
     expect(client.getMutationCache().getAll()[0].options.retry).toBe(false)
   })
   it('trims and sends a nonblank optional approval note', async () => {
@@ -189,6 +219,15 @@ describe('Reject Return Request', () => {
     expect(screen.getByRole('button', { name: 'Submitting…' })).toBeDisabled()
     expect(screen.getByRole('textbox', { name: 'Decision Note' })).toBeDisabled()
     expect(client.getQueryData(returnRequestsKeys.detail(31))).toMatchObject({ status: 'pending' })
+    canonical = {
+      ...show,
+      data: {
+        ...show.data,
+        status: 'rejected',
+        decision_note: 'Return does not meet policy.',
+        decided_at: approved.data.decided_at,
+      },
+    }
     await act(async () => resolve({ data: { success: true, message: 'Decision saved' } }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(http.post).toHaveBeenCalledWith(
@@ -199,6 +238,8 @@ describe('Reject Return Request', () => {
     )
     expect(toast.success).toHaveBeenCalledWith('Decision saved')
     expect(http.get).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('region', { name: 'Decision summary' })).toHaveTextContent('Rejected')
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
     expect(invalidate.mock.calls.map((call) => call[0])).toEqual([
       { queryKey: returnRequestsKeys.detail(31), exact: true },
       { queryKey: returnRequestsKeys.lists() },

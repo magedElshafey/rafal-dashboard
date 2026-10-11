@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import * as Yup from 'yup'
@@ -7,6 +8,7 @@ import { FormTextArea } from '@/components/form/FormTextArea'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { useDecideReturnRequest } from '../hooks/useReturnRequests'
+import { returnRequestsKeys } from '../queries/return-requests.keys'
 import type { ReturnRequest, ReturnRequestDecisionAction } from '../types/return-request.types'
 import { returnRequestDecisionFeedback } from '../utils/return-request-errors'
 
@@ -20,9 +22,12 @@ export function ReturnRequestDecisionActions({
   refreshing?: boolean
 }) {
   const { t } = useTranslation()
+  const client = useQueryClient()
   const mutation = useDecideReturnRequest(request.id)
   const [action, setAction] = useState<ReturnRequestDecisionAction | null>(null)
   const lock = useRef(false)
+  const trigger = useRef<HTMLButtonElement | null>(null)
+  const decisionHeading = useRef<HTMLHeadingElement | null>(null)
   const pending = mutation.isPending || refreshing
   const schema = useMemo(
     () =>
@@ -43,13 +48,26 @@ export function ReturnRequestDecisionActions({
 
   if (request.status !== 'pending') return null
 
-  const open = (nextAction: ReturnRequestDecisionAction) => {
+  const open = (nextAction: ReturnRequestDecisionAction, button: HTMLButtonElement) => {
+    if (pending || lock.current || action) return
+    trigger.current = button
+    decisionHeading.current = button.closest('section')?.querySelector('h2') ?? null
     mutation.reset()
     setAction(nextAction)
   }
 
   const submit = async (values: DecisionFormValues, methods: UseFormReturn<DecisionFormValues>) => {
-    if (!action || pending || lock.current) return
+    const state = client.getQueryState<ReturnRequest>(returnRequestsKeys.detail(request.id))
+    if (
+      !action ||
+      pending ||
+      lock.current ||
+      state?.fetchStatus !== 'idle' ||
+      state.status === 'error' ||
+      state.isInvalidated ||
+      state.data?.status !== 'pending'
+    )
+      return
     lock.current = true
     try {
       await mutation.mutateAsync({ action, decisionNote: values.decisionNote })
@@ -69,21 +87,37 @@ export function ReturnRequestDecisionActions({
   }
 
   const formId = `return-request-${request.id}-${action ?? 'decision'}`
+  const close = () => {
+    if (!mutation.isPending && !lock.current) setAction(null)
+  }
   return (
     <>
-      <Button disabled={pending} onClick={() => open('approve')}>
+      <Button disabled={pending} onClick={(event) => open('approve', event.currentTarget)}>
         {t('returnRequests.actions.approve')}
       </Button>
-      <Button variant="destructive" disabled={pending} onClick={() => open('reject')}>
+      <Button variant="destructive" disabled={pending} onClick={(event) => open('reject', event.currentTarget)}>
         {t('returnRequests.actions.reject')}
       </Button>
       <Dialog
         open={action !== null}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen && !pending) setAction(null)
+          if (!nextOpen) close()
         }}
       >
-        <DialogContent showCloseButton={false} dir={t('returnRequests.direction')}>
+        <DialogContent
+          showCloseButton={false}
+          dir={t('returnRequests.direction')}
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+          onCloseAutoFocus={(event) => {
+            const target =
+              trigger.current?.isConnected && !trigger.current.disabled ? trigger.current : decisionHeading.current
+            if (target?.isConnected) {
+              event.preventDefault()
+              if (target === decisionHeading.current) target.tabIndex = -1
+              target.focus()
+            }
+          }}
+        >
           <DialogTitle>
             {t(
               action === 'approve'
@@ -121,13 +155,18 @@ export function ReturnRequestDecisionActions({
               onChange={() => mutation.reset()}
             />
           </FormWrapper>
+          {refreshing ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {t('returnRequests.workspace.freshnessRequired')}
+            </p>
+          ) : null}
           {feedback ? (
             <p role="alert" className="text-sm text-destructive">
               {feedback.message}
             </p>
           ) : null}
           <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => setAction(null)}>
+            <Button variant="outline" disabled={mutation.isPending} onClick={close}>
               {t('returnRequests.actions.cancel')}
             </Button>
             <Button
@@ -137,7 +176,7 @@ export function ReturnRequestDecisionActions({
               disabled={pending}
             >
               {t(
-                pending
+                mutation.isPending
                   ? 'returnRequests.actions.submitting'
                   : action === 'approve'
                     ? 'returnRequests.actions.confirmApproval'
