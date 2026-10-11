@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { matchRoutes, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
@@ -42,7 +42,7 @@ describe('core routes', () => {
     useAuth.setState({ token: null, admin: null, isAuthenticated: false })
   })
 
-  it('defines Product Index, Create, and Edit routes without future child-resource routes', () => {
+  it('defines Product Index, Create, View, and Edit routes without route conflicts', () => {
     const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
 
     expect(AppRoutes.products).toBe('/dashboard/products')
@@ -52,6 +52,12 @@ describe('core routes', () => {
     expect(AppRoutes.productEdit).toBe('/dashboard/products/:id/edit')
     expect(AppRoutes.productEditPath(17)).toBe('/dashboard/products/17/edit')
     expect(privatePaths).toContain('/dashboard/products/:id/edit')
+    expect(AppRoutes.productDetail).toBe('/dashboard/products/:id')
+    expect(AppRoutes.productDetailPath(17)).toBe('/dashboard/products/17')
+    expect(privatePaths).toContain('/dashboard/products/:id')
+    expect(matchRoutes(PrivateRoutes, AppRoutes.productDetailPath(17))?.at(-1)?.params.id).toBe('17')
+    expect(matchRoutes(PrivateRoutes, AppRoutes.productNew)?.at(-1)?.route.path).toBe(AppRoutes.productNew)
+    expect(matchRoutes(PrivateRoutes, AppRoutes.productEditPath(17))?.at(-1)?.route.path).toBe(AppRoutes.productEdit)
     expect(privatePaths).not.toContain('/dashboard/products/:id/variants')
     expect(privatePaths).not.toContain('/dashboard/products/:id/stocks')
   })

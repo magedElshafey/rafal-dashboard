@@ -128,7 +128,7 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
     personalizationMaxLength: nullableFiniteNumber(raw.personalization_max_length, 'personalization max length'),
     personalizationFee: nullableFiniteNumber(raw.personalization_fee, 'personalization fee'),
     personalizationLanguages: raw.personalization_languages ?? null,
-    maxCartItemQuantity: finiteNumber(raw.max_cart_item_quantity, 'maximum cart item quantity'),
+    maxCartItemQuantity: nullableFiniteNumber(raw.max_cart_item_quantity ?? null, 'maximum cart item quantity'),
     isNewArrival: apiBoolean(raw.is_new_arrival, 'new arrival flag'),
     isActive: apiBoolean(raw.is_active, 'active flag'),
     sortOrder: finiteNumber(raw.sort_order, 'sort order'),

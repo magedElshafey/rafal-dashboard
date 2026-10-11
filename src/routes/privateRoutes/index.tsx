@@ -25,6 +25,7 @@ const ShippingMethodsPage = lazy(() => import('@/modules/shipping-methods/pages/
 const ProductsPage = lazy(() => import('@/modules/products/pages/ProductsPage'))
 const ProductCreatePage = lazy(() => import('@/modules/products/pages/ProductCreatePage'))
 const ProductEditPage = lazy(() => import('@/modules/products/pages/ProductEditPage'))
+const ProductDetailsPage = lazy(() => import('@/modules/products/pages/ProductDetailsPage'))
 const CouponsPage = lazy(() => import('@/modules/coupons/pages/CouponsPage'))
 const AboutUsPage = lazy(() => import('@/modules/about-us/pages/AboutUsPage'))
 const CustomersPage = lazy(() => import('@/modules/customers/pages/CustomersPage'))
@@ -68,6 +69,7 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.products, Component: ProductsPage },
       { path: Routes.productNew, Component: ProductCreatePage },
       { path: Routes.productEdit, Component: ProductEditPage },
+      { path: Routes.productDetail, Component: ProductDetailsPage },
       { path: Routes.coupons, Component: CouponsPage },
       { path: Routes.aboutUs, Component: AboutUsPage },
       { path: Routes.customers, Component: CustomersPage },

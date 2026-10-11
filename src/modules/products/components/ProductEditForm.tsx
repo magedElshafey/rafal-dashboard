@@ -44,19 +44,22 @@ export function ProductEditForm({ product, isSubmitting, onSubmit, onDeleteImage
   const initialValues = useRef(productDetailToFormValues(product)).current
   const schema = useMemo(
     () =>
-      createProductFormSchema({
-        required: t('products.validation.required'),
-        validNumber: t('products.validation.validNumber'),
-        nonNegative: t('products.validation.nonNegative'),
-        integer: t('products.validation.integer'),
-        minimumOne: t('products.validation.minimumOne'),
-        discountRange: t('products.validation.discountRange'),
-        maxLength: t('products.validation.maxLength'),
-        dateInvalid: t('products.validation.dateInvalid'),
-        imageType: t('products.validation.imageType'),
-        imageSize: t('products.validation.imageSize'),
-      }),
-    [t]
+      createProductFormSchema(
+        {
+          required: t('products.validation.required'),
+          validNumber: t('products.validation.validNumber'),
+          nonNegative: t('products.validation.nonNegative'),
+          integer: t('products.validation.integer'),
+          minimumOne: t('products.validation.minimumOne'),
+          discountRange: t('products.validation.discountRange'),
+          maxLength: t('products.validation.maxLength'),
+          dateInvalid: t('products.validation.dateInvalid'),
+          imageType: t('products.validation.imageType'),
+          imageSize: t('products.validation.imageSize'),
+        },
+        { allowMissingCartItemQuantity: initialValues.maxCartItemQuantity === null }
+      ),
+    [t, initialValues.maxCartItemQuantity]
   )
 
   const handleSubmit = async (values: ProductFormValues, methods: UseFormReturn<ProductFormValues>) => {

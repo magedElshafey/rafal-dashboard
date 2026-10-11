@@ -118,7 +118,7 @@ export type RawProductDetail = {
   personalization_max_length: number | string | null
   personalization_fee: number | string | null
   personalization_languages?: JsonValue
-  max_cart_item_quantity: number | string
+  max_cart_item_quantity?: number | string | null
   is_new_arrival: boolean | 0 | 1 | '0' | '1'
   is_active: boolean | 0 | 1 | '0' | '1'
   sort_order: number | string
@@ -146,7 +146,7 @@ export type ProductDetail = {
   personalizationMaxLength: number | null
   personalizationFee: number | null
   personalizationLanguages?: JsonValue | null
-  maxCartItemQuantity: number
+  maxCartItemQuantity: number | null
   isNewArrival: boolean
   isActive: boolean
   sortOrder: number

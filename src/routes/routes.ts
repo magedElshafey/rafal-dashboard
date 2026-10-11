@@ -34,6 +34,8 @@ export const Routes = {
   staticPageEdit: '/dashboard/pages/:id/edit',
   staticPageEditPath: (id: number) => `/dashboard/pages/${id}/edit`,
   productNew: '/dashboard/products/new',
+  productDetail: '/dashboard/products/:id',
+  productDetailPath: (id: number) => `/dashboard/products/${id}`,
   productEdit: '/dashboard/products/:id/edit',
   productEditPath: (id: number) => `/dashboard/products/${id}/edit`,
   errors: {
