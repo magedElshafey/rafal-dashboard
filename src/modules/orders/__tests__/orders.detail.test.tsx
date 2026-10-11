@@ -67,7 +67,7 @@ describe('Order Show', () => {
     renderOrders(<OrderDetailPage />, '/dashboard/orders/21')
     await screen.findByRole('heading', { name: '#RF-10021', level: 1 })
     for (const title of [
-      'Order summary',
+      'Order metadata',
       'Customer',
       'Shipping address',
       'Money summary',
@@ -136,7 +136,7 @@ describe('Order Show', () => {
       for (const [label, value] of [
         [copy.gift.anonymous, copy.no],
         [copy.gift.wrap, copy.yes],
-        [copy.gift.message, copy.unavailable],
+        [copy.gift.message, '—'],
         [copy.gift.wrapFee, orderMoneyLabel('15.00', 'USD', language)],
       ]) {
         const row = facts.getByText(label).parentElement
@@ -177,7 +177,7 @@ describe('Order Show', () => {
     for (const [label, value] of [
       ['Anonymous', 'Yes'],
       ['Gift wrap', 'No'],
-      ['City', 'Unavailable'],
+      ['City', '—'],
     ]) {
       const row = facts.getByText(label).parentElement
       if (!row) throw new Error('Missing Gift fact')
@@ -196,8 +196,8 @@ describe('Order Show', () => {
   })
   it('rejects invalid route IDs and recovers a failed Show with Retry', async () => {
     const invalid = renderOrders(<OrderDetailPage />, '/dashboard/orders/invalid')
-    expect(screen.getByRole('alert')).toHaveTextContent('This order ID is invalid')
-    expect(http.get.mock.calls.filter((call) => call[0].url === '/dashboard/orders/invalid')).toHaveLength(0)
+    expect(screen.getByRole('heading', { name: 'Order not found' })).toBeInTheDocument()
+    expect(http.get).not.toHaveBeenCalled()
     invalid.unmount()
     http.get.mockImplementation(async ({ url }: { url: string }) => {
       if (!url.endsWith('/statuses')) throw new Error('hidden stack')
@@ -322,13 +322,10 @@ describe('status transitions', () => {
     expect(client.getQueryData(ordersKeys.detail(21))).toEqual(normalizeOrderDetail({ ...updated, gift }))
     expect(screen.getByRole('heading', { name: 'Gift', level: 2 })).toBeInTheDocument()
     expect(screen.getByText('tet@test.com')).toBeInTheDocument()
-    expect(invalidate.mock.calls.map((call) => call[0])).toEqual([
-      { queryKey: ordersKeys.detail(21), exact: true },
-      { queryKey: ordersKeys.lists() },
-    ])
+    expect(invalidate.mock.calls.map((call) => call[0])).toEqual([{ queryKey: ordersKeys.lists() }])
     expect(client.getQueryState(['products'])?.isInvalidated).toBe(false)
-    expect(client.getQueryState(ordersKeys.statuses())?.isInvalidated).toBe(false)
-    expect(http.get.mock.calls.filter((call) => call[0].url === '/dashboard/orders/21')).toHaveLength(2)
+    expect(client.getQueryState(ordersKeys.statuses())).toBeUndefined()
+    expect(http.get.mock.calls.filter((call) => call[0].url === '/dashboard/orders/21')).toHaveLength(1)
     expect(client.getMutationCache().getAll()[0].options.retry).toBe(false)
     await userEvent.click(screen.getByRole('button', { name: 'Update status' }))
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([

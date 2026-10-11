@@ -1,6 +1,15 @@
 {
   "orders": {
     "direction": "ltr",
+    "details": {
+      "title": "Order details",
+      "metadata": "Order metadata",
+      "notFound": "Order not found",
+      "notFoundDescription": "This order is unavailable or the link is invalid.",
+      "noItems": "No items returned for this order.",
+      "noHistory": "No status history returned for this order.",
+      "fromStatus": "From {{status}} to"
+    },
     "title": "Orders",
     "search": "Search orders",
     "filters": "Order filters",

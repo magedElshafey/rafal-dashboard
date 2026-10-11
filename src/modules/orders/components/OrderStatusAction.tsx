@@ -9,11 +9,11 @@ import { orderTransitionFeedback } from '../utils/order-errors'
 
 export function OrderStatusAction({
   order,
-  definitions,
+  definitions = [],
   refreshing = false,
 }: {
   order: OrderDetail
-  definitions: OrderStatusDefinition[]
+  definitions?: OrderStatusDefinition[]
   refreshing?: boolean
 }) {
   const { t } = useTranslation()

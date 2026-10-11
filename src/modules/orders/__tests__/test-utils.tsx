@@ -39,10 +39,13 @@ function Location() {
     </>
   )
 }
-export function renderOrders(element: ReactNode, path = '/dashboard/orders') {
-  const client = new QueryClient({
+export function renderOrders(
+  element: ReactNode,
+  path = '/dashboard/orders',
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
+) {
   const result = render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
