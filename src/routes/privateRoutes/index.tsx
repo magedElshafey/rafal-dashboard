@@ -17,6 +17,7 @@ const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
 const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
 const CategoriesPage = lazy(() => import('@/modules/categories/pages/CategoriesPage'))
+const CategoryDetailsPage = lazy(() => import('@/modules/categories/pages/CategoryDetailsPage'))
 const WarehousesPage = lazy(() => import('@/modules/warehouses/pages/WarehousesPage'))
 const RegionsPage = lazy(() => import('@/modules/regions/pages/RegionsPage'))
 const CitiesPage = lazy(() => import('@/modules/cities/pages/CitiesPage'))
@@ -62,6 +63,9 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.admins, Component: AdminsPage },
       { path: Routes.banners, Component: BannersPage },
       { path: Routes.categories, Component: CategoriesPage },
+      { path: Routes.categoryNew, element: <CategoriesPage routeMode="create" /> },
+      { path: Routes.categoryEdit, element: <CategoriesPage routeMode="edit" /> },
+      { path: Routes.categoryDetail, Component: CategoryDetailsPage },
       { path: Routes.warehouses, Component: WarehousesPage },
       { path: Routes.regions, Component: RegionsPage },
       { path: Routes.cities, Component: CitiesPage },

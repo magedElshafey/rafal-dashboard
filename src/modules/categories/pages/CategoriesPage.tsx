@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FolderTree, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
@@ -28,9 +29,13 @@ import {
 } from '@/modules/categories/utils/category-filters'
 import QueryProvider from '@/store/queryContext/queryContext'
 import { useQuery } from '@/store/queryContext/useQueryContext'
+import { Routes } from '@/routes/routes'
 
-function CategoriesContent() {
+type CategoriesPageProps = { routeMode?: 'create' | 'edit' }
+
+function CategoriesContent({ routeMode, routeId }: CategoriesPageProps & { routeId: number | null }) {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer<number>()
   const filters = readCategoriesFilters(forwardQuery)
@@ -168,10 +173,20 @@ function CategoriesContent() {
       </QueryStateBoundary>
 
       <CategoryDrawer
-        open={drawer.open}
-        mode={drawer.mode}
-        categoryId={drawer.entityId}
-        onOpenChange={drawer.setOpen}
+        open={Boolean(routeMode) || drawer.open}
+        mode={routeMode ?? drawer.mode}
+        categoryId={routeMode ? routeId : drawer.entityId}
+        onOpenChange={
+          routeMode
+            ? (open) => {
+                if (!open)
+                  navigate(
+                    routeMode === 'edit' && routeId !== null ? Routes.categoryDetailPath(routeId) : Routes.categories,
+                    { replace: true }
+                  )
+              }
+            : drawer.setOpen
+        }
       />
       <DeleteAlert
         ref={deleteAlertRef}
@@ -188,10 +203,14 @@ function CategoriesContent() {
   )
 }
 
-export default function CategoriesPage() {
+export default function CategoriesPage({ routeMode }: CategoriesPageProps) {
+  const { id } = useParams<{ id: string }>()
+  const parsedId = Number(id)
+  const routeId = /^\d+$/.test(id ?? '') && Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : null
+  if (routeMode === 'edit' && routeId === null) return <Navigate to={Routes.categories} replace />
   return (
     <QueryProvider resetQueryNamesOnChange={['page']}>
-      <CategoriesContent />
+      <CategoriesContent routeMode={routeMode} routeId={routeId} />
     </QueryProvider>
   )
 }

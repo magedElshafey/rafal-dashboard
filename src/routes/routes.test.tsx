@@ -9,6 +9,20 @@ import { useAuth } from '@/store/auth'
 import { dashboardNavigation } from '@/modules/dashboard/layout/dashboard-navigation'
 
 describe('core routes', () => {
+  it('registers Category View and drawer adapters without Create/Edit route conflicts', () => {
+    expect(AppRoutes.categoryDetailPath(7)).toBe('/dashboard/categories/7')
+    expect(AppRoutes.categoryEditPath(7)).toBe('/dashboard/categories/7/edit')
+    for (const [url, path] of [
+      [AppRoutes.categories, AppRoutes.categories],
+      [AppRoutes.categoryNew, AppRoutes.categoryNew],
+      [AppRoutes.categoryEditPath(7), AppRoutes.categoryEdit],
+      [AppRoutes.categoryDetailPath(7), AppRoutes.categoryDetail],
+    ]) {
+      expect(matchRoutes(PrivateRoutes, url)?.at(-1)?.route.path).toBe(path)
+    }
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(children.find((route) => route.path === AppRoutes.categoryDetail)?.Component).toBeDefined()
+  })
   it('registers Store Ratings Index and navigation without unsupported detail routes', () => {
     const children = PrivateRoutes.flatMap((route) => route.children ?? [])
     expect(AppRoutes.storeRatings).toBe('/dashboard/store-ratings')

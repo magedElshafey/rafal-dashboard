@@ -1,13 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
 import i18n from '@/config/i18'
 import { categoriesService } from '@/modules/categories/api/categories.service'
 import CategoriesPage from '@/modules/categories/pages/CategoriesPage'
+import CategoryDetailsPage from '@/modules/categories/pages/CategoryDetailsPage'
+import { categoriesKeys } from '@/modules/categories/queries/categories.keys'
 import type { CategoriesFilters, Category, CategoryPayload } from '@/modules/categories/types/category.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -116,13 +118,19 @@ function renderPage(initialEntry = '/dashboard/categories') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   })
-  return render(
+  const result = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
-        <CategoriesPage />
+        <Routes>
+          <Route path="/dashboard/categories" element={<CategoriesPage />} />
+          <Route path="/dashboard/categories/new" element={<CategoriesPage routeMode="create" />} />
+          <Route path="/dashboard/categories/:id/edit" element={<CategoriesPage routeMode="edit" />} />
+          <Route path="/dashboard/categories/:id" element={<CategoryDetailsPage />} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>
   )
+  return { ...result, queryClient }
 }
 
 async function openAction(user: ReturnType<typeof userEvent.setup>, name: string, action: string) {
@@ -151,6 +159,48 @@ describe('CategoriesPage', () => {
     await i18n.changeLanguage('en')
   })
   afterEach(() => vi.restoreAllMocks())
+
+  it('adds named keyboard-operable View navigation while retaining Edit and Delete actions', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Actions for Jewelry' }))[0])
+    const view = screen.getByRole('menuitem', { name: 'View Jewelry' })
+    expect(screen.getByRole('menuitem', { name: 'Edit Jewelry' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Delete Jewelry' })).toBeInTheDocument()
+    view.focus()
+    await user.keyboard('{Enter}')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Jewelry' })).toBeInTheDocument()
+    expect(categoriesService.show).toHaveBeenCalledTimes(1)
+  })
+
+  it('routes View to the existing Edit drawer and shares its exact Show cache entry on return', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = renderPage('/dashboard/categories/1')
+    await user.click(await screen.findByRole('link', { name: 'Edit Jewelry' }))
+    expect(await screen.findByRole('textbox', { name: /^English Name/ })).toHaveValue('Jewelry')
+    expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled()
+    expect(
+      queryClient
+        .getQueryCache()
+        .findAll({ queryKey: categoriesKeys.details() })
+        .map((query) => query.queryKey)
+    ).toEqual([categoriesKeys.detail(1)])
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Jewelry' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(categoriesService.update).not.toHaveBeenCalled()
+  })
+
+  it('opens the existing Create drawer through the new route adapter and returns to Index on cancel', async () => {
+    const user = userEvent.setup()
+    renderPage('/dashboard/categories/new')
+    expect(await screen.findByRole('dialog', { name: 'Create Category' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /^English Name/ })).toHaveValue('')
+    expect(categoriesService.show).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByRole('heading', { name: 'Categories', level: 1 })).toBeInTheDocument()
+  })
 
   it('renders mirrored paginated hierarchy with image fallbacks and the filter trigger', async () => {
     categoryStore = Array.from({ length: 16 }, (_, index) => category(index + 1, index === 1 ? 1 : null))
