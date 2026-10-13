@@ -156,6 +156,29 @@
       "existingImageAlt": "صورة المنتج الحالية {{id}}"
     },
     "variants": {
+      "attributeNames": {
+        "color": "اللون",
+        "size": "المقاس",
+        "length": "الطول",
+        "width": "العرض",
+        "height": "الارتفاع",
+        "material": "الخامة",
+        "weight": "الوزن",
+        "diameter": "القطر",
+        "capacity": "السعة",
+        "style": "النمط",
+        "shape": "الشكل",
+        "finish": "التشطيب",
+        "plating": "الطلاء",
+        "stone_type": "نوع الحجر",
+        "flower_color": "لون الزهور",
+        "flower_count": "عدد الزهور",
+        "packaging_type": "نوع التغليف",
+        "occasion": "المناسبة",
+        "scent": "الرائحة",
+        "model": "الموديل"
+      },
+      "useCustomAttribute": "استخدام «{{key}}»",
       "title": "خيارات المنتج",
       "description": "أدر الخيارات المتاحة للشراء لهذا المنتج.",
       "empty": "لم تتم إضافة خيارات بعد.",
@@ -172,7 +195,7 @@
       "fields": {
         "sku": "رمز الخيار",
         "attributes": "السمات",
-        "attributeKey": "مفتاح السمة",
+        "attributeKey": "اسم الخاصية",
         "attributeValue": "قيمة السمة",
         "priceOverride": "السعر المخصص",
         "active": "نشط",
@@ -194,9 +217,9 @@
         "deleteImageNamed": "حذف الصورة {{id}} من الخيار {{sku}}"
       },
       "validation": {
-        "attributeIncomplete": "أدخل مفتاح السمة وقيمتها معًا.",
-        "attributeDuplicate": "يجب أن تكون مفاتيح السمات فريدة بعد توحيدها.",
-        "attributeInvalidKey": "أدخل مفتاح سمة يحتوي على أحرف أو أرقام.",
+        "attributeIncomplete": "أدخل اسم الخاصية وقيمتها معًا.",
+        "attributeDuplicate": "يجب أن تكون أسماء الخصائص غير مكررة.",
+        "attributeInvalidKey": "اسم الخاصية هذا محجوز. اختر اسمًا آخر.",
         "attributeInvalidColor": "أدخل لون HEX مكوّنًا من ستة أرقام مثل #C8102E."
       },
       "feedback": {

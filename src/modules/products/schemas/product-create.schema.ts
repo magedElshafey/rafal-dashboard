@@ -4,10 +4,8 @@ import type { ImageUploadValue } from '@/components/form/image-upload'
 import type { ProductCreateFormValues, ProductFormValues } from '@/modules/products/types/product.types'
 import {
   hasNewVariantAttributeKeyCollision,
-  isCanonicalVariantAttributeKey,
   isDangerousVariantAttributeKey,
   isSixDigitHexColor,
-  normalizeVariantAttributeKey,
 } from '@/modules/products/utils/product-variant.utils'
 
 export const PRODUCT_IMAGE_MAX_SIZE = 5 * 1024 * 1024
@@ -128,16 +126,12 @@ export function createProductCreateSchema(messages: ProductCreateValidationMessa
                 })
                 .test('valid-key', messages.attributeInvalidKey ?? required, function (row) {
                   if (!row?.key.trim()) return true
-                  const key = normalizeVariantAttributeKey(row.key)
-                  return (
-                    (!isDangerousVariantAttributeKey(row.key) && isCanonicalVariantAttributeKey(key)) ||
-                    this.createError({ path: `${this.path}.key` })
-                  )
+                  return !isDangerousVariantAttributeKey(row.key) || this.createError({ path: `${this.path}.key` })
                 })
                 .test('valid-color', messages.attributeInvalidColor ?? required, function (row) {
                   if (!row?.key.trim() || !row.value.trim()) return true
                   return (
-                    normalizeVariantAttributeKey(row.key) !== 'color' ||
+                    row.key !== 'color' ||
                     isSixDigitHexColor(row.value) ||
                     this.createError({ path: `${this.path}.value` })
                   )

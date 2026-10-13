@@ -56,6 +56,9 @@ export function ProductVariantsSection({ product }: Props) {
     try {
       await deleteVariant.mutateAsync(variantToDelete)
       variantAlertRef.current?.close()
+      setVariantToEdit((current) =>
+        current !== null && current !== 'create' && current.id === variantToDelete ? null : current
+      )
       setVariantToDelete(null)
     } catch {
       // The mutation owns safe localized feedback and the confirmation remains available for retry.

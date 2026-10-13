@@ -15,41 +15,18 @@ export function getVariantAttributesPresentation(attributes: VariantAttributes):
   return { kind: 'flat', entries }
 }
 
-export function normalizeVariantAttributeKey(input: string) {
-  return input
-    .normalize('NFKC')
-    .trim()
-    .toLowerCase()
-    .replace(/[\s\p{P}\p{S}]+/gu, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '')
-}
-
-const CANONICAL_VARIANT_ATTRIBUTE_KEY = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/
 const DANGEROUS_VARIANT_ATTRIBUTE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
-
-export function isCanonicalVariantAttributeKey(key: string) {
-  return CANONICAL_VARIANT_ATTRIBUTE_KEY.test(key)
-}
 
 export function isDangerousVariantAttributeKey(key: string) {
   return DANGEROUS_VARIANT_ATTRIBUTE_KEYS.has(key.normalize('NFKC').trim().toLowerCase())
 }
 
 export function hasNewVariantAttributeKeyCollision(rows: VariantAttributeRow[]) {
-  const seen = new Map<string, { hasNew: boolean }>()
+  const seen = new Set<string>()
   for (const row of rows) {
     if (!row.key.trim()) continue
-    const canonicalKey = normalizeVariantAttributeKey(row.key)
-    const existing = seen.get(canonicalKey)
-    if (!row.isPersisted) {
-      if (existing) return true
-      seen.set(canonicalKey, { hasNew: true })
-    } else if (existing?.hasNew) {
-      return true
-    } else if (!existing) {
-      seen.set(canonicalKey, { hasNew: false })
-    }
+    if (seen.has(row.key)) return true
+    seen.add(row.key)
   }
   return false
 }
@@ -70,15 +47,12 @@ export function normalizeVariantAttributeRows(rows: VariantAttributeRow[]) {
   if (hasNewVariantAttributeKeyCollision(rows)) throw new Error('Variant attribute keys must be unique')
   const attributes: Record<string, string> = {}
   rows.forEach((row) => {
-    const key = row.isPersisted ? row.key : normalizeVariantAttributeKey(row.key)
+    const key = row.key
     const isUnchangedPersisted = row.isPersisted && row.originalValue !== undefined && row.value === row.originalValue
     const value = isUnchangedPersisted ? row.value : row.value.trim()
-    if (!key && !value) return
-    if (!key || !value) throw new Error('Variant attributes require both a key and value')
+    if (!key.trim() && !value) return
+    if (!key.trim() || !value) throw new Error('Variant attributes require both a key and value')
     if (isDangerousVariantAttributeKey(row.key)) throw new Error('Variant attribute key is unsafe')
-    if (!row.isPersisted && !isCanonicalVariantAttributeKey(key)) {
-      throw new Error('Variant attribute key is invalid')
-    }
     if (Object.prototype.hasOwnProperty.call(attributes, key)) throw new Error('Variant attribute keys must be unique')
     attributes[key] = key === 'color' && isSixDigitHexColor(value) ? value.toUpperCase() : value
   })
@@ -101,7 +75,13 @@ export function productVariantToFormValues(variant: ProductVariant): ProductVari
     sku: variant.sku,
     attributes:
       presentation.kind === 'flat'
-        ? presentation.entries.map(([key, value]) => ({ key, value, isPersisted: true, originalValue: value }))
+        ? presentation.entries.map(([key, value]) => ({
+            key,
+            value,
+            isPersisted: true,
+            originalKey: key,
+            originalValue: value,
+          }))
         : [{ key: '', value: '' }],
     priceOverride: variant.priceOverride,
     isActive: variant.isActive,
@@ -127,16 +107,13 @@ export function buildProductVariantUpdatePayload(
   }
   const attributes: VariantAttributes = {}
   values.attributes.forEach((row) => {
-    const key = row.isPersisted ? row.key : normalizeVariantAttributeKey(row.key)
+    const key = row.key
     const originalValue = row.isPersisted ? (row.originalValue ?? currentFlat[key]) : undefined
     const isUnchangedPersisted = row.isPersisted && originalValue !== undefined && row.value === originalValue
     const value = isUnchangedPersisted ? row.value : row.value.trim()
-    if (!key && !value) return
-    if (!key || !value) throw new Error('Variant attributes require both a key and value')
+    if (!key.trim() && !value) return
+    if (!key.trim() || !value) throw new Error('Variant attributes require both a key and value')
     if (isDangerousVariantAttributeKey(row.key)) throw new Error('Variant attribute key is unsafe')
-    if (!row.isPersisted && !isCanonicalVariantAttributeKey(key)) {
-      throw new Error('Variant attribute key is invalid')
-    }
     if (Object.prototype.hasOwnProperty.call(attributes, key)) throw new Error('Variant attribute keys must be unique')
     attributes[key] =
       !isUnchangedPersisted && key === 'color' && isSixDigitHexColor(value) ? value.toUpperCase() : value

@@ -273,7 +273,7 @@ describe('ProductCreatePage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add Variant' }))
     await user.type(screen.getAllByRole('textbox', { name: 'SKU' })[1], 'VAR-RED')
-    await user.type(screen.getByRole('textbox', { name: 'Attribute Key' }), 'Color')
+    await user.type(screen.getByRole('combobox', { name: 'Attribute Name' }), 'color')
     fireEvent.change(screen.getByLabelText('Attribute Value'), { target: { value: '#c8102e' } })
     await user.click(screen.getByRole('button', { name: 'Add Stock' }))
     await user.click(screen.getByRole('combobox', { name: 'Warehouse' }))
@@ -362,7 +362,7 @@ describe('ProductCreatePage', () => {
     await fillRequiredFields(user)
     await user.click(screen.getByRole('button', { name: 'Add Variant' }))
     await user.type(screen.getAllByRole('textbox', { name: 'SKU' })[1], 'VAR-COLOR')
-    await user.type(screen.getByRole('textbox', { name: 'Attribute Key' }), 'Color')
+    await user.type(screen.getByRole('combobox', { name: 'Attribute Name' }), 'color')
     fireEvent.change(screen.getByLabelText('Attribute Value'), { target: { value: '#c8102e' } })
     await user.click(screen.getByRole('button', { name: 'Create Product' }))
 

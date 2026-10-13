@@ -148,6 +148,29 @@
       "existingImageAlt": "Existing product image {{id}}"
     },
     "variants": {
+      "attributeNames": {
+        "color": "Color",
+        "size": "Size",
+        "length": "Length",
+        "width": "Width",
+        "height": "Height",
+        "material": "Material",
+        "weight": "Weight",
+        "diameter": "Diameter",
+        "capacity": "Capacity",
+        "style": "Style",
+        "shape": "Shape",
+        "finish": "Finish",
+        "plating": "Plating",
+        "stone_type": "Stone Type",
+        "flower_color": "Flower Color",
+        "flower_count": "Flower Count",
+        "packaging_type": "Packaging Type",
+        "occasion": "Occasion",
+        "scent": "Scent",
+        "model": "Model"
+      },
+      "useCustomAttribute": "Use \"{{key}}\"",
       "title": "Variants",
       "description": "Manage the purchasable options for this product.",
       "empty": "No variants have been added.",
@@ -164,7 +187,7 @@
       "fields": {
         "sku": "SKU",
         "attributes": "Attributes",
-        "attributeKey": "Attribute Key",
+        "attributeKey": "Attribute Name",
         "attributeValue": "Attribute Value",
         "priceOverride": "Price Override",
         "active": "Active",
@@ -186,9 +209,9 @@
         "deleteImageNamed": "Delete image {{id}} from variant {{sku}}"
       },
       "validation": {
-        "attributeIncomplete": "Enter both an attribute key and value.",
-        "attributeDuplicate": "Attribute keys must be unique after normalization.",
-        "attributeInvalidKey": "Enter an attribute key containing letters or numbers.",
+        "attributeIncomplete": "Enter both an attribute name and value.",
+        "attributeDuplicate": "Attribute names must be unique.",
+        "attributeInvalidKey": "This attribute name is reserved. Choose another name.",
         "attributeInvalidColor": "Enter a six-digit HEX color such as #C8102E."
       },
       "feedback": {

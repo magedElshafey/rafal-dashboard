@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { FormWrapper } from '@/components/core/FormWrapper'
 import { FormCheckbox, FormImageUploader, FormInput } from '@/components/form'
 import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
+import { VariantAttributeName } from '@/modules/products/components/VariantAttributeName'
 import { Button } from '@/components/ui/button'
 import { createProductVariantSchema } from '@/modules/products/schemas/product-variant.schema'
 import { PRODUCT_IMAGE_MAX_SIZE } from '@/modules/products/schemas/product-create.schema'
 import type { ProductVariantFormValues } from '@/modules/products/types/product-variant.types'
-import { isSixDigitHexColor, normalizeVariantAttributeKey } from '@/modules/products/utils/product-variant.utils'
+import { isSixDigitHexColor } from '@/modules/products/utils/product-variant.utils'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
 export const EMPTY_PRODUCT_VARIANT_FORM: ProductVariantFormValues = {
@@ -25,7 +26,6 @@ type Props = {
   formId: string
   isSubmitting: boolean
   defaultValues?: ProductVariantFormValues
-  lockedAttributeCount?: number
   onSubmit: (values: ProductVariantFormValues, methods: UseFormReturn<ProductVariantFormValues>) => Promise<void>
 }
 
@@ -36,10 +36,14 @@ function VariantAttributeValue({ index, disabled }: { index: number; disabled: b
   const value = useWatch({ control, name: `attributes.${index}.value` }) ?? ''
   const isPersisted = useWatch({ control, name: `attributes.${index}.isPersisted` }) ?? false
   const originalValue = useWatch({ control, name: `attributes.${index}.originalValue` })
-  const normalizedKey = isPersisted ? key : normalizeVariantAttributeKey(key)
+  const originalKey = useWatch({ control, name: `attributes.${index}.originalKey` })
   const isLegacyPersistedColor =
-    normalizedKey === 'color' && isPersisted && originalValue !== undefined && !isSixDigitHexColor(originalValue)
-  const usesColorPicker = normalizedKey === 'color' && !isLegacyPersistedColor && (!value || isSixDigitHexColor(value))
+    key === 'color' &&
+    isPersisted &&
+    originalKey === 'color' &&
+    originalValue !== undefined &&
+    !isSixDigitHexColor(originalValue)
+  const usesColorPicker = key === 'color' && !isLegacyPersistedColor && (!value || isSixDigitHexColor(value))
 
   return (
     <div className="space-y-2">
@@ -57,7 +61,7 @@ function VariantAttributeValue({ index, disabled }: { index: number; disabled: b
   )
 }
 
-function VariantAttributesEditor({ disabled, lockedCount }: { disabled: boolean; lockedCount: number }) {
+function VariantAttributesEditor({ disabled }: { disabled: boolean }) {
   const { t } = useTranslation()
   const { control } = useFormContext<ProductVariantFormValues>()
   const { fields, append, remove } = useFieldArray({ control, name: 'attributes' })
@@ -69,11 +73,7 @@ function VariantAttributesEditor({ disabled, lockedCount }: { disabled: boolean;
       <legend className="text-sm font-medium text-foreground">{t('products.variants.fields.attributes')}</legend>
       {fields.map((field, index) => (
         <div key={field.id} className="grid items-start gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <FormInput
-            name={`attributes.${index}.key`}
-            label={t('products.variants.fields.attributeKey')}
-            disabled={disabled || index < lockedCount}
-          />
+          <VariantAttributeName name={`attributes.${index}.key`} disabled={disabled} />
           <VariantAttributeValue index={index} disabled={disabled} />
           <Button
             type="button"
@@ -105,7 +105,6 @@ export function ProductVariantForm({
   formId,
   isSubmitting,
   defaultValues = EMPTY_PRODUCT_VARIANT_FORM,
-  lockedAttributeCount = 0,
   onSubmit,
 }: Props) {
   const { t } = useTranslation()
@@ -158,7 +157,7 @@ export function ProductVariantForm({
         required
         autoFocus
       />
-      <VariantAttributesEditor disabled={isSubmitting} lockedCount={lockedAttributeCount} />
+      <VariantAttributesEditor disabled={isSubmitting} />
       <FormInput
         name="priceOverride"
         label={t('products.variants.fields.priceOverride')}

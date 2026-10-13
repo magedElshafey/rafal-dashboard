@@ -5,10 +5,8 @@ import { PRODUCT_IMAGE_MAX_SIZE } from '@/modules/products/schemas/product-creat
 import type { ProductVariantFormValues } from '@/modules/products/types/product-variant.types'
 import {
   hasNewVariantAttributeKeyCollision,
-  isCanonicalVariantAttributeKey,
   isDangerousVariantAttributeKey,
   isSixDigitHexColor,
-  normalizeVariantAttributeKey,
 } from '@/modules/products/utils/product-variant.utils'
 
 export type ProductVariantValidationMessages = {
@@ -35,6 +33,7 @@ export function createProductVariantSchema(messages: ProductVariantValidationMes
             key: yup.string().defined(),
             value: yup.string().defined(),
             isPersisted: yup.boolean().optional(),
+            originalKey: yup.string().optional(),
             originalValue: yup.string().optional(),
           })
           .test('complete-row', messages.attributeIncomplete, function (row) {
@@ -45,18 +44,17 @@ export function createProductVariantSchema(messages: ProductVariantValidationMes
             return this.createError({ path: `${this.path}.${key ? 'value' : 'key'}` })
           })
           .test('valid-key', messages.attributeInvalidKey, function (row) {
-            if (!row?.key.trim() || row.isPersisted) return true
-            const key = normalizeVariantAttributeKey(row.key)
-            return (
-              (!isDangerousVariantAttributeKey(row.key) && isCanonicalVariantAttributeKey(key)) ||
-              this.createError({ path: `${this.path}.key` })
-            )
+            if (!row?.key.trim()) return true
+            return !isDangerousVariantAttributeKey(row.key) || this.createError({ path: `${this.path}.key` })
           })
           .test('valid-color', messages.attributeInvalidColor, function (row) {
             if (!row?.key.trim() || !row.value.trim()) return true
-            const key = row.isPersisted ? row.key : normalizeVariantAttributeKey(row.key)
+            const key = row.key
             const isUnchangedLegacy =
-              row.isPersisted && row.originalValue !== undefined && row.value === row.originalValue
+              row.isPersisted &&
+              row.originalKey === 'color' &&
+              row.originalValue !== undefined &&
+              row.value === row.originalValue
             return (
               key !== 'color' ||
               isSixDigitHexColor(row.value) ||

@@ -10,7 +10,6 @@ import type { ProductVariant, ProductVariantFormValues } from '@/modules/product
 import {
   buildProductVariantCreatePayload,
   buildProductVariantUpdatePayload,
-  getVariantAttributesPresentation,
   productVariantToFormValues,
 } from '@/modules/products/utils/product-variant.utils'
 
@@ -28,7 +27,6 @@ export function ProductVariantDrawer({ productId, open, variant, onOpenChange }:
     () => (variant ? productVariantToFormValues(variant) : EMPTY_PRODUCT_VARIANT_FORM),
     [variant]
   )
-  const attributes = variant ? getVariantAttributesPresentation(variant.attributes) : null
 
   const handleSubmit = async (values: ProductVariantFormValues, methods: UseFormReturn<ProductVariantFormValues>) => {
     if (lockRef.current) return
@@ -64,7 +62,6 @@ export function ProductVariantDrawer({ productId, open, variant, onOpenChange }:
         formId={FORM_ID}
         isSubmitting={createVariant.isPending || updateVariant.isPending}
         defaultValues={initialValues}
-        lockedAttributeCount={attributes?.kind === 'flat' ? attributes.entries.length : 0}
         onSubmit={handleSubmit}
       />
     </EntityFormDrawer>

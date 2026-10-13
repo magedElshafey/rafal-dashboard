@@ -42,6 +42,7 @@ export type VariantAttributeRow = {
   key: string
   value: string
   isPersisted?: boolean
+  originalKey?: string
   originalValue?: string
 }
 

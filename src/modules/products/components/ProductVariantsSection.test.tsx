@@ -131,7 +131,7 @@ describe('ProductVariantsSection', () => {
     const created = {
       id: 14,
       sku: 'VAR-C',
-      attributes: { any_thing_else: 'Test value' },
+      attributes: { ' Any thing else ': 'Test value' },
       priceOverride: 80,
       isActive: true,
       images: [],
@@ -143,7 +143,7 @@ describe('ProductVariantsSection', () => {
     await user.click(screen.getByRole('button', { name: 'Add Variant' }))
     const drawer = await screen.findByRole('dialog')
     await user.type(within(drawer).getByRole('textbox', { name: 'SKU' }), ' VAR-C ')
-    await user.type(within(drawer).getByRole('textbox', { name: 'Attribute Key' }), ' Any thing else ')
+    await user.type(within(drawer).getByRole('combobox', { name: 'Attribute Name' }), ' Any thing else ')
     await user.type(within(drawer).getByRole('textbox', { name: 'Attribute Value' }), ' Test value ')
     await user.type(within(drawer).getByRole('spinbutton', { name: 'Price Override' }), '80')
     await user.click(within(drawer).getByRole('button', { name: 'Create Variant' }))
@@ -151,7 +151,7 @@ describe('ProductVariantsSection', () => {
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
     expect(create).toHaveBeenCalledWith(7, {
       sku: 'VAR-C',
-      attributes: { any_thing_else: 'Test value' },
+      attributes: { ' Any thing else ': 'Test value' },
       priceOverride: 80,
       isActive: true,
       images: [],
@@ -176,7 +176,7 @@ describe('ProductVariantsSection', () => {
     await user.click(screen.getByRole('button', { name: 'Add Variant' }))
     const drawer = await screen.findByRole('dialog')
     await user.type(within(drawer).getByRole('textbox', { name: 'SKU' }), 'VAR-COLOR')
-    await user.type(within(drawer).getByRole('textbox', { name: 'Attribute Key' }), 'Color')
+    await user.type(within(drawer).getByRole('combobox', { name: 'Attribute Name' }), 'color')
     const value = within(drawer).getByLabelText('Attribute Value')
     expect(value).toHaveAttribute('type', 'color')
     fireEvent.change(value, { target: { value: '#c8102e' } })
@@ -263,7 +263,7 @@ describe('ProductVariantsSection', () => {
 
     const removeNewAttribute = within(drawer).getByRole('button', { name: 'Remove attribute row 2' })
     expect(removeNewAttribute).toBeEnabled()
-    await user.type(within(drawer).getAllByRole('textbox', { name: 'Attribute Key' })[1], 'material')
+    await user.type(within(drawer).getAllByRole('combobox', { name: 'Attribute Name' })[1], 'material')
     await user.type(within(drawer).getAllByLabelText('Attribute Value')[1], 'Gold')
     await user.click(removeNewAttribute)
 
@@ -348,8 +348,8 @@ describe('ProductVariantsSection', () => {
     await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-UNICODE' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Edit variant VAR-UNICODE' }))
     const drawer = await screen.findByRole('dialog')
-    const unicodeKeyInput = within(drawer).getAllByRole('textbox', { name: 'Attribute Key' })[3]
-    expect(unicodeKeyInput).toBeDisabled()
+    const unicodeKeyInput = within(drawer).getAllByRole('combobox', { name: 'Attribute Name' })[3]
+    expect(unicodeKeyInput).toBeEnabled()
     expect(unicodeKeyInput).toHaveValue(unicodeKey)
     const sku = within(drawer).getByRole('textbox', { name: 'SKU' })
     await user.clear(sku)

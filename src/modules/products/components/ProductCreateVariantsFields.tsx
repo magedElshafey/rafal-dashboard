@@ -5,10 +5,11 @@ import { useTranslation } from 'react-i18next'
 
 import { FormCheckbox, FormInput, FormSelect } from '@/components/form'
 import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
+import { VariantAttributeName } from '@/modules/products/components/VariantAttributeName'
 import { Button } from '@/components/ui/button'
 import type { ProductCreateFormValues } from '@/modules/products/types/product.types'
 import { createEmptyProductStock, createEmptyProductVariant } from '@/modules/products/utils/product-create.utils'
-import { isSixDigitHexColor, normalizeVariantAttributeKey } from '@/modules/products/utils/product-variant.utils'
+import { isSixDigitHexColor } from '@/modules/products/utils/product-variant.utils'
 import { useWarehouses } from '@/modules/warehouses/hooks/useWarehouses'
 import type { WarehouseListItem } from '@/modules/warehouses/types/warehouse.types'
 
@@ -148,14 +149,11 @@ const AttributeRow = memo(function AttributeRow({
   const { control } = useFormContext<ProductCreateFormValues>()
   const key = useWatch({ control, name: `variants.${variantIndex}.attributes.${attributeIndex}.key` }) ?? ''
   const value = useWatch({ control, name: `variants.${variantIndex}.attributes.${attributeIndex}.value` }) ?? ''
-  const usesColorPicker = normalizeVariantAttributeKey(key) === 'color' && (!value || isSixDigitHexColor(value))
+  const usesColorPicker = key === 'color' && (!value || isSixDigitHexColor(value))
 
   return (
     <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-      <FormInput
-        name={`variants.${variantIndex}.attributes.${attributeIndex}.key`}
-        label={t('products.variants.fields.attributeKey')}
-      />
+      <VariantAttributeName name={`variants.${variantIndex}.attributes.${attributeIndex}.key`} />
       <div className="space-y-2">
         <FormInput
           name={`variants.${variantIndex}.attributes.${attributeIndex}.value`}

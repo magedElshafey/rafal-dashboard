@@ -182,7 +182,7 @@ describe('aggregate Product Create validation', () => {
       isActive: true,
       attributes: [
         { key: 'Stone Type', value: 'diamond' },
-        { key: 'stone_type', value: 'ruby' },
+        { key: 'Stone Type', value: 'ruby' },
       ],
       stocks: [
         { warehouseId: 2, quantity: 0 },

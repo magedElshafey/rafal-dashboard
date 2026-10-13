@@ -7,9 +7,7 @@ import {
   buildProductVariantUpdatePayload,
   getVariantAttributesPresentation,
   hasNewVariantAttributeKeyCollision,
-  isCanonicalVariantAttributeKey,
   isSixDigitHexColor,
-  normalizeVariantAttributeKey,
   normalizeVariantAttributeRows,
 } from '@/modules/products/utils/product-variant.utils'
 
@@ -27,34 +25,28 @@ const messages = {
 }
 
 describe('Product Variant form mapping', () => {
-  it('ignores blank rows and normalizes dynamic technical keys without changing business values', () => {
+  it('ignores blank rows and preserves dynamic keys without changing business values', () => {
     expect(
       normalizeVariantAttributeRows([
         { key: ' ', value: '' },
         { key: ' Any thing else ', value: ' Blue Diamond ' },
       ])
-    ).toEqual({ any_thing_else: 'Blue Diamond' })
+    ).toEqual({ ' Any thing else ': 'Blue Diamond' })
   })
 
-  it('normalizes keys deterministically', () => {
-    expect(normalizeVariantAttributeKey('Color')).toBe('color')
-    expect(normalizeVariantAttributeKey('Any thing else')).toBe('any_thing_else')
-    expect(normalizeVariantAttributeKey('  Stone   Type  ')).toBe('stone_type')
-    expect(normalizeVariantAttributeKey('stone-type')).toBe('stone_type')
-    expect(normalizeVariantAttributeKey('stone___type')).toBe('stone_type')
-    expect(normalizeVariantAttributeKey('---Stone / Type---')).toBe('stone_type')
-    expect(isCanonicalVariantAttributeKey('stone_type')).toBe(true)
-    expect(isCanonicalVariantAttributeKey('size_2')).toBe(true)
-    expect(isCanonicalVariantAttributeKey('é_color')).toBe(false)
-    expect(isCanonicalVariantAttributeKey('نوع_الحجر')).toBe(false)
-  })
+  it.each(['Color', ' Any thing else ', 'نوع الحجر', 'é_color', 'stone-type', '---'])(
+    'preserves custom key %s exactly',
+    (key) => {
+      expect(normalizeVariantAttributeRows([{ key, value: 'value' }])).toEqual({ [key]: 'value' })
+    }
+  )
 
-  it('rejects incomplete rows and collisions after key normalization', () => {
+  it('rejects incomplete rows and exact duplicate keys', () => {
     expect(() => normalizeVariantAttributeRows([{ key: 'color', value: '' }])).toThrow(/both/)
     expect(() =>
       normalizeVariantAttributeRows([
         { key: 'Stone Type', value: 'diamond' },
-        { key: 'stone-type', value: 'ruby' },
+        { key: 'Stone Type', value: 'ruby' },
       ])
     ).toThrow(/unique/)
   })
@@ -63,7 +55,7 @@ describe('Product Variant form mapping', () => {
     expect(
       normalizeVariantAttributeRows([
         { key: 'Legacy Key', value: 'Keep Me', isPersisted: true },
-        { key: 'Color', value: '#c8102e' },
+        { key: 'color', value: '#c8102e' },
       ])
     ).toEqual({ 'Legacy Key': 'Keep Me', color: '#C8102E' })
     expect(isSixDigitHexColor('#C8102E')).toBe(true)
@@ -74,7 +66,7 @@ describe('Product Variant form mapping', () => {
     const schema = createProductVariantSchema(messages)
     const values = (value: string) => ({
       sku: 'VAR',
-      attributes: [{ key: 'color', value, isPersisted: true, originalValue: 'red' }],
+      attributes: [{ key: 'color', value, isPersisted: true, originalKey: 'color', originalValue: 'red' }],
       priceOverride: null,
       isActive: true,
       images: { files: [], removedExistingIds: [] },
@@ -89,7 +81,7 @@ describe('Product Variant form mapping', () => {
     const schema = createProductVariantSchema(messages)
     const values = (value: string) => ({
       sku: 'VAR',
-      attributes: [{ key: 'color', value, isPersisted: true, originalValue: '#C8102E' }],
+      attributes: [{ key: 'color', value, isPersisted: true, originalKey: 'color', originalValue: '#C8102E' }],
       priceOverride: null,
       isActive: true,
       images: { files: [], removedExistingIds: [] },
@@ -99,7 +91,7 @@ describe('Product Variant form mapping', () => {
     await expect(schema.validate(values('gold'))).rejects.toThrow('invalid-color')
   })
 
-  it.each(['تيست', 'تيست_تيست', 'نوع الحجر', 'é_color'])('rejects a NEW non-ASCII technical key: %s', async (key) => {
+  it.each(['تيست', 'تيست_تيست', 'نوع الحجر', 'é_color'])('accepts a new Unicode key: %s', async (key) => {
     const schema = createProductVariantSchema(messages)
     await expect(
       schema.validate({
@@ -109,7 +101,7 @@ describe('Product Variant form mapping', () => {
         isActive: true,
         images: { files: [], removedExistingIds: [] },
       })
-    ).rejects.toThrow('invalid-key')
+    ).resolves.toBeDefined()
   })
 
   it.each(['__proto__', 'prototype', 'constructor'])('rejects the dangerous NEW key %s', async (key) => {
@@ -126,11 +118,11 @@ describe('Product Variant form mapping', () => {
     expect(() => normalizeVariantAttributeRows([{ key, value: 'value' }])).toThrow()
   })
 
-  it('rejects a NEW canonical collision but grandfathers collisions between persisted keys', () => {
+  it('rejects exact duplicates and preserves distinct legacy keys', () => {
     expect(
       hasNewVariantAttributeKeyCollision([
         { key: 'Stone Type', value: 'legacy', isPersisted: true, originalValue: 'legacy' },
-        { key: 'stone-type', value: 'new' },
+        { key: 'Stone Type', value: 'new' },
       ])
     ).toBe(true)
     expect(
@@ -153,7 +145,7 @@ describe('Product Variant form mapping', () => {
       })
     ).toEqual({
       sku: 'VAR',
-      attributes: { stone_type: 'Blue Diamond' },
+      attributes: { ' Stone Type ': 'Blue Diamond' },
       priceOverride: null,
       isActive: true,
       images: [image],
@@ -335,7 +327,7 @@ describe('Product Variant form mapping', () => {
     }
     const values = (value: string) => ({
       sku: 'VAR',
-      attributes: [{ key: 'color', value, isPersisted: true, originalValue: 'red' }],
+      attributes: [{ key: 'color', value, isPersisted: true, originalKey: 'color', originalValue: 'red' }],
       priceOverride: null,
       isActive: true,
       images: { files: [], removedExistingIds: [] },
@@ -426,17 +418,15 @@ describe('Product Variant form mapping', () => {
         ...base,
         attributes: [
           { key: 'Stone Type', value: 'diamond' },
-          { key: 'stone-type', value: 'ruby' },
+          { key: 'Stone Type', value: 'ruby' },
         ],
       })
     ).rejects.toThrow('duplicate')
-    await expect(schema.validate({ ...base, attributes: [{ key: '---', value: 'value' }] })).rejects.toThrow(
-      'invalid-key'
-    )
-    await expect(schema.validate({ ...base, attributes: [{ key: 'Color', value: 'red' }] })).rejects.toThrow(
+    await expect(schema.validate({ ...base, attributes: [{ key: '---', value: 'value' }] })).resolves.toBeDefined()
+    await expect(schema.validate({ ...base, attributes: [{ key: 'color', value: 'red' }] })).rejects.toThrow(
       'invalid-color'
     )
-    await expect(schema.validate({ ...base, attributes: [{ key: 'Color', value: '#c8102e' }] })).resolves.toBeDefined()
+    await expect(schema.validate({ ...base, attributes: [{ key: 'color', value: '#c8102e' }] })).resolves.toBeDefined()
     await expect(
       schema.validate({
         ...base,
