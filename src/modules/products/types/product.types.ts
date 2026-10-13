@@ -68,6 +68,8 @@ export type ProductsFilters = {
   sortDir: ProductSortDir | null
 }
 
+export type PersonalizationLanguage = 'ar' | 'en'
+
 export type ProductFormValues = {
   categoryId: number | null
   sku: string
@@ -79,6 +81,7 @@ export type ProductFormValues = {
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
+  personalizationLanguages: PersonalizationLanguage[]
   maxCartItemQuantity: number | null
   isNewArrival: boolean
   isActive: boolean
@@ -145,7 +148,7 @@ export type ProductDetail = {
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
-  personalizationLanguages?: JsonValue | null
+  personalizationLanguages?: PersonalizationLanguage[]
   maxCartItemQuantity: number | null
   isNewArrival: boolean
   isActive: boolean
@@ -173,6 +176,7 @@ export type ProductUpdatePayload = Partial<{
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
+  personalizationLanguages: PersonalizationLanguage[]
   maxCartItemQuantity: number
   isNewArrival: boolean
   isActive: boolean
@@ -191,6 +195,7 @@ export type ProductCreatePayload = {
   isPersonalizable: boolean
   personalizationMaxLength: number | null
   personalizationFee: number | null
+  personalizationLanguages: PersonalizationLanguage[]
   maxCartItemQuantity: number
   isNewArrival: boolean
   isActive: boolean

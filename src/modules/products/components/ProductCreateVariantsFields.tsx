@@ -184,7 +184,8 @@ function VariantAttributesEditor({ variantIndex }: { variantIndex: number }) {
   const { control } = useFormContext<ProductCreateFormValues>()
   const { fields, append, remove } = useFieldArray({ control, name: `variants.${variantIndex}.attributes` })
   const { errors } = useFormState({ control, name: `variants.${variantIndex}.attributes` })
-  const error = errors.variants?.[variantIndex]?.attributes as { message?: string } | undefined
+  const attributeErrors = errors.variants?.[variantIndex]?.attributes
+  const error = attributeErrors?.root ?? attributeErrors
 
   return (
     <fieldset className="space-y-3">

@@ -425,6 +425,70 @@ describe('ProductVariantsSection', () => {
     expect(screen.getByText('VAR-B')).toBeInTheDocument()
   })
 
+  it('edits keys, deletes the variant, and recreates with fresh editable attributes', async () => {
+    const user = userEvent.setup()
+    const update = vi.spyOn(productVariantsService, 'update').mockResolvedValue({
+      ...product.variants[0],
+      attributes: { 'اسم مخصص': '#C0C0C0' },
+    })
+    vi.spyOn(productVariantsService, 'delete').mockResolvedValue({ success: true, message: 'deleted' })
+    const create = vi.spyOn(productVariantsService, 'create').mockResolvedValue({
+      ...product.variants[0],
+      id: 99,
+      sku: 'RECREATED',
+      attributes: { 'Custom Key': 'value' },
+    })
+    renderSection()
+    await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-A' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit variant VAR-A' }))
+    let drawer = await screen.findByRole('dialog')
+    const key = within(drawer).getByRole('combobox', { name: 'Attribute Name' })
+    expect(key).toBeEnabled()
+    await user.clear(key)
+    await user.type(key, 'اسم مخصص')
+    expect(within(drawer).getByLabelText('Attribute Value')).toHaveAttribute('type', 'text')
+    await user.click(within(drawer).getByRole('button', { name: 'Update Variant' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, 12, { attributes: { 'اسم مخصص': '#C0C0C0' } }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-A' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete variant VAR-A' }))
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete Variant' }))
+    await waitFor(() => expect(screen.queryByText('VAR-A')).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Add Variant' }))
+    drawer = await screen.findByRole('dialog')
+    const freshKey = within(drawer).getByRole('combobox', { name: 'Attribute Name' })
+    expect(freshKey).toBeEnabled()
+    expect(freshKey).toHaveValue('')
+    expect(within(drawer).getByLabelText('Attribute Value')).toHaveValue('')
+    await user.type(within(drawer).getByRole('textbox', { name: 'SKU' }), 'RECREATED')
+    await user.type(freshKey, 'Custom Key')
+    await user.type(within(drawer).getByLabelText('Attribute Value'), 'value')
+    await user.click(within(drawer).getByRole('button', { name: 'Create Variant' }))
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(7, expect.objectContaining({ attributes: { 'Custom Key': 'value' } }))
+    )
+  })
+
+  it('blocks duplicate persisted keys after a rename and allows correction', async () => {
+    const user = userEvent.setup()
+    const variant = { ...product.variants[0], attributes: { size: 'M', material: 'Gold' } }
+    const update = vi.spyOn(productVariantsService, 'update').mockResolvedValue(variant)
+    renderSection({ ...product, variants: [variant] })
+    await user.click(screen.getByRole('button', { name: 'Actions for variant VAR-A' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit variant VAR-A' }))
+    const drawer = await screen.findByRole('dialog')
+    const key = within(drawer).getAllByRole('combobox', { name: 'Attribute Name' })[1]
+    await user.clear(key)
+    await user.type(key, 'size')
+    await user.click(within(drawer).getByRole('button', { name: 'Update Variant' }))
+    expect(await within(drawer).findByText('Attribute names must be unique.')).toBeInTheDocument()
+    expect(update).not.toHaveBeenCalled()
+    await user.clear(key)
+    await user.type(key, 'خامة')
+    await user.click(within(drawer).getByRole('button', { name: 'Update Variant' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, 12, { attributes: { size: 'M', خامة: 'Gold' } }))
+  })
+
   it('preserves the Variant after a failed Delete', async () => {
     vi.spyOn(productVariantsService, 'delete').mockRejectedValueOnce(new Error('unsafe'))
     const user = userEvent.setup()

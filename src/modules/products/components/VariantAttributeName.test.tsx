@@ -33,12 +33,12 @@ describe('VariantAttributeName', () => {
     renderField()
     const input = screen.getByRole('combobox')
     await user.type(input, search)
-    await user.click(screen.getByRole('option', { name: label, exact: true }))
+    await user.click(screen.getByRole('option', { name: label }))
     expect(input).toHaveValue(key)
     expect(input).toHaveAttribute('aria-expanded', 'false')
     expect(input).toHaveFocus()
     await user.keyboard('{ArrowDown}')
-    expect(screen.getByRole('option', { name: label, exact: true })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('option', { name: label })).toHaveAttribute('aria-selected', 'true')
   })
 
   it.each(['خاصية مخصصة', ' My Custom Key ', 'Color'])('keeps custom key %s exactly on submission', async (key) => {

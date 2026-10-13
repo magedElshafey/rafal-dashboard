@@ -1,5 +1,6 @@
 import { normalizeDashboardProductVariant } from '@/modules/products/api/product-variants.service'
 import type {
+  PersonalizationLanguage,
   ProductCreatePayload,
   ProductCreateResponse,
   ProductDetail,
@@ -40,6 +41,8 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
   if (payload.images.length === 0) throw new Error('Product Create requires at least one image')
 
   const body = new FormData()
+  // Temporary compatibility field required by the backend; never editable form state.
+  body.set('hide_price_on_packaging', '0')
   body.set('category_id', String(payload.categoryId))
   body.set('sku', payload.sku.trim())
   body.set('name[ar]', payload.name.ar.trim())
@@ -53,6 +56,7 @@ export function serializeProductCreate(payload: ProductCreatePayload) {
   if (payload.isPersonalizable) {
     appendOptional(body, 'personalization_max_length', payload.personalizationMaxLength)
     appendOptional(body, 'personalization_fee', payload.personalizationFee)
+    payload.personalizationLanguages.forEach((language) => body.append('personalization_languages[]', language))
   }
   body.set('max_cart_item_quantity', String(payload.maxCartItemQuantity))
   body.set('is_new_arrival', String(toApiBoolean(payload.isNewArrival)))
@@ -127,7 +131,11 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
     isPersonalizable: apiBoolean(raw.is_personalizable, 'personalizable flag'),
     personalizationMaxLength: nullableFiniteNumber(raw.personalization_max_length, 'personalization max length'),
     personalizationFee: nullableFiniteNumber(raw.personalization_fee, 'personalization fee'),
-    personalizationLanguages: raw.personalization_languages ?? null,
+    personalizationLanguages: Array.isArray(raw.personalization_languages)
+      ? raw.personalization_languages.filter(
+          (language): language is PersonalizationLanguage => language === 'ar' || language === 'en'
+        )
+      : [],
     maxCartItemQuantity: nullableFiniteNumber(raw.max_cart_item_quantity ?? null, 'maximum cart item quantity'),
     isNewArrival: apiBoolean(raw.is_new_arrival, 'new arrival flag'),
     isActive: apiBoolean(raw.is_active, 'active flag'),
@@ -150,6 +158,7 @@ export function normalizeProductDetail(raw: RawProductDetail): ProductDetail {
 
 export function serializeProductUpdate(payload: ProductUpdatePayload) {
   const json = {
+    hide_price_on_packaging: false,
     ...(payload.categoryId !== undefined ? { category_id: payload.categoryId } : {}),
     ...(payload.sku !== undefined ? { sku: payload.sku.trim() } : {}),
     ...(payload.name !== undefined
@@ -177,11 +186,16 @@ export function serializeProductUpdate(payload: ProductUpdatePayload) {
     ...(payload.discountEndAt !== undefined
       ? { discount_end_at: payload.discountEndAt === null ? null : formatProductDateTime(payload.discountEndAt) }
       : {}),
-    ...(payload.isPersonalizable !== undefined ? { is_personalizable: toApiBoolean(payload.isPersonalizable) } : {}),
-    ...(payload.personalizationMaxLength !== undefined
+    ...(payload.isPersonalizable !== undefined ? { is_personalizable: payload.isPersonalizable } : {}),
+    ...(payload.isPersonalizable !== false && payload.personalizationMaxLength !== undefined
       ? { personalization_max_length: payload.personalizationMaxLength }
       : {}),
-    ...(payload.personalizationFee !== undefined ? { personalization_fee: payload.personalizationFee } : {}),
+    ...(payload.isPersonalizable !== false && payload.personalizationFee !== undefined
+      ? { personalization_fee: payload.personalizationFee }
+      : {}),
+    ...(payload.isPersonalizable !== false && payload.personalizationLanguages !== undefined
+      ? { personalization_languages: payload.personalizationLanguages }
+      : {}),
     ...(payload.maxCartItemQuantity !== undefined ? { max_cart_item_quantity: payload.maxCartItemQuantity } : {}),
     ...(payload.isNewArrival !== undefined ? { is_new_arrival: toApiBoolean(payload.isNewArrival) } : {}),
     ...(payload.isActive !== undefined ? { is_active: toApiBoolean(payload.isActive) } : {}),
@@ -190,6 +204,8 @@ export function serializeProductUpdate(payload: ProductUpdatePayload) {
   if (!payload.images?.length) return json
 
   const body = new FormData()
+  // Temporary compatibility field required by the backend; never editable form state.
+  body.set('hide_price_on_packaging', '0')
   appendPartial(body, 'category_id', payload.categoryId)
   appendPartial(body, 'sku', payload.sku?.trim())
   appendPartial(body, 'name[ar]', payload.name?.ar === null ? null : payload.name?.ar?.trim())
@@ -207,8 +223,11 @@ export function serializeProductUpdate(payload: ProductUpdatePayload) {
   )
   if (payload.isPersonalizable !== undefined)
     body.set('is_personalizable', String(toApiBoolean(payload.isPersonalizable)))
-  appendPartial(body, 'personalization_max_length', payload.personalizationMaxLength)
-  appendPartial(body, 'personalization_fee', payload.personalizationFee)
+  if (payload.isPersonalizable !== false) {
+    appendPartial(body, 'personalization_max_length', payload.personalizationMaxLength)
+    appendPartial(body, 'personalization_fee', payload.personalizationFee)
+    payload.personalizationLanguages?.forEach((language) => body.append('personalization_languages[]', language))
+  }
   appendPartial(body, 'max_cart_item_quantity', payload.maxCartItemQuantity)
   if (payload.isNewArrival !== undefined) body.set('is_new_arrival', String(toApiBoolean(payload.isNewArrival)))
   if (payload.isActive !== undefined) body.set('is_active', String(toApiBoolean(payload.isActive)))

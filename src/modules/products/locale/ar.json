@@ -72,6 +72,7 @@
       "imageDeleteError": "تعذر حذف صورة المنتج."
     },
     "validation": {
+      "personalizationLanguagesRequired": "اختر لغة واحدة على الأقل للتخصيص.",
       "required": "هذا الحقل مطلوب.",
       "validNumber": "أدخل رقمًا صالحًا.",
       "nonNegative": "أدخل صفرًا أو رقمًا موجبًا.",
@@ -88,6 +89,7 @@
       "duplicateWarehouse": "يمكن تعيين كل مستودع مرة واحدة فقط لكل خيار."
     },
     "create": {
+      "languages": { "ar": "العربية", "en": "الإنجليزية" },
       "title": "إنشاء منتج",
       "description": "أنشئ المنتج وخياراته ومخزون المستودعات في عملية واحدة.",
       "aggregate": {
@@ -109,6 +111,7 @@
         "discountEndAt": "تاريخ انتهاء الخصم",
         "isPersonalizable": "قابل للتخصيص",
         "personalizationMaxLength": "الحد الأقصى لطول التخصيص",
+        "personalizationLanguages": "لغات التخصيص",
         "personalizationFee": "رسوم التخصيص",
         "images": "صور المنتج",
         "maxCartItemQuantity": "الحد الأقصى لكمية المنتج في السلة",

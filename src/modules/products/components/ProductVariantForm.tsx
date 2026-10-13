@@ -66,7 +66,7 @@ function VariantAttributesEditor({ disabled }: { disabled: boolean }) {
   const { control } = useFormContext<ProductVariantFormValues>()
   const { fields, append, remove } = useFieldArray({ control, name: 'attributes' })
   const { errors } = useFormState({ control, name: 'attributes' })
-  const rootError = (errors.attributes as { message?: string } | undefined)?.message
+  const rootError = errors.attributes?.root?.message ?? errors.attributes?.message
 
   return (
     <fieldset className="space-y-3">

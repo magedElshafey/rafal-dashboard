@@ -28,6 +28,25 @@ const rawVariant = (overrides: Partial<RawDashboardProductVariant> = {}): RawDas
 describe('Product Variant service', () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it('serializes exact Arabic and English custom keys without row metadata in JSON and multipart', () => {
+    const attributes = { 'نوع الحجر': 'عقيق', ' My Key ': 'value', color: '#C8102E' }
+    const payload = { sku: 'VAR', attributes, priceOverride: null, isActive: true, images: [] }
+    expect(serializeProductVariantCreate(payload)).toEqual({ sku: 'VAR', attributes, is_active: 1 })
+    expect(serializeProductVariantUpdate({ attributes })).toEqual({ attributes })
+    const image = new File(['image'], 'variant.png', { type: 'image/png' })
+    const body = serializeProductVariantUpdate({ attributes, images: [image] })
+    expect(body).toBeInstanceOf(FormData)
+    if (!(body instanceof FormData)) throw new Error('Expected multipart')
+    expect(Array.from(body.keys())).toEqual([
+      'attributes[نوع الحجر]',
+      'attributes[ My Key ]',
+      'attributes[color]',
+      'images[]',
+    ])
+    expect(body.get('attributes[نوع الحجر]')).toBe('عقيق')
+    expect(body.get('attributes[ My Key ]')).toBe('value')
+  })
+
   it.each([
     ['one arbitrary key', { any_thing_else: 'Test value' }],
     ['multiple arbitrary keys', { stone_type: 'diamond', chain_length: '45cm' }],

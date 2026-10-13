@@ -54,6 +54,7 @@ export function ProductEditForm({ product, isSubmitting, onSubmit, onDeleteImage
           discountRange: t('products.validation.discountRange'),
           maxLength: t('products.validation.maxLength'),
           dateInvalid: t('products.validation.dateInvalid'),
+          personalizationLanguagesRequired: t('products.validation.personalizationLanguagesRequired'),
           imageType: t('products.validation.imageType'),
           imageSize: t('products.validation.imageSize'),
         },

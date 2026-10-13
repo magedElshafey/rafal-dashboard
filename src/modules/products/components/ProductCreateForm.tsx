@@ -14,7 +14,6 @@ import {
   buildProductCreatePayload,
   createEmptyProductCreateFormValues,
 } from '@/modules/products/utils/product-create.utils'
-import { normalizeVariantAttributeKey } from '@/modules/products/utils/product-variant.utils'
 import { Routes } from '@/routes/routes'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
@@ -38,6 +37,8 @@ export const PRODUCT_CREATE_API_FIELD_ALIASES = {
   is_personalizable: 'isPersonalizable',
   personalization_max_length: 'personalizationMaxLength',
   personalization_fee: 'personalizationFee',
+  personalization_languages: 'personalizationLanguages',
+  'personalization_languages.*': 'personalizationLanguages',
   max_cart_item_quantity: 'maxCartItemQuantity',
   is_new_arrival: 'isNewArrival',
   is_active: 'isActive',
@@ -52,7 +53,7 @@ function buildProductCreateApiFieldAliases(values: ProductCreateFormValues) {
     aliases[`variants.${variantIndex}.price_override`] = `variants.${variantIndex}.priceOverride`
     aliases[`variants.${variantIndex}.is_active`] = `variants.${variantIndex}.isActive`
     variant.attributes.forEach((attribute, attributeIndex) => {
-      const key = normalizeVariantAttributeKey(attribute.key)
+      const key = attribute.key
       if (key) {
         aliases[`variants.${variantIndex}.attributes.${key}`] =
           `variants.${variantIndex}.attributes.${attributeIndex}.value`
@@ -80,6 +81,7 @@ export function ProductCreateForm({ isSubmitting, onSubmit }: ProductCreateFormP
         discountRange: t('products.validation.discountRange'),
         maxLength: t('products.validation.maxLength'),
         dateInvalid: t('products.validation.dateInvalid'),
+        personalizationLanguagesRequired: t('products.validation.personalizationLanguagesRequired'),
         imageType: t('products.validation.imageType'),
         imageSize: t('products.validation.imageSize'),
         imageRequired: t('products.validation.imageRequired'),

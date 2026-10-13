@@ -21,6 +21,7 @@ export type ProductCreateValidationMessages = {
   dateInvalid: string
   imageType: string
   imageSize: string
+  personalizationLanguagesRequired?: string
   imageRequired?: string
   variantRequired?: string
   duplicateVariantSku?: string
@@ -75,6 +76,14 @@ export function createProductFormSchema(
       .integer(messages.integer)
       .min(1, messages.minimumOne),
     personalizationFee: nullableNumber(messages).min(0, messages.nonNegative),
+    personalizationLanguages: yup
+      .array()
+      .of(yup.string().oneOf(['ar', 'en'], messages.required).required(messages.required))
+      .defined()
+      .when('isPersonalizable', {
+        is: true,
+        then: (schema) => schema.min(1, messages.personalizationLanguagesRequired ?? messages.required),
+      }),
     maxCartItemQuantity: allowMissingCartItemQuantity ? cartItemQuantity : cartItemQuantity.required(messages.required),
     isNewArrival: yup.boolean().required(messages.required).defined(),
     isActive: yup.boolean().required(messages.required).defined(),

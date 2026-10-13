@@ -14,8 +14,9 @@ export function productDetailToFormValues(product: ProductDetail): ProductFormVa
     discountPercentage: product.discountPercentage,
     discountEndAt: toProductDateTimeLocal(product.discountEndAt),
     isPersonalizable: product.isPersonalizable,
-    personalizationMaxLength: product.personalizationMaxLength,
-    personalizationFee: product.personalizationFee,
+    personalizationMaxLength: product.isPersonalizable ? product.personalizationMaxLength : null,
+    personalizationFee: product.isPersonalizable ? product.personalizationFee : null,
+    personalizationLanguages: product.isPersonalizable ? [...(product.personalizationLanguages ?? [])] : [],
     maxCartItemQuantity: product.maxCartItemQuantity,
     isNewArrival: product.isNewArrival,
     isActive: product.isActive,
@@ -40,10 +41,9 @@ export function buildProductUpdatePayload(
   if (dirty.discountEndAt) payload.discountEndAt = values.discountEndAt.trim() || null
   if (dirty.isPersonalizable) {
     payload.isPersonalizable = values.isPersonalizable
-    if (!values.isPersonalizable) {
-      payload.personalizationMaxLength = null
-      payload.personalizationFee = null
-    }
+  }
+  if (values.isPersonalizable && (dirty.isPersonalizable || dirty.personalizationLanguages)) {
+    payload.personalizationLanguages = [...values.personalizationLanguages]
   }
   if (dirty.personalizationMaxLength && values.isPersonalizable)
     payload.personalizationMaxLength = values.personalizationMaxLength

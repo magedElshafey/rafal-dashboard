@@ -16,6 +16,7 @@ const detail: ProductDetail = {
   isPersonalizable: true,
   personalizationMaxLength: 20,
   personalizationFee: 5,
+  personalizationLanguages: ['ar', 'en'],
   maxCartItemQuantity: 10,
   isNewArrival: true,
   isActive: true,
@@ -29,6 +30,25 @@ const detail: ProductDetail = {
 }
 
 describe('Product Edit mapping', () => {
+  it('hydrates languages and sends only intentional language changes', () => {
+    const values = productDetailToFormValues(detail)
+    expect(values.personalizationLanguages).toEqual(['ar', 'en'])
+    expect(buildProductUpdatePayload(values, { sku: true })).toEqual({ sku: 'SKU' })
+    values.personalizationLanguages = ['en']
+    expect(buildProductUpdatePayload(values, { personalizationLanguages: [true] })).toEqual({
+      personalizationLanguages: ['en'],
+    })
+    expect(buildProductUpdatePayload(values, { isPersonalizable: true })).toEqual({
+      isPersonalizable: true,
+      personalizationLanguages: ['en'],
+    })
+    expect(productDetailToFormValues({ ...detail, isPersonalizable: false })).toMatchObject({
+      personalizationLanguages: [],
+      personalizationMaxLength: null,
+      personalizationFee: null,
+    })
+  })
+
   it('hydrates backend datetime without timezone conversion', () => {
     expect(productDetailToFormValues(detail)).toMatchObject({
       discountEndAt: '2026-10-03T14:05',
@@ -64,7 +84,10 @@ describe('Product Edit mapping', () => {
       images: { files: [new File(['x'], 'new.png', { type: 'image/png' })], removedExistingIds: [8] },
     }
     const result = buildProductUpdatePayload(values, { isPersonalizable: true, images: { files: [true] } })
-    expect(result).toMatchObject({ isPersonalizable: false, personalizationMaxLength: null, personalizationFee: null })
+    expect(result).toMatchObject({ isPersonalizable: false })
+    expect(result).not.toHaveProperty('personalizationLanguages')
+    expect(result).not.toHaveProperty('personalizationMaxLength')
+    expect(result).not.toHaveProperty('personalizationFee')
     expect(result.images).toEqual(values.images.files)
     expect(result).not.toHaveProperty('removedExistingIds')
     expect(result).not.toHaveProperty('slug')

@@ -53,6 +53,7 @@ const createPayload = (overrides: Partial<ProductCreatePayload> = {}): ProductCr
   isPersonalizable: true,
   personalizationMaxLength: 20,
   personalizationFee: 5.5,
+  personalizationLanguages: ['ar', 'en'],
   maxCartItemQuantity: 8,
   isNewArrival: false,
   isActive: true,
@@ -125,6 +126,52 @@ const realDashboardProductShow: RawProductDetail = {
 
 describe('products service', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it.each([['ar'], ['en'], ['ar', 'en']] as const)(
+    'encodes selected languages %j in Create and both Update transports',
+    (...languages) => {
+      const selected = [...languages]
+      const image = new File(['image'], 'product.png', { type: 'image/png' })
+      const create = serializeProductCreate(createPayload({ personalizationLanguages: selected, images: [image] }))
+      expect(create.get('hide_price_on_packaging')).toBe('0')
+      expect(create.getAll('personalization_languages[]')).toEqual(selected)
+      expect(serializeProductUpdate({ personalizationLanguages: selected })).toEqual({
+        hide_price_on_packaging: false,
+        personalization_languages: selected,
+      })
+      const update = serializeProductUpdate({ personalizationLanguages: selected, images: [image] })
+      expect(update).toBeInstanceOf(FormData)
+      if (!(update instanceof FormData)) throw new Error('Expected multipart')
+      expect(update.get('hide_price_on_packaging')).toBe('0')
+      expect(update.getAll('personalization_languages[]')).toEqual(selected)
+      expect(update.has('sku')).toBe(false)
+    }
+  )
+
+  it('omits all dependents on disabled Update, even when stale values are supplied', () => {
+    const payload = {
+      isPersonalizable: false,
+      personalizationLanguages: ['ar'] as const,
+      personalizationMaxLength: 20,
+      personalizationFee: 5,
+    }
+    const writable = { ...payload, personalizationLanguages: [...payload.personalizationLanguages] }
+    expect(serializeProductUpdate(writable)).toEqual({ hide_price_on_packaging: false, is_personalizable: false })
+    const body = serializeProductUpdate({ ...writable, images: [new File(['x'], 'p.png')] })
+    if (!(body instanceof FormData)) throw new Error('Expected multipart')
+    expect(body.get('is_personalizable')).toBe('0')
+    expect(body.get('hide_price_on_packaging')).toBe('0')
+    expect(body.has('personalization_languages[]')).toBe(false)
+    expect(body.has('personalization_max_length')).toBe(false)
+    expect(body.has('personalization_fee')).toBe(false)
+  })
+
+  it('omits stale language selections from disabled Product Create', () => {
+    const body = serializeProductCreate(createPayload({ isPersonalizable: false, images: [new File(['x'], 'p.png')] }))
+    expect(body.get('is_personalizable')).toBe('0')
+    expect(body.has('personalization_languages[]')).toBe(false)
+    expect(body.get('hide_price_on_packaging')).toBe('0')
+  })
 
   it('normalizes confirmed attribute shapes once through Show while preserving every variant', async () => {
     const first = realDashboardProductShow.variants[0]
@@ -340,6 +387,7 @@ describe('products service', () => {
       suppressErrorNotification: true,
     })
     expect([...(request.data as FormData).entries()]).toEqual([
+      ['hide_price_on_packaging', '0'],
       ['category_id', '4'],
       ['sku', 'RFL-CREATE-001'],
       ['name[ar]', 'منتج جديد'],
@@ -352,6 +400,8 @@ describe('products service', () => {
       ['is_personalizable', '1'],
       ['personalization_max_length', '20'],
       ['personalization_fee', '5.5'],
+      ['personalization_languages[]', 'ar'],
+      ['personalization_languages[]', 'en'],
       ['max_cart_item_quantity', '8'],
       ['is_new_arrival', '0'],
       ['is_active', '1'],
@@ -371,7 +421,7 @@ describe('products service', () => {
     expect((request.data as FormData).has('stocks')).toBe(false)
     expect((request.data as FormData).has('simulated_viewers_count')).toBe(false)
     expect((request.data as FormData).has('simulated_orders_count')).toBe(false)
-    expect((request.data as FormData).has('hide_price_on_packaging')).toBe(false)
+    expect((request.data as FormData).get('hide_price_on_packaging')).toBe('0')
   })
 
   it('requires Product media before serializing aggregate Create', () => {
@@ -500,13 +550,12 @@ describe('products service', () => {
       images: [image],
     })
     expect([...(body as FormData).entries()]).toEqual([
+      ['hide_price_on_packaging', '0'],
       ['description[ar]', 'null'],
       ['description[en]', '<p><strong>Hello</strong></p>'],
       ['discount_percentage', 'null'],
       ['discount_end_at', '2026-10-03 14:05:00'],
       ['is_personalizable', '0'],
-      ['personalization_max_length', 'null'],
-      ['personalization_fee', 'null'],
       ['is_active', '1'],
       ['images[]', image],
     ])
@@ -523,6 +572,7 @@ describe('products service', () => {
       personalizationFee: null,
     })
     expect(body).toEqual({
+      hide_price_on_packaging: false,
       name: { en: null },
       description: { en: null },
       discount_end_at: null,
@@ -531,8 +581,11 @@ describe('products service', () => {
     })
   })
 
-  it('serializes a dirty cart quantity limit without the removed packaging flag', () => {
-    expect(serializeProductUpdate({ maxCartItemQuantity: 6 })).toEqual({ max_cart_item_quantity: 6 })
+  it('serializes a dirty cart quantity limit with the compatibility packaging flag', () => {
+    expect(serializeProductUpdate({ maxCartItemQuantity: 6 })).toEqual({
+      hide_price_on_packaging: false,
+      max_cart_item_quantity: 6,
+    })
   })
 
   it('PUTs partial JSON without Product children and normalizes the complete authoritative response', async () => {
@@ -542,7 +595,7 @@ describe('products service', () => {
     await expect(productsService.update(9, { sku: ' UPDATED ' })).resolves.toMatchObject({ id: 1, sku: 'UPDATED' })
     expect(httpMocks.put).toHaveBeenCalledWith({
       url: '/dashboard/products/9',
-      data: { sku: 'UPDATED' },
+      data: { hide_price_on_packaging: false, sku: 'UPDATED' },
       suppressSuccessNotification: true,
       suppressErrorNotification: true,
     })

@@ -64,6 +64,7 @@
       "imageDeleteError": "Product image could not be deleted."
     },
     "validation": {
+      "personalizationLanguagesRequired": "Select at least one personalization language.",
       "required": "This field is required.",
       "validNumber": "Enter a valid number.",
       "nonNegative": "Enter zero or a positive number.",
@@ -80,6 +81,7 @@
       "duplicateWarehouse": "Each warehouse can be assigned only once per variant."
     },
     "create": {
+      "languages": { "ar": "Arabic", "en": "English" },
       "title": "Create Product",
       "description": "Create the product, variants, and warehouse stock in one submission.",
       "aggregate": {
@@ -101,6 +103,7 @@
         "discountEndAt": "Discount End Date",
         "isPersonalizable": "Personalizable",
         "personalizationMaxLength": "Maximum Personalization Length",
+        "personalizationLanguages": "Personalization Languages",
         "personalizationFee": "Personalization Fee",
         "images": "Product Images",
         "maxCartItemQuantity": "Maximum Cart Item Quantity",

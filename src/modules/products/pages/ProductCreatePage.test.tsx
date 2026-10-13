@@ -140,6 +140,83 @@ describe('ProductCreatePage', () => {
     expect(category).toHaveTextContent('Jewelry')
   })
 
+  it('resets removed variant attributes without losing unsaved product fields', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+    await addValidVariant(user)
+    await user.type(screen.getByRole('combobox', { name: 'Attribute Name' }), 'خاصية قديمة')
+    await user.type(screen.getByLabelText('Attribute Value'), 'old value')
+    await user.click(screen.getByRole('button', { name: 'Remove Variant' }))
+    await addValidVariant(user, 'NEW-VARIANT')
+    expect(screen.getByRole('combobox', { name: 'Attribute Name' })).toHaveValue('')
+    expect(screen.getByLabelText('Attribute Value')).toHaveValue('')
+    expect(screen.getAllByRole('textbox', { name: 'SKU' })[0]).toHaveValue(' RFL-NEW ')
+    expect(screen.getByRole('spinbutton', { name: 'Base Price' })).toHaveValue(25.5)
+    await user.type(screen.getByRole('combobox', { name: 'Attribute Name' }), 'New Key')
+    expect(screen.getByRole('combobox', { name: 'Attribute Name' })).toHaveValue('New Key')
+  })
+
+  it('shows duplicate attribute validation in aggregate Create', async () => {
+    const user = userEvent.setup()
+    const create = vi.spyOn(productsService, 'create')
+    renderPage()
+    await fillRequiredFields(user)
+    await addValidVariant(user)
+    await user.type(screen.getByRole('combobox', { name: 'Attribute Name' }), 'خامة')
+    await user.type(screen.getByLabelText('Attribute Value'), 'Gold')
+    await user.click(screen.getByRole('button', { name: 'Add Attribute' }))
+    await user.type(screen.getAllByRole('combobox', { name: 'Attribute Name' })[1], 'خامة')
+    await user.type(screen.getAllByLabelText('Attribute Value')[1], 'Silver')
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+    expect(await screen.findByText('Attribute names must be unique.')).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it.each([['Arabic'], ['English'], ['Arabic', 'English']])(
+    'creates with selected personalization languages %j',
+    async (...labels) => {
+      const create = vi.spyOn(productsService, 'create').mockResolvedValue({ id: 91 })
+      const user = userEvent.setup()
+      renderPage()
+      await fillRequiredFields(user)
+      await addValidVariant(user)
+      expect(screen.getByRole('checkbox', { name: 'Arabic' })).toBeDisabled()
+      await user.click(screen.getByRole('switch', { name: 'Personalizable' }))
+      await user.type(screen.getByRole('spinbutton', { name: 'Maximum Personalization Length' }), '20')
+      for (const label of labels) await user.click(screen.getByRole('checkbox', { name: label }))
+      await user.click(screen.getByRole('button', { name: 'Create Product' }))
+      await waitFor(() =>
+        expect(create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isPersonalizable: true,
+            personalizationLanguages: labels.map((label) => (label === 'Arabic' ? 'ar' : 'en')),
+          })
+        )
+      )
+    }
+  )
+
+  it('blocks missing languages and maps indexed backend language errors', async () => {
+    const create = vi.spyOn(productsService, 'create').mockRejectedValue({
+      isAxiosError: true,
+      response: { data: { errors: { 'personalization_languages.0': ['Language rejected'] } } },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await fillRequiredFields(user)
+    await addValidVariant(user)
+    await user.click(screen.getByRole('switch', { name: 'Personalizable' }))
+    await user.type(screen.getByRole('spinbutton', { name: 'Maximum Personalization Length' }), '20')
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+    expect(await screen.findByText('Select at least one personalization language.')).toBeInTheDocument()
+    expect(create).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('checkbox', { name: 'Arabic' }))
+    await user.click(screen.getByRole('button', { name: 'Create Product' }))
+    expect(await screen.findByText('Language rejected')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Personalization Languages' })).toHaveAttribute('aria-invalid', 'true')
+  })
+
   it('requires personalization length when enabled and clears dependent values when disabled', async () => {
     const user = userEvent.setup()
     const create = vi.spyOn(productsService, 'create')

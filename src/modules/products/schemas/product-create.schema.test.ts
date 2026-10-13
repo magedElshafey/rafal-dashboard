@@ -45,6 +45,7 @@ const validValues = (overrides: Partial<ProductCreateFormValues> = {}): ProductC
   isPersonalizable: false,
   personalizationMaxLength: null,
   personalizationFee: null,
+  personalizationLanguages: [],
   maxCartItemQuantity: 10,
   isNewArrival: false,
   isActive: true,
@@ -57,6 +58,20 @@ const validValues = (overrides: Partial<ProductCreateFormValues> = {}): ProductC
 const schema = createProductCreateSchema(messages)
 
 describe('aggregate Product Create validation', () => {
+  it('requires supported languages only when personalization is enabled', async () => {
+    const enabled = validValues({ isPersonalizable: true, personalizationMaxLength: 20 })
+    await expect(schema.validateAt('personalizationLanguages', enabled)).rejects.toThrow('required')
+    for (const personalizationLanguages of [['ar'], ['en'], ['ar', 'en']]) {
+      await expect(
+        schema.validateAt('personalizationLanguages', { ...enabled, personalizationLanguages })
+      ).resolves.toEqual(personalizationLanguages)
+    }
+    await expect(
+      schema.validateAt('personalizationLanguages', { ...enabled, personalizationLanguages: ['fr'] })
+    ).rejects.toThrow()
+    await expect(schema.validateAt('personalizationLanguages', validValues())).resolves.toEqual([])
+  })
+
   it('requires Category for both Dashboard write flows and trims required identity fields', async () => {
     await expect(schema.validateAt('categoryId', validValues({ categoryId: null }))).rejects.toThrow('required')
     await expect(schema.validateAt('sku', validValues({ sku: ' '.repeat(2) }))).rejects.toThrow('required')

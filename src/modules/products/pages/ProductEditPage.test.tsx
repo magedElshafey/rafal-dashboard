@@ -39,6 +39,7 @@ const product: ProductDetail = {
   isPersonalizable: true,
   personalizationMaxLength: 20,
   personalizationFee: 5,
+  personalizationLanguages: ['ar', 'en'],
   maxCartItemQuantity: 10,
   isNewArrival: true,
   isActive: true,
@@ -224,6 +225,67 @@ describe('ProductEditPage', () => {
     expect(screen.getByText('Default')).toBeInTheDocument()
     expect(screen.getByText('No attributes')).toBeInTheDocument()
     expect(screen.queryByText(/default:\s*default/i)).not.toBeInTheDocument()
+  })
+
+  it('hydrates language checkboxes and updates only languages', async () => {
+    const update = vi
+      .spyOn(productsService, 'update')
+      .mockResolvedValue({ ...product, personalizationLanguages: ['en'] })
+    const user = userEvent.setup()
+    renderPage()
+    expect(await screen.findByRole('checkbox', { name: 'Arabic' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'English' })).toBeChecked()
+    await user.click(screen.getByRole('checkbox', { name: 'Arabic' }))
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, { personalizationLanguages: ['en'] }))
+  })
+
+  it('saves disabled personalization without dependent fields and preserves unrelated edits', async () => {
+    const update = vi.spyOn(productsService, 'update').mockResolvedValue({
+      ...product,
+      isPersonalizable: false,
+      sku: 'EDITED',
+    })
+    const user = userEvent.setup()
+    renderPage()
+    const sku = await screen.findByRole('textbox', { name: 'SKU' })
+    await user.clear(sku)
+    await user.type(sku, 'EDITED')
+    await user.click(screen.getByRole('switch', { name: 'Personalizable' }))
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, { sku: 'EDITED', isPersonalizable: false }))
+    expect(screen.getByRole('checkbox', { name: 'Arabic' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'English' })).not.toBeChecked()
+  })
+
+  it('clears local languages when disabled and requires reselection on re-enabling', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const arabic = await screen.findByRole('checkbox', { name: 'Arabic' })
+    await user.click(screen.getByRole('switch', { name: 'Personalizable' }))
+    expect(arabic).not.toBeChecked()
+    expect(arabic).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'English' })).not.toBeChecked()
+    expect(screen.getByRole('spinbutton', { name: 'Maximum Personalization Length' })).toHaveValue(null)
+    expect(screen.getByRole('spinbutton', { name: 'Personalization Fee' })).toHaveValue(null)
+    await user.click(screen.getByRole('switch', { name: 'Personalizable' }))
+    await user.type(screen.getByRole('spinbutton', { name: 'Maximum Personalization Length' }), '20')
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    await user.click(arabic)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled())
+  })
+
+  it('maps Product Update language validation to the language group', async () => {
+    vi.spyOn(productsService, 'update').mockRejectedValue({
+      isAxiosError: true,
+      response: { data: { errors: { personalization_languages: ['Language selection rejected'] } } },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('checkbox', { name: 'Arabic' }))
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(await screen.findByText('Language selection rejected')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Personalization Languages' })).toHaveAttribute('aria-invalid', 'true')
   })
 
   it('sends only one dirty field and resets to the authoritative response after success', async () => {

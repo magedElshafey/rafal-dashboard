@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { LoaderCircle, Trash2 } from 'lucide-react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,9 @@ import { FormSwitch } from '@/components/form/FormSwitch'
 import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
 import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import { useCategories } from '@/modules/categories/hooks/useCategories'
 import { PRODUCT_IMAGE_MAX_SIZE } from '@/modules/products/schemas/product-create.schema'
 import type { ProductFormValues } from '@/modules/products/types/product.types'
@@ -66,6 +69,7 @@ export function ProductFormSections({
     if (!enabled) {
       setValue('personalizationMaxLength', null, { shouldDirty: true, shouldValidate: true })
       setValue('personalizationFee', null, { shouldDirty: true, shouldValidate: true })
+      setValue('personalizationLanguages', [], { shouldDirty: true, shouldValidate: true })
     }
   }
 
@@ -197,6 +201,7 @@ export function ProductFormSections({
               onChange={handlePersonalizableChange}
             />
           </div>
+          <PersonalizationLanguages disabled={isSubmitting || !isPersonalizable} />
           <FormInput
             name="personalizationMaxLength"
             label={t('products.create.fields.personalizationMaxLength')}
@@ -350,5 +355,52 @@ function ProductExistingImages({
         onCancel={() => setImageToDelete(null)}
       />
     </>
+  )
+}
+
+function PersonalizationLanguages({ disabled }: { disabled: boolean }) {
+  const { control } = useFormContext<ProductFormValues>()
+  const { t } = useTranslation()
+  const id = useId()
+  return (
+    <FormField
+      control={control}
+      name="personalizationLanguages"
+      render={({ field }) => (
+        <FormItem>
+          <FormControl>
+            <fieldset
+              disabled={disabled}
+              aria-label={t('products.create.fields.personalizationLanguages')}
+              className="space-y-3"
+            >
+              <legend className="text-sm font-medium text-foreground">
+                {t('products.create.fields.personalizationLanguages')}
+              </legend>
+              <div className="flex flex-wrap gap-4">
+                {(['ar', 'en'] as const).map((language, index) => (
+                  <div key={language} className="flex items-center gap-2">
+                    <Checkbox
+                      id={id + language}
+                      ref={index === 0 ? field.ref : undefined}
+                      disabled={disabled}
+                      checked={field.value.includes(language)}
+                      onBlur={field.onBlur}
+                      onCheckedChange={(checked) =>
+                        field.onChange(
+                          checked ? [...field.value, language] : field.value.filter((value) => value !== language)
+                        )
+                      }
+                    />
+                    <Label htmlFor={id + language}>{t('products.create.languages.' + language)}</Label>
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   )
 }
