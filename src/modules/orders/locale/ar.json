@@ -1,6 +1,15 @@
 {
   "orders": {
     "direction": "rtl",
+    "details": {
+      "title": "تفاصيل الطلب",
+      "metadata": "بيانات الطلب",
+      "notFound": "الطلب غير موجود",
+      "notFoundDescription": "هذا الطلب غير متاح أو الرابط غير صالح.",
+      "noItems": "لا توجد عناصر مُرجعة لهذا الطلب.",
+      "noHistory": "لا يوجد سجل حالات لهذا الطلب.",
+      "fromStatus": "من {{status}} إلى"
+    },
     "title": "الطلبات",
     "search": "البحث في الطلبات",
     "filters": "تصفية الطلبات",

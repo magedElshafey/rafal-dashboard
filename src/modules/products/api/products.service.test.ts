@@ -5,6 +5,7 @@ const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(),
 vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import {
+  normalizeProductDetail,
   productsHttpTransport,
   productsService,
   serializeProductCreate,
@@ -124,6 +125,66 @@ const realDashboardProductShow: RawProductDetail = {
 
 describe('products service', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it('normalizes confirmed attribute shapes once through Show while preserving every variant', async () => {
+    const first = realDashboardProductShow.variants[0]
+    const attributes = { color: 'silver', size: 'M' }
+    const response = {
+      ...realDashboardProductShow,
+      variants: [
+        { ...first, attributes },
+        { ...first, id: 40, sku: 'EMPTY-ATTRIBUTES', attributes: [] },
+      ],
+      hide_price_on_packaging: true,
+    }
+    delete response.max_cart_item_quantity
+    httpMocks.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: response } })
+
+    const detail = await productsService.show(26)
+
+    expect(Array.isArray(detail.variants)).toBe(true)
+    expect(detail.variants).toHaveLength(2)
+    expect(detail.variants[0]).toMatchObject({ id: 39, attributes: { color: 'silver', size: 'M' } })
+    expect(detail.variants[1]).toMatchObject({ id: 40, sku: 'EMPTY-ATTRIBUTES', attributes: {} })
+    expect(detail.variants.every((variant) => !Array.isArray(variant.attributes))).toBe(true)
+    expect(detail.variants[0].warehouseStocks).toHaveLength(7)
+    expect(detail.variants[1].warehouseStocks).toHaveLength(7)
+    expect(attributes).toEqual({ color: 'silver', size: 'M' })
+    expect(response.variants[1].attributes).toEqual([])
+    expect(detail.maxCartItemQuantity).toBeNull()
+    expect(detail).not.toHaveProperty('hide_price_on_packaging')
+    expect(detail).not.toHaveProperty('hidePriceOnPackaging')
+  })
+
+  it('normalizes an absent cart quantity limit to null and ignores the legacy packaging field', async () => {
+    const response = { ...rawDetail(), hide_price_on_packaging: true }
+    delete response.max_cart_item_quantity
+    httpMocks.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: response } })
+    const detail = await productsService.show(7)
+    expect(detail.maxCartItemQuantity).toBeNull()
+    expect(detail).not.toHaveProperty('hide_price_on_packaging')
+    expect(detail).not.toHaveProperty('hidePriceOnPackaging')
+    expect(detail.variants).toEqual([])
+  })
+
+  it.each([
+    [null, null],
+    [10, 10],
+    ['10', 10],
+  ])('normalizes the returned cart quantity limit %s to %s', (rawValue, expected) => {
+    expect(normalizeProductDetail(rawDetail({ max_cart_item_quantity: rawValue })).maxCartItemQuantity).toBe(expected)
+  })
+
+  it('preserves every variant in a normal Show array', () => {
+    const first = realDashboardProductShow.variants[0]
+    const variants = [first, { ...first, id: 40, sku: 'SECOND' }]
+    const detail = normalizeProductDetail(rawDetail({ variants }))
+    expect(detail.variants.map(({ id, sku }) => ({ id, sku }))).toEqual([
+      { id: 39, sku: first.sku },
+      { id: 40, sku: 'SECOND' },
+    ])
+    expect(detail.variants[0].warehouseStocks).toHaveLength(7)
+  })
 
   it('requests the exact supported filters and page while forwarding AbortSignal', async () => {
     const controller = new AbortController()

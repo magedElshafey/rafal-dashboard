@@ -40,7 +40,11 @@ const nullableNumber = (messages: ProductCreateValidationMessages) =>
     .typeError(messages.validNumber)
     .test('finite', messages.validNumber, (value) => value === null || Number.isFinite(value))
 
-export function createProductFormSchema(messages: ProductCreateValidationMessages) {
+export function createProductFormSchema(
+  messages: ProductCreateValidationMessages,
+  { allowMissingCartItemQuantity = false }: { allowMissingCartItemQuantity?: boolean } = {}
+) {
+  const cartItemQuantity = nullableNumber(messages).integer(messages.integer).min(1, messages.minimumOne)
   return yup.object<ProductFormValues>({
     categoryId: nullableNumber(messages).required(messages.required),
     sku: yup.string().trim().required(messages.required).max(255, messages.maxLength),
@@ -71,10 +75,7 @@ export function createProductFormSchema(messages: ProductCreateValidationMessage
       .integer(messages.integer)
       .min(1, messages.minimumOne),
     personalizationFee: nullableNumber(messages).min(0, messages.nonNegative),
-    maxCartItemQuantity: nullableNumber(messages)
-      .required(messages.required)
-      .integer(messages.integer)
-      .min(1, messages.minimumOne),
+    maxCartItemQuantity: allowMissingCartItemQuantity ? cartItemQuantity : cartItemQuantity.required(messages.required),
     isNewArrival: yup.boolean().required(messages.required).defined(),
     isActive: yup.boolean().required(messages.required).defined(),
     sortOrder: nullableNumber(messages).required(messages.required).integer(messages.integer),

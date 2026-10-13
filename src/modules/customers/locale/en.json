@@ -23,6 +23,7 @@
       "description": "Customer accounts will appear here when they become available."
     },
     "fields": {
+      "id": "Customer ID",
       "customer": "Customer",
       "name": "Name",
       "firstName": "First name",
@@ -35,7 +36,6 @@
       "ordersCount": "Orders",
       "lifetimeSpend": "Lifetime spend",
       "blockedAt": "Blocked at",
-      "blockedReason": "Blocked reason",
       "termsAcceptedAt": "Terms accepted at",
       "marketingOptIn": "Marketing opt-in",
       "addressesCount": "Addresses",
@@ -100,13 +100,18 @@
       "description": "Read-only customer account details and order history.",
       "identity": "Identity",
       "account": "Account",
+      "access": "Access status",
+      "memberSince": "Member since",
+      "metadata": "Metadata",
       "metrics": "Metrics",
       "invalid": {
-        "title": "Customer unavailable",
-        "description": "The customer identifier is invalid."
+        "title": "Customer not found",
+        "description": "This customer is unavailable or the link is invalid."
       }
     },
     "orders": {
+      "identityFallback": "Order #{{id}}",
+      "loadMore": "Load more orders",
       "title": "Order history",
       "total_one": "{{count}} order",
       "total_other": "{{count}} orders",
@@ -117,6 +122,7 @@
         "description": "This customer has no order history."
       },
       "fields": {
+        "gift": "Gift",
         "number": "Order",
         "status": "Status",
         "items": "Items",

@@ -97,17 +97,34 @@ export const rawOrderDetailSchema = z.object({
         .transform((value) => value ?? null),
     })
   ),
-  money: z.object({
-    subtotal: decimal,
-    discount_total: decimal,
-    shipping_fee: decimal,
-    personalization_total: decimal,
-    gift_wrap_fee: decimal,
-    taxable_amount: decimal,
-    vat: z.object({ rate: decimal, amount: decimal }),
-    total: decimal,
-    currency: text,
-  }),
+  money: z
+    .object({
+      subtotal: decimal,
+      discount_total: decimal,
+      shipping_fee: decimal,
+      personalization_total: decimal,
+      gift_wrap_fee: decimal,
+      taxable_amount: decimal.optional(),
+      vat: z.object({ rate: decimal, amount: decimal }).optional(),
+      vat_amount: decimal.optional(),
+      total: decimal,
+      currency: text,
+    })
+    .transform((money, ctx) => {
+      const amount = money.vat_amount ?? money.vat?.amount
+      if (
+        amount === undefined ||
+        (money.vat_amount !== undefined && money.vat && money.vat_amount !== money.vat.amount)
+      ) {
+        ctx.addIssue({ code: 'custom', message: 'Missing or conflicting VAT amount' })
+        return z.NEVER
+      }
+      return {
+        ...money,
+        taxable_amount: money.taxable_amount ?? null,
+        vat: { rate: money.vat?.rate ?? null, amount },
+      }
+    }),
   coupon: z.unknown(),
   payment: z.object({ method: text, status: text, reference: nullableText, paid_at: nullableText }),
   status_history: z.array(

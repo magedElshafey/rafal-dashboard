@@ -7,16 +7,16 @@ const nullableText = z.string().nullable()
 const decidedAdminSchema = z.object({
   id,
   name: z.string(),
-  email: text,
+  email: z.string(),
 })
 
 export const rawReturnRequestSchema = z.object({
   id,
   order: z.object({ id, order_number: text, status: text }),
-  user: z.object({ id, name: z.string(), email: text }),
+  user: z.object({ id, name: z.string(), email: z.string() }),
   status: text,
   reason: text,
-  reason_label: text,
+  reason_label: z.string(),
   comment: nullableText,
   decision_note: nullableText.optional().transform((value) => value ?? null),
   decided_by_admin: decidedAdminSchema

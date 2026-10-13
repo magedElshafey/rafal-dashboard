@@ -34,10 +34,7 @@ export function useUpdateContactMessageStatus(id: number) {
       await client.cancelQueries({ queryKey: contactMessagesKeys.detail(id), exact: true })
       client.setQueryData(contactMessagesKeys.detail(id), response.detail)
       toast.success(response.message || t('contactMessages.feedback.updated'))
-      await Promise.all([
-        client.invalidateQueries({ queryKey: contactMessagesKeys.detail(id), exact: true }),
-        client.invalidateQueries({ queryKey: contactMessagesKeys.lists() }),
-      ])
+      await client.invalidateQueries({ queryKey: contactMessagesKeys.lists() })
     },
   })
 }

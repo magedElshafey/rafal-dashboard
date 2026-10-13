@@ -52,11 +52,18 @@ describe('Contact Message Detail', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: 'Contact Message #40' })).toBeInTheDocument()
   })
-  it('rejects invalid route IDs without a request', () => {
-    renderMessages('/dashboard/contact-messages/invalid')
-    expect(screen.getByRole('alert')).toHaveTextContent('This contact message ID is invalid')
-    expect(http.get).not.toHaveBeenCalled()
-  })
+  it.each(['invalid', '0', '-1', '1.5', '1e2', '049', '%2049', '49%20', '9007199254740992'])(
+    'rejects invalid route ID %s without a request',
+    (id) => {
+      renderMessages(`/dashboard/contact-messages/${id}`)
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Contact message not found')
+      expect(screen.getByRole('link', { name: 'Back to contact messages' })).toHaveAttribute(
+        'href',
+        '/dashboard/contact-messages'
+      )
+      expect(http.get).not.toHaveBeenCalled()
+    }
+  )
   it.each(['en', 'ar'])('distinguishes the registered account from contact identity in %s', async (language) => {
     await i18n.changeLanguage(language)
     canonical = index.data[4]
@@ -117,6 +124,7 @@ describe('Contact Message status updates', () => {
     client.setQueryData(['unrelated'], ['keep'])
     await screen.findByRole('heading', { name: 'Contact Message #41' })
     const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const cancel = vi.spyOn(client, 'cancelQueries')
     await chooseStatus('Read')
     expect(http.patch).not.toHaveBeenCalled()
     const save = screen.getByRole('button', { name: 'Save Status' })
@@ -137,10 +145,9 @@ describe('Contact Message status updates', () => {
     expect(client.getQueryData(contactMessagesKeys.detail(41))).toEqual(
       normalizeContactMessage(rawContactMessageSchema.parse(updated))
     )
-    expect(invalidate.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: contactMessagesKeys.detail(41), exact: true },
-      { queryKey: contactMessagesKeys.lists() },
-    ])
+    expect(invalidate.mock.calls.map(([options]) => options)).toEqual([{ queryKey: contactMessagesKeys.lists() }])
+    expect(cancel).toHaveBeenCalledWith({ queryKey: contactMessagesKeys.detail(41), exact: true })
+    expect(http.get).toHaveBeenCalledTimes(1)
     expect(client.getQueryData(contactMessagesKeys.list())).toEqual(listCache)
     expect(client.getQueryState(['unrelated'])?.isInvalidated).toBe(false)
     expect(client.getMutationCache().getAll()[0].options.retry).toBe(false)

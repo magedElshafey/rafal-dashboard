@@ -67,6 +67,11 @@
         "asc": "Ascending",
         "desc": "Descending"
       }
+    },
+    "detailsTitle": "Contact Message Details",
+    "notFound": {
+      "title": "Contact message not found",
+      "description": "This contact message could not be found."
     }
   }
 }

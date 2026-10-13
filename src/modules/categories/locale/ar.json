@@ -12,6 +12,19 @@
     "total_other": "{{count}} قسم",
     "loadingMore": "جارٍ تحميل المزيد من الأقسام",
     "noImage": "لا توجد صورة",
+    "details": {
+      "title": "تفاصيل القسم",
+      "back": "العودة إلى الأقسام",
+      "overview": "نظرة عامة",
+      "id": "معرّف القسم",
+      "slug": "الرابط المختصر",
+      "description": "الوصف",
+      "hierarchy": "التسلسل الهرمي",
+      "metadata": "التواريخ",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "تاريخ التحديث",
+      "notFound": { "title": "القسم غير موجود", "description": "هذا القسم غير متاح أو الرابط غير صالح." }
+    },
     "filters": {
       "title": "تصفية الأقسام",
       "all": "الكل",
@@ -64,6 +77,8 @@
       "editDescription": "حدّث بيانات القسم والصورة وإعدادات التسلسل."
     },
     "actions": {
+      "view": "عرض",
+      "viewNamed": "عرض {{name}}",
       "label": "الإجراءات",
       "create": "إنشاء",
       "createAnother": "إنشاء وإضافة آخر",

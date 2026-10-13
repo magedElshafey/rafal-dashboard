@@ -10,8 +10,10 @@ import {
 } from '@/components/shared/data-display/ResponsiveDataLayout'
 import type { OrderItem } from '../types/order.types'
 import { orderMoneyLabel } from '../utils/order-presentation'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function VariantAttributes({ attributes }: { attributes: Record<string, string> }) {
+  if (!Object.keys(attributes).length) return null
   return (
     <dl className="space-y-1">
       {Object.entries(attributes).map(([key, value]) => (
@@ -19,7 +21,7 @@ export function VariantAttributes({ attributes }: { attributes: Record<string, s
           <dt>
             <bdi>{key}</bdi>
           </dt>
-          <dd className="flex items-center gap-2">
+          <dd className="flex min-w-0 items-center gap-2 [overflow-wrap:anywhere]">
             {key === 'color' && /^#[0-9a-fA-F]{6}$/.test(value) && (
               <span
                 aria-hidden="true"
@@ -34,52 +36,100 @@ export function VariantAttributes({ attributes }: { attributes: Record<string, s
     </dl>
   )
 }
-export function OrderItems({ items, currency }: { items: OrderItem[]; currency: string }) {
+function ItemDescription({
+  item,
+  currency,
+  showName = true,
+}: {
+  item?: OrderItem
+  currency?: string
+  showName?: boolean
+}) {
   const { t, i18n } = useTranslation()
-  const fields = ['product', 'sku', 'attributes', 'personalization', 'quantity', 'unitPrice', 'discount', 'lineTotal']
-  const label = (id: string) => t(id === 'personalization' ? 'orders.personalization.title' : `orders.${id}`)
-  const columns = fields.map((id) => ({ id, header: label(id) }))
-  const values = (item: OrderItem) => [
-    <bdi>{item.productName}</bdi>,
-    <bdi>{item.variantSku}</bdi>,
-    <VariantAttributes attributes={item.variantAttributes} />,
-    item.personalization ? (
-      <dl className="space-y-1">
-        <div>
-          <dt className="text-muted-foreground">{t('orders.personalization.text')}</dt>
-          <dd>
-            <bdi>{item.personalization.text}</bdi>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">{t('orders.personalization.language')}</dt>
-          <dd>
-            <bdi>{item.personalization.language}</bdi>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">{t('orders.personalization.fee')}</dt>
-          <dd>
-            <bdi>{orderMoneyLabel(item.personalization.fee, currency, i18n.language)}</bdi>
-          </dd>
-        </div>
-      </dl>
+  return (
+    <div className="min-w-0 space-y-2 [overflow-wrap:anywhere]">
+      {showName ? (
+        item ? (
+          <bdi className="font-medium">{item.productName}</bdi>
+        ) : (
+          <Skeleton className="h-5 w-36 max-w-full" />
+        )
+      ) : null}
+      <div className="text-xs text-muted-foreground">
+        {item ? (
+          <>
+            <span>{t('orders.sku')}: </span>
+            <bdi>{item.variantSku}</bdi>
+          </>
+        ) : (
+          <Skeleton className="h-4 w-28 max-w-full" />
+        )}
+      </div>
+      {item ? <VariantAttributes attributes={item.variantAttributes} /> : <Skeleton className="h-4 w-20" />}
+      {item?.personalization ? (
+        <dl className="space-y-1">
+          <div>
+            <dt className="text-muted-foreground">{t('orders.personalization.text')}</dt>
+            <dd>
+              <bdi>{item.personalization.text}</bdi>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">{t('orders.personalization.language')}</dt>
+            <dd>
+              <bdi>{item.personalization.language}</bdi>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">{t('orders.personalization.fee')}</dt>
+            <dd>
+              <bdi>{currency ? orderMoneyLabel(item.personalization.fee, currency, i18n.language) : '—'}</bdi>
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+    </div>
+  )
+}
+
+export function OrderItems({ items, currency }: { items?: OrderItem[]; currency?: string }) {
+  const { t, i18n } = useTranslation()
+  const fields = ['product', 'quantity', 'unitPrice', 'discount', 'lineTotal']
+  const columns = fields.map((id) => ({
+    id,
+    header: t(`orders.${id}`),
+    className: id === 'product' ? 'w-2/5' : undefined,
+  }))
+  const rows = items ?? Array.from({ length: 3 }, () => undefined)
+  const values = (item?: OrderItem) => [
+    item ? (
+      new Intl.NumberFormat(i18n.language.startsWith('ar') ? 'ar' : 'en').format(item.quantity)
     ) : (
-      <span className="text-muted-foreground">{t('orders.unavailable')}</span>
+      <Skeleton className="h-5 w-8" />
     ),
-    item.quantity,
-    ...[item.unitPrice, item.discountAmount, item.lineTotal].map((value) => (
-      <bdi>{orderMoneyLabel(value, currency, i18n.language)}</bdi>
-    )),
+    ...[item?.unitPrice, item?.discountAmount, item?.lineTotal].map((value) =>
+      value && currency ? (
+        <bdi>{orderMoneyLabel(value, currency, i18n.language)}</bdi>
+      ) : (
+        <Skeleton className="h-5 w-20" />
+      )
+    ),
   ]
+  if (!rows.length) return <p className="text-sm text-muted-foreground">{t('orders.details.noItems')}</p>
   return (
     <>
       <ResponsiveDataDesktop>
-        <ResponsiveDataTable columns={columns}>
-          {items.map((item) => (
-            <ResponsiveDataTableRow key={item.id}>
+        <ResponsiveDataTable columns={columns} aria-label={t('orders.fields.items')}>
+          {rows.map((item, row) => (
+            <ResponsiveDataTableRow key={item?.id ?? row}>
+              <ResponsiveDataTableCell className="max-w-64 whitespace-normal">
+                <ItemDescription item={item} currency={currency} />
+              </ResponsiveDataTableCell>
               {values(item).map((value, index) => (
-                <ResponsiveDataTableCell key={fields[index]} className="max-w-64 whitespace-normal break-words">
+                <ResponsiveDataTableCell
+                  key={fields[index + 1]}
+                  className="max-w-40 whitespace-normal [overflow-wrap:anywhere]"
+                >
                   {value}
                 </ResponsiveDataTableCell>
               ))}
@@ -88,17 +138,17 @@ export function OrderItems({ items, currency }: { items: OrderItem[]; currency: 
         </ResponsiveDataTable>
       </ResponsiveDataDesktop>
       <ResponsiveDataMobileCards>
-        {items.map((item) => (
+        {rows.map((item, row) => (
           <ResponsiveDataMobileCard
-            key={item.id}
-            title={<bdi>{item.productName}</bdi>}
-            facts={values(item)
-              .slice(1)
-              .map((value, index) => (
-                <ResponsiveDataFact key={fields[index + 1]} label={label(fields[index + 1])}>
-                  {value}
-                </ResponsiveDataFact>
-              ))}
+            key={item?.id ?? row}
+            className="[overflow-wrap:anywhere]"
+            title={<bdi>{item?.productName ?? t('orders.product')}</bdi>}
+            facts={values(item).map((value, index) => (
+              <ResponsiveDataFact key={fields[index + 1]} label={t(`orders.${fields[index + 1]}`)}>
+                {value}
+              </ResponsiveDataFact>
+            ))}
+            footer={<ItemDescription item={item} currency={currency} showName={false} />}
           />
         ))}
       </ResponsiveDataMobileCards>

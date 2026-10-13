@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
+import { ordersKeys } from '@/modules/orders/queries/orders.keys'
 import { returnRequestsService } from '../api/return-requests.service'
 import { returnRequestsKeys } from '../queries/return-requests.keys'
 import type { ReturnRequestDecisionPayload } from '../types/return-request.types'
@@ -37,15 +38,28 @@ export function useDecideReturnRequest(id: number) {
     retry: false,
     onSuccess: async (response, variables) => {
       await client.cancelQueries({ queryKey: returnRequestsKeys.detail(id), exact: true })
-      if (response.detail) client.setQueryData(returnRequestsKeys.detail(id), response.detail)
+      const approvedDetail = variables.action === 'approve' ? response.detail : null
+      if (approvedDetail) client.setQueryData(returnRequestsKeys.detail(id), approvedDetail)
       toast.success(
         response.message ||
           t(variables.action === 'approve' ? 'returnRequests.feedback.approved' : 'returnRequests.feedback.rejected')
       )
-      await Promise.all([
-        client.invalidateQueries({ queryKey: returnRequestsKeys.detail(id), exact: true }),
-        client.invalidateQueries({ queryKey: returnRequestsKeys.lists() }),
-      ])
+      if (approvedDetail) {
+        await Promise.all([
+          client.invalidateQueries({ queryKey: returnRequestsKeys.lists() }),
+          client.invalidateQueries({
+            queryKey: ordersKeys.detail(approvedDetail.order.id),
+            exact: true,
+            refetchType: 'none',
+          }),
+          client.invalidateQueries({ queryKey: ordersKeys.lists(), refetchType: 'none' }),
+        ])
+      } else {
+        await Promise.all([
+          client.invalidateQueries({ queryKey: returnRequestsKeys.detail(id), exact: true }),
+          client.invalidateQueries({ queryKey: returnRequestsKeys.lists() }),
+        ])
+      }
     },
     onError: () => {
       void client.invalidateQueries({ queryKey: returnRequestsKeys.detail(id), exact: true })

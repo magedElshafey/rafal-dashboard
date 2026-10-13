@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { matchRoutes, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
@@ -9,6 +9,30 @@ import { useAuth } from '@/store/auth'
 import { dashboardNavigation } from '@/modules/dashboard/layout/dashboard-navigation'
 
 describe('core routes', () => {
+  it('registers Category View and drawer adapters without Create/Edit route conflicts', () => {
+    expect(AppRoutes.categoryDetailPath(7)).toBe('/dashboard/categories/7')
+    expect(AppRoutes.categoryEditPath(7)).toBe('/dashboard/categories/7/edit')
+    for (const [url, path] of [
+      [AppRoutes.categories, AppRoutes.categories],
+      [AppRoutes.categoryNew, AppRoutes.categoryNew],
+      [AppRoutes.categoryEditPath(7), AppRoutes.categoryEdit],
+      [AppRoutes.categoryDetailPath(7), AppRoutes.categoryDetail],
+    ]) {
+      expect(matchRoutes(PrivateRoutes, url)?.at(-1)?.route.path).toBe(path)
+    }
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(children.find((route) => route.path === AppRoutes.categoryDetail)?.Component).toBeDefined()
+  })
+  it('registers Store Ratings Index and navigation without unsupported detail routes', () => {
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+    expect(AppRoutes.storeRatings).toBe('/dashboard/store-ratings')
+    expect(children.find((route) => route.path === AppRoutes.storeRatings)?.Component).toBeDefined()
+    expect(children.filter((route) => route.path?.startsWith(AppRoutes.storeRatings))).toHaveLength(1)
+    expect(dashboardNavigation.find((item) => item.to === AppRoutes.storeRatings)).toMatchObject({
+      labelKey: 'storeRatings.title',
+      match: 'prefix',
+    })
+  })
   it('registers only Contact Messages Index and full-page Detail routes', () => {
     const children = PrivateRoutes.flatMap((route) => route.children ?? [])
     expect(children.find((route) => route.path === AppRoutes.contactMessages)?.Component).toBeDefined()
@@ -42,7 +66,7 @@ describe('core routes', () => {
     useAuth.setState({ token: null, admin: null, isAuthenticated: false })
   })
 
-  it('defines Product Index, Create, and Edit routes without future child-resource routes', () => {
+  it('defines Product Index, Create, View, and Edit routes without route conflicts', () => {
     const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
 
     expect(AppRoutes.products).toBe('/dashboard/products')
@@ -52,6 +76,12 @@ describe('core routes', () => {
     expect(AppRoutes.productEdit).toBe('/dashboard/products/:id/edit')
     expect(AppRoutes.productEditPath(17)).toBe('/dashboard/products/17/edit')
     expect(privatePaths).toContain('/dashboard/products/:id/edit')
+    expect(AppRoutes.productDetail).toBe('/dashboard/products/:id')
+    expect(AppRoutes.productDetailPath(17)).toBe('/dashboard/products/17')
+    expect(privatePaths).toContain('/dashboard/products/:id')
+    expect(matchRoutes(PrivateRoutes, AppRoutes.productDetailPath(17))?.at(-1)?.params.id).toBe('17')
+    expect(matchRoutes(PrivateRoutes, AppRoutes.productNew)?.at(-1)?.route.path).toBe(AppRoutes.productNew)
+    expect(matchRoutes(PrivateRoutes, AppRoutes.productEditPath(17))?.at(-1)?.route.path).toBe(AppRoutes.productEdit)
     expect(privatePaths).not.toContain('/dashboard/products/:id/variants')
     expect(privatePaths).not.toContain('/dashboard/products/:id/stocks')
   })

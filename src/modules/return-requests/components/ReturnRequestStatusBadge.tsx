@@ -4,7 +4,8 @@ import { returnRequestStatusLabel } from '../utils/return-request-presentation'
 
 export function ReturnRequestStatusBadge({ value }: { value: string }) {
   const { t } = useTranslation()
-  const variant = value === 'approved' ? 'success' : value === 'pending' ? 'warning' : 'outline'
+  const variant =
+    value === 'approved' ? 'success' : value === 'pending' ? 'warning' : value === 'rejected' ? 'error' : 'outline'
   return (
     <Badge variant={variant}>
       <bdi>{returnRequestStatusLabel(value, t)}</bdi>

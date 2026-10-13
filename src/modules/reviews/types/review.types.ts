@@ -1,7 +1,9 @@
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 
-export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+export const reviewStatuses = ['pending', 'approved', 'rejected'] as const
+export type ReviewStatus = (typeof reviewStatuses)[number]
 export type ReviewModerationTarget = Exclude<ReviewStatus, 'pending'>
+export const reviewModerationTargets = ['approved', 'rejected'] as const satisfies readonly ReviewModerationTarget[]
 
 export type ReviewReviewer = {
   id: number

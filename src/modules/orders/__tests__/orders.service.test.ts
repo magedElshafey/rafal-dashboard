@@ -9,6 +9,7 @@ import { orderTransitionFeedback } from '../utils/order-errors'
 import show from './order-detail.fixture.json'
 import index from './orders-index.fixture.json'
 import statuses from './statuses.fixture.json'
+import dashboardShow from './order-dashboard-show.fixture.json'
 import { cancelledOrder20, confirmedOrder18, processingOrder19 } from './order-detail-runtime.fixtures'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
@@ -18,6 +19,33 @@ beforeEach(() => {
 })
 
 describe('real Orders read contracts', () => {
+  it('normalizes the confirmed flat VAT Show without fabricating taxable amount or VAT rate', async () => {
+    http.get.mockResolvedValue({ data: dashboardShow })
+    const detail = await ordersService.show(208)
+    expect(detail.money).toEqual({
+      subtotal: '100.00',
+      discountTotal: '0.00',
+      shippingFee: '25.00',
+      personalizationTotal: '0.00',
+      giftWrapFee: '15.00',
+      taxableAmount: null,
+      vat: { rate: null, amount: '18.26' },
+      total: '140.00',
+      currency: 'SAR',
+    })
+    expect(detail.gift?.recipient.city?.name).toBe('الرياض')
+    http.patch.mockResolvedValue({ data: dashboardShow })
+    expect((await ordersService.updateStatus(208, 'confirmed')).detail).toEqual(detail)
+  })
+
+  it('rejects absent, malformed or conflicting VAT amounts rather than inventing an accounting value', () => {
+    for (const money of [
+      { ...dashboardShow.data.money, vat_amount: undefined },
+      { ...dashboardShow.data.money, vat_amount: 'not-money' },
+      { ...dashboardShow.data.money, vat: { rate: '15.00', amount: '20.00' } },
+    ])
+      expect(() => normalizeOrderDetail({ ...dashboardShow.data, money })).toThrow()
+  })
   it('GETs the first Index page and normalizes all fields and pagination', async () => {
     http.get.mockResolvedValue({ data: index })
     const signal = new AbortController().signal

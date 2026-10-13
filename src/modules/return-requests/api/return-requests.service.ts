@@ -13,8 +13,9 @@ import { normalizeReturnRequest } from '../utils/return-request-normalizers'
 const validId = z.number().int().positive().safe()
 
 function decisionFailure(value: unknown) {
+  if (!z.object({ success: z.literal(false) }).safeParse(value).success) return
   const parsed = returnRequestFailureEnvelopeSchema.safeParse(value)
-  if (parsed.success && parsed.data.success === false) throw new ReturnRequestDecisionError(parsed.data)
+  throw new ReturnRequestDecisionError(parsed.success ? parsed.data : {})
 }
 
 function message(value: string | undefined) {
@@ -88,14 +89,8 @@ export const returnRequestsService = {
       suppressForbiddenRedirect: true,
     })
     decisionFailure(response.data)
-    const envelope = returnRequestSuccessEnvelopeSchema.parse(response.data)
-    let detail = null
-    try {
-      const parsed = normalizeReturnRequest(envelope.data)
-      if (parsed.id === id) detail = parsed
-    } catch {
-      // Reject success data is unconfirmed; canonical Show is always refreshed.
-    }
-    return { message: message(envelope.message), detail }
+    // HTTP success is authoritative; Reject has no confirmed response body contract.
+    const envelope = returnRequestSuccessEnvelopeSchema.safeParse(response.data)
+    return { message: envelope.success ? message(envelope.data.message) : undefined, detail: null }
   },
 }

@@ -75,6 +75,7 @@ function renderPage(initialEntry = '/dashboard/products') {
           <Route path="/dashboard/products" element={<ProductsPage />} />
           <Route path="/dashboard/products/new" element={<p>Product Create destination</p>} />
           <Route path="/dashboard/products/:id/edit" element={<p>Product Edit destination</p>} />
+          <Route path="/dashboard/products/:id" element={<p>Product View destination</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -82,6 +83,25 @@ function renderPage(initialEntry = '/dashboard/products') {
 }
 
 describe('ProductsPage', () => {
+  it.each(['en', 'ar'])(
+    'opens View from the accessible %s actions menu and preserves Edit/Delete',
+    async (language) => {
+      await i18n.changeLanguage(language)
+      seedProducts([rawProduct(4)])
+      const user = userEvent.setup()
+      renderPage()
+      const name = language === 'ar' ? 'منتج 4' : 'Product 4'
+      await user.click(
+        (await screen.findAllByRole('button', { name: i18n.t('products.actions.forProduct', { name }) }))[0]
+      )
+      expect(screen.getByRole('menuitem', { name: i18n.t('products.actions.editNamed', { name }) })).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: i18n.t('products.actions.deleteNamed', { name }) })
+      ).toBeInTheDocument()
+      await user.click(screen.getByRole('menuitem', { name: i18n.t('products.actions.viewNamed', { name }) }))
+      expect(await screen.findByText('Product View destination')).toBeInTheDocument()
+    }
+  )
   beforeEach(async () => {
     vi.restoreAllMocks()
     seedProducts([])

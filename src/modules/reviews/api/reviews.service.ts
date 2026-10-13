@@ -10,9 +10,10 @@ import type {
 } from '@/modules/reviews/types/review.types'
 import { emptyReviewsFilters, serializeReviewsFilters } from '@/modules/reviews/utils/review-filters'
 import { $http } from '@/utils/http'
+import { reviewModerationTargets, reviewStatuses } from '@/modules/reviews/types/review.types'
 
-const reviewStatuses = new Set<ReviewStatus>(['pending', 'approved', 'rejected'])
-const moderationTargets = new Set<ReviewModerationTarget>(['approved', 'rejected'])
+const statuses = new Set<ReviewStatus>(reviewStatuses)
+const moderationTargets = new Set<ReviewModerationTarget>(reviewModerationTargets)
 
 function normalizeId(value: number, entity: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${entity} ID is unavailable`)
@@ -40,7 +41,7 @@ function normalizeCount(value: number | string, field: string): number {
 }
 
 function normalizeStatus(value: string): ReviewStatus {
-  if (!reviewStatuses.has(value as ReviewStatus)) throw new Error('Review status is unavailable')
+  if (!statuses.has(value as ReviewStatus)) throw new Error('Review status is unavailable')
   return value as ReviewStatus
 }
 

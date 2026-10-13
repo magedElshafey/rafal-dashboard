@@ -48,8 +48,8 @@ export type OrderMoney = {
   shippingFee: string
   personalizationTotal: string
   giftWrapFee: string
-  taxableAmount: string
-  vat: { rate: string; amount: string }
+  taxableAmount: string | null
+  vat: { rate: string | null; amount: string }
   total: string
   currency: string
 }

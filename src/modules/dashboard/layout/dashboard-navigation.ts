@@ -18,6 +18,7 @@ import {
   FileText,
   RotateCcw,
   Mail,
+  Star,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -117,6 +118,7 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     match: 'prefix',
   },
   { to: Routes.contactMessages, labelKey: 'contactMessages.title', icon: Mail, match: 'prefix' },
+  { to: Routes.storeRatings, labelKey: 'storeRatings.title', icon: Star, match: 'prefix' },
 
   {
     to: Routes.reviews,

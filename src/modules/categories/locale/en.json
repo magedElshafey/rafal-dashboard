@@ -8,6 +8,22 @@
     "total_other": "{{count}} categories",
     "loadingMore": "Loading more categories",
     "noImage": "No image",
+    "details": {
+      "title": "Category details",
+      "back": "Back to Categories",
+      "overview": "Overview",
+      "id": "Category ID",
+      "slug": "Slug",
+      "description": "Description",
+      "hierarchy": "Hierarchy",
+      "metadata": "Dates",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at",
+      "notFound": {
+        "title": "Category not found",
+        "description": "This category is unavailable or the link is invalid."
+      }
+    },
     "filters": {
       "title": "Category filters",
       "all": "All",
@@ -60,6 +76,8 @@
       "editDescription": "Update category details, image, and hierarchy settings."
     },
     "actions": {
+      "view": "View",
+      "viewNamed": "View {{name}}",
       "label": "Actions",
       "create": "Create",
       "createAnother": "Create & Create Another",

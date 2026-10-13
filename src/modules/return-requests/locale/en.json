@@ -3,6 +3,26 @@
     "direction": "ltr",
     "title": "Return Requests",
     "details": "Return Request Details",
+    "workspace": {
+      "notFound": "Return request not found",
+      "notFoundDescription": "This return request is unavailable or the link is invalid.",
+      "reviewDecision": "Review decision",
+      "decisionSummary": "Decision summary",
+      "requestStatus": "Request status",
+      "currentStatus": "Current status",
+      "reviewGuidance": "Review the customer's reason and order before confirming a decision. Approval changes the related order status to returned.",
+      "freshnessRequired": "Decisions are unavailable until the latest request details are loaded.",
+      "viewOrder": "View full order",
+      "viewOrderNamed": "View full order {{number}}",
+      "viewCustomer": "View customer",
+      "viewCustomerNamed": "View customer {{name}}",
+      "customerFallback": "Customer #{{id}}",
+      "adminFallback": "Admin #{{id}}",
+      "lifecycle": "Request lifecycle",
+      "submitted": "Request submitted",
+      "awaitingDecision": "Awaiting admin decision",
+      "metadata": "Metadata"
+    },
     "requestTitle": "Return Request #{{id}}",
     "listTitle": "Return Requests ({{count}})",
     "empty": "No return requests",
@@ -60,7 +80,8 @@
     },
     "status": {
       "pending": "Pending",
-      "approved": "Approved"
+      "approved": "Approved",
+      "rejected": "Rejected"
     },
     "reason": {
       "damaged": "Damaged"

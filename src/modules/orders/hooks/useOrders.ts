@@ -43,7 +43,9 @@ export function useUpdateOrderStatus(id: number) {
       if (response.detail) client.setQueryData(ordersKeys.detail(id), response.detail)
       toast.success(response.message || t('orders.updated'))
       await Promise.all([
-        client.invalidateQueries({ queryKey: ordersKeys.detail(id), exact: true }),
+        response.detail
+          ? Promise.resolve()
+          : client.invalidateQueries({ queryKey: ordersKeys.detail(id), exact: true }),
         client.invalidateQueries({ queryKey: ordersKeys.lists() }),
       ])
     },

@@ -14,9 +14,10 @@ export type CustomerAccessTarget = {
 type Props = {
   target: CustomerAccessTarget | null
   onClose: () => void
+  disabled?: boolean
 }
 
-export function CustomerAccessDialog({ target, onClose }: Props) {
+export function CustomerAccessDialog({ target, onClose, disabled = false }: Props) {
   const { t } = useTranslation()
   const dialogRef = useRef<DeleteAlertRef>(null)
   const submissionLockRef = useRef(false)
@@ -27,7 +28,7 @@ export function CustomerAccessDialog({ target, onClose }: Props) {
   }, [target])
 
   const handleConfirm = async () => {
-    if (!target || mutation.isPending || submissionLockRef.current) return
+    if (!target || disabled || mutation.isPending || submissionLockRef.current) return
     submissionLockRef.current = true
     try {
       await mutation.mutateAsync({ id: target.id, action: target.action })
@@ -51,7 +52,7 @@ export function CustomerAccessDialog({ target, onClose }: Props) {
       cancelLabel={t('customers.actions.cancel')}
       pendingLabel={t(`customers.actions.${action}Pending`)}
       isPending={mutation.isPending}
-      disabled={!target}
+      disabled={!target || disabled}
       onDelete={handleConfirm}
       onCancel={onClose}
     />

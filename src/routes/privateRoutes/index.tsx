@@ -17,6 +17,7 @@ const RolesPage = lazy(() => import('@/modules/roles/pages/RolesPage'))
 const AdminsPage = lazy(() => import('@/modules/admins/pages/AdminsPage'))
 const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
 const CategoriesPage = lazy(() => import('@/modules/categories/pages/CategoriesPage'))
+const CategoryDetailsPage = lazy(() => import('@/modules/categories/pages/CategoryDetailsPage'))
 const WarehousesPage = lazy(() => import('@/modules/warehouses/pages/WarehousesPage'))
 const RegionsPage = lazy(() => import('@/modules/regions/pages/RegionsPage'))
 const CitiesPage = lazy(() => import('@/modules/cities/pages/CitiesPage'))
@@ -25,11 +26,13 @@ const ShippingMethodsPage = lazy(() => import('@/modules/shipping-methods/pages/
 const ProductsPage = lazy(() => import('@/modules/products/pages/ProductsPage'))
 const ProductCreatePage = lazy(() => import('@/modules/products/pages/ProductCreatePage'))
 const ProductEditPage = lazy(() => import('@/modules/products/pages/ProductEditPage'))
+const ProductDetailsPage = lazy(() => import('@/modules/products/pages/ProductDetailsPage'))
 const CouponsPage = lazy(() => import('@/modules/coupons/pages/CouponsPage'))
 const AboutUsPage = lazy(() => import('@/modules/about-us/pages/AboutUsPage'))
 const CustomersPage = lazy(() => import('@/modules/customers/pages/CustomersPage'))
 const CustomerDetailPage = lazy(() => import('@/modules/customers/pages/CustomerDetailPage'))
 const ReviewsPage = lazy(() => import('@/modules/reviews/pages/ReviewsPage'))
+const StoreRatingsPage = lazy(() => import('@/modules/store-ratings/pages/StoreRatingsPage'))
 const TestimonialsPage = lazy(() => import('@/modules/testimonials/pages/TestimonialsPage'))
 const StaticPagesPage = lazy(() => import('@/modules/static-pages/pages/StaticPagesPage'))
 const StaticPageCreatePage = lazy(() => import('@/modules/static-pages/pages/StaticPageCreatePage'))
@@ -60,6 +63,9 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.admins, Component: AdminsPage },
       { path: Routes.banners, Component: BannersPage },
       { path: Routes.categories, Component: CategoriesPage },
+      { path: Routes.categoryNew, element: <CategoriesPage routeMode="create" /> },
+      { path: Routes.categoryEdit, element: <CategoriesPage routeMode="edit" /> },
+      { path: Routes.categoryDetail, Component: CategoryDetailsPage },
       { path: Routes.warehouses, Component: WarehousesPage },
       { path: Routes.regions, Component: RegionsPage },
       { path: Routes.cities, Component: CitiesPage },
@@ -68,11 +74,13 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.products, Component: ProductsPage },
       { path: Routes.productNew, Component: ProductCreatePage },
       { path: Routes.productEdit, Component: ProductEditPage },
+      { path: Routes.productDetail, Component: ProductDetailsPage },
       { path: Routes.coupons, Component: CouponsPage },
       { path: Routes.aboutUs, Component: AboutUsPage },
       { path: Routes.customers, Component: CustomersPage },
       { path: Routes.customerDetail, Component: CustomerDetailPage },
       { path: Routes.reviews, Component: ReviewsPage },
+      { path: Routes.storeRatings, Component: StoreRatingsPage },
       { path: Routes.testimonials, Component: TestimonialsPage },
       { path: Routes.staticPages, Component: StaticPagesPage },
       { path: Routes.staticPageNew, Component: StaticPageCreatePage },

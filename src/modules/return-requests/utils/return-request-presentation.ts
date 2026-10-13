@@ -8,8 +8,12 @@ export function humanizeReturnRequestValue(value: string) {
   return value.replace(/[_-]+/g, ' ').trim()
 }
 
+export function isReturnRequestDecided(status: string | undefined) {
+  return status === 'approved' || status === 'rejected'
+}
+
 export function returnRequestStatusLabel(value: string, t: TFunction) {
-  if (value === 'pending' || value === 'approved') return t(`returnRequests.status.${value}`)
+  if (value === 'pending' || value === 'approved' || value === 'rejected') return t(`returnRequests.status.${value}`)
   return humanizeReturnRequestValue(value)
 }
 

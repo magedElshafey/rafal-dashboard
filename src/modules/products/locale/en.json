@@ -34,6 +34,8 @@
       "direction": { "asc": "Ascending", "desc": "Descending" }
     },
     "actions": {
+      "view": "View",
+      "viewNamed": "View {{name}}",
       "create": "Create Product",
       "creating": "Creating Product",
       "save": "Save Changes",
@@ -146,6 +148,25 @@
       "description": "Update the product information and append new images.",
       "existingImages": "Existing product images",
       "existingImageAlt": "Existing product image {{id}}"
+    },
+    "details": {
+      "title": "Product details",
+      "back": "Back to Products",
+      "overview": "Overview",
+      "identifier": "Product ID",
+      "slug": "Slug",
+      "basePriceInclVat": "Base Price Including VAT",
+      "additionalImages": "Additional product images",
+      "inventory": "Inventory",
+      "metadata": "Activity & Metadata",
+      "createdAt": "Created",
+      "updatedAt": "Last Updated",
+      "simulatedViewers": "Simulated Viewers",
+      "simulatedOrders": "Simulated Orders",
+      "notFound": {
+        "title": "Product not found",
+        "description": "This product is unavailable or the product link is invalid."
+      }
     },
     "variants": {
       "attributeNames": {

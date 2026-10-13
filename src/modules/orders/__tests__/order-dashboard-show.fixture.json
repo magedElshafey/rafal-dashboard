@@ -1,0 +1,87 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 208,
+    "order_number": "RF-10208",
+    "display_number": "#RF-10208",
+    "status": "confirmed",
+    "customer": { "type": "guest", "name": "sayed", "email": "tet@test.com", "phone": "01091043665" },
+    "shipping_address": {
+      "recipient_name": "abdullah",
+      "recipient_phone": "01091043660",
+      "city": { "id": 1, "name": "الرياض" },
+      "district": "5 squar",
+      "street_details": "5 home on street 4"
+    },
+    "gift": {
+      "is_anonymous": false,
+      "message": null,
+      "wrap": true,
+      "wrap_fee": "15.00",
+      "buyer": { "type": "guest", "name": "sayed", "email": "tet@test.com", "phone": "01091043665" },
+      "recipient": {
+        "name": "sayed",
+        "phone": "01091043660",
+        "city": { "id": 1, "name": "الرياض" },
+        "district": "الحي السادس",
+        "street_details": "شارع الهرم"
+      }
+    },
+    "items": [
+      {
+        "id": 143,
+        "product_name": "Test Product A",
+        "variant_sku": "SKU-A-RED",
+        "variant_attributes": { "color": "red" },
+        "quantity": 1,
+        "unit_price": "100.00",
+        "discount_amount": "0.00",
+        "line_total": "100.00"
+      }
+    ],
+    "money": {
+      "subtotal": "100.00",
+      "discount_total": "0.00",
+      "shipping_fee": "25.00",
+      "personalization_total": "0.00",
+      "gift_wrap_fee": "15.00",
+      "vat_amount": "18.26",
+      "total": "140.00",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "card",
+      "status": "paid",
+      "reference": "STUB-5bd67ca3-1646-4fb5-be42-3d91766e9afe",
+      "paid_at": "2026-09-21T18:00:04+00:00"
+    },
+    "warehouse": { "id": 7, "name": "Madinah Warehouse" },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-09-21T18:00:04+00:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "confirmed",
+        "note": "Payment confirmed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-09-21T18:00:04+00:00"
+      }
+    ],
+    "allowed_transitions": ["processing", "cancelled"],
+    "placed_at": "2026-09-21T18:00:04+00:00",
+    "cancelled_at": null,
+    "created_at": "2026-09-21T18:00:04+00:00",
+    "updated_at": "2026-09-21T18:00:04+00:00"
+  }
+}

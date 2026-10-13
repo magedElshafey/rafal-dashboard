@@ -122,6 +122,73 @@ function renderPage() {
 }
 
 describe('ProductEditPage', () => {
+  it.each([
+    { label: 'populated object', attributes: { color: 'silver', size: 'M' }, populated: true },
+    { label: 'empty array', attributes: [], populated: false },
+  ])('hydrates the live Show fixture with $label attributes and no cart limit', async ({ attributes, populated }) => {
+    const response = {
+      ...realDashboardProductShow,
+      variants: [{ ...realDashboardProductShow.variants[0], attributes }],
+      hide_price_on_packaging: true,
+    }
+    delete response.max_cart_item_quantity
+    vi.mocked(productsService.show).mockResolvedValue(normalizeProductDetail(response))
+    renderPage()
+
+    expect(await screen.findByRole('textbox', { name: 'SKU' })).toHaveValue('RAF-dcb-308633')
+    expect(screen.getByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })).toHaveValue(null)
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
+    if (populated) {
+      expect(screen.getByText(/Color: silver/)).toBeInTheDocument()
+      expect(screen.getByText(/Size: M/)).toBeInTheDocument()
+    } else {
+      expect(screen.getByText('No attributes')).toBeInTheDocument()
+    }
+  })
+  it('allows an explicit valid cart limit on a legacy product without fabricating one', async () => {
+    const detail = normalizeProductDetail({ ...realDashboardProductShow, max_cart_item_quantity: null })
+    vi.mocked(productsService.show).mockResolvedValue(detail)
+    const update = vi.spyOn(productsService, 'update').mockResolvedValue({ ...detail, maxCartItemQuantity: 10 })
+    const user = userEvent.setup()
+    renderPage()
+    const limit = await screen.findByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })
+    expect(limit).toHaveValue(null)
+    await user.type(limit, '0')
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    await user.clear(limit)
+    await user.type(limit, '10')
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, { maxCartItemQuantity: 10 }))
+  })
+
+  it('still requires an existing cart limit when the user clears it', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const limit = await screen.findByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })
+    await user.clear(limit)
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+  })
+
+  it('hydrates an absent cart limit as empty and omits it from an unrelated dirty-field update', async () => {
+    const response = { ...realDashboardProductShow, hide_price_on_packaging: true }
+    delete response.max_cart_item_quantity
+    const detail = normalizeProductDetail(response)
+    vi.mocked(productsService.show).mockResolvedValue(detail)
+    const update = vi.spyOn(productsService, 'update').mockResolvedValue({ ...detail, sku: 'CHANGED' })
+    const user = userEvent.setup()
+    renderPage()
+    const sku = await screen.findByRole('textbox', { name: 'SKU' })
+    expect(screen.getByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })).toHaveValue(null)
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+    expect(screen.queryByRole('checkbox', { name: 'Hide Price on Packaging' })).not.toBeInTheDocument()
+    await user.clear(sku)
+    await user.type(sku, 'CHANGED')
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, { sku: 'CHANGED' }))
+    expect(screen.getByRole('spinbutton', { name: 'Maximum Cart Item Quantity' })).toHaveValue(null)
+  })
   beforeEach(async () => {
     vi.spyOn(productsService, 'show').mockResolvedValue({ ...product })
     toastMocks.success.mockReset()
