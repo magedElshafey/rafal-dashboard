@@ -3,6 +3,11 @@ export const Routes = {
 
   login: '/login',
   dashboard: '/dashboard',
+  blogs: '/dashboard/blogs',
+  blogCategories: '/dashboard/blogs/categories',
+  legacyBlogCategories: '/dashboard/blog-categories',
+  blogPosts: '/dashboard/blogs/posts',
+  legacyBlogPosts: '/dashboard/blog-posts',
   orders: '/dashboard/orders',
   orderDetail: '/dashboard/orders/:id',
   orderDetailPath: (id: number) => `/dashboard/orders/${id}`,

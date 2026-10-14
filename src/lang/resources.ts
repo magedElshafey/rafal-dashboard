@@ -1,3 +1,5 @@
+import * as blogsEn from '@/modules/blogs/locale/en.json'
+import * as blogsAr from '@/modules/blogs/locale/ar.json'
 import * as ar from '@/lang/ar.json'
 import * as ordersAr from '@/modules/orders/locale/ar.json'
 import * as ordersEn from '@/modules/orders/locale/en.json'
@@ -53,6 +55,7 @@ export const resources = {
   en: {
     translation: {
       ...en,
+      ...blogsEn,
       ...contactMessagesEn,
       ...ordersEn,
       ...returnRequestsEn,
@@ -82,6 +85,7 @@ export const resources = {
   ar: {
     translation: {
       ...ar,
+      ...blogsAr,
       ...contactMessagesAr,
       ...ordersAr,
       ...returnRequestsAr,

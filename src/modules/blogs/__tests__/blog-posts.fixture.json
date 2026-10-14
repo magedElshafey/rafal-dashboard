@@ -1,0 +1,68 @@
+{
+  "success": true,
+  "message": "Blog posts retrieved successfully",
+  "data": [
+    {
+      "id": 11,
+      "slug": "personalized-gift-ideas-family-occasions",
+      "title": {
+        "ar": "٥ أفكار لهدايا مخصصة تُخلّد المناسبات العائلية"
+      },
+      "excerpt": {
+        "ar": "من السلاسل المنقوشة بالاسم إلى المباخر الشخصية"
+      },
+      "body": {
+        "ar": "محتوى المقال باللغة العربية"
+      },
+      "author_name": "فريق رافال",
+      "is_featured": true,
+      "published_at": "2026-09-10T17:50:39+00:00",
+      "reading_time_minutes": 1,
+      "cover_url": "http://rafal.test/storage/163/550.jpeg",
+      "category": {
+        "id": 11,
+        "slug": "gift-guides",
+        "name": {
+          "ar": "دليل الهدايا",
+          "en": "Gift Guides"
+        }
+      },
+      "created_at": "2026-09-28T17:50:39+00:00",
+      "updated_at": "2026-09-28T17:50:39+00:00"
+    },
+    {
+      "id": 18,
+      "slug": "draft-upcoming-engraving-language-guide",
+      "title": {
+        "ar": "مسودة: دليل اختيار لغة النقش"
+      },
+      "excerpt": {
+        "ar": "وصف مختصر للمقال"
+      },
+      "body": {
+        "ar": "محتوى المقال"
+      },
+      "author_name": "فريق رافال",
+      "is_featured": false,
+      "published_at": null,
+      "reading_time_minutes": 1,
+      "cover_url": "http://rafal.test/storage/170/500.jpeg",
+      "category": {
+        "id": 10,
+        "slug": "personalization",
+        "name": {
+          "ar": "التخصيص",
+          "en": "Personalization"
+        }
+      },
+      "created_at": "2026-09-28T17:50:46+00:00",
+      "updated_at": "2026-09-28T17:50:46+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 15,
+    "total": 9
+  }
+}

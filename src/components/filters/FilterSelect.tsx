@@ -19,6 +19,11 @@ export interface FilterSelectProps<T> extends React.ComponentProps<typeof Root> 
   onFilterChange?: (value: string | null) => void
   resetQueryNamesOnChange?: string[]
   resetQueryNamesOnClear?: boolean
+  isError?: boolean
+  isRetrying?: boolean
+  errorMessage?: ReactNode
+  retryLabel?: ReactNode
+  onRetry?: () => void | Promise<unknown>
   isLoading?: boolean
   isFetchingNextPage?: boolean
   hasNextPage?: boolean
@@ -40,6 +45,11 @@ const FilterSelect = <T,>({
   onFilterChange,
   resetQueryNamesOnChange,
   resetQueryNamesOnClear = false,
+  isError,
+  isRetrying,
+  errorMessage,
+  retryLabel,
+  onRetry,
   isLoading,
   isFetchingNextPage,
   hasNextPage,
@@ -92,6 +102,11 @@ const FilterSelect = <T,>({
 
           <SelectContent
             dir={isRtl ? 'rtl' : 'ltr'}
+            isError={isError}
+            isRetrying={isRetrying}
+            errorMessage={errorMessage}
+            retryLabel={retryLabel}
+            onRetry={onRetry}
             isLoading={isLoading}
             isFetchingNextPage={isFetchingNextPage}
             hasNextPage={hasNextPage}

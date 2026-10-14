@@ -1,3 +1,4 @@
+import { normalizeSlug as normalizeStaticPageSlug } from '@/utils/slug'
 import type {
   StaticPage,
   StaticPageCreatePayload,
@@ -5,16 +6,7 @@ import type {
   StaticPageUpdatePayload,
 } from '@/modules/static-pages/types/static-page.types'
 
-export function normalizeStaticPageSlug(value: string): string {
-  return value
-    .normalize('NFKC')
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/gu, '-')
-    .replace(/[^\p{L}\p{N}-]+/gu, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
+export { normalizeStaticPageSlug }
 
 export function getLocalizedStaticPageTitle(page: StaticPage, language: string, fallback: string): string {
   const preferred = language.startsWith('ar') ? page.title.ar : page.title.en

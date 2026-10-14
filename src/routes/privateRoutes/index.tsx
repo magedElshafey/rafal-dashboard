@@ -1,3 +1,4 @@
+import { BlogRedirect } from '@/modules/blogs/components/BlogRedirect'
 import { lazy } from 'react'
 import type { RouteObject } from 'react-router'
 import { Navigate, Outlet } from 'react-router-dom'
@@ -6,6 +7,8 @@ import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
 import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
 import { Routes } from '@/routes/routes'
 
+const BlogCategoriesPage = lazy(() => import('@/modules/blogs/pages/BlogCategoriesPage'))
+const BlogPostsPage = lazy(() => import('@/modules/blogs/pages/BlogPostsPage'))
 const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
 const OrdersPage = lazy(() => import('@/modules/orders/pages/OrdersPage'))
 const OrderDetailPage = lazy(() => import('@/modules/orders/pages/OrderDetailPage'))
@@ -53,6 +56,11 @@ export const PrivateRoutes: RouteObject[] = [
     ),
     children: [
       { path: Routes.dashboard, Component: DashboardPage },
+      { path: Routes.blogCategories, Component: BlogCategoriesPage },
+      { path: Routes.blogPosts, Component: BlogPostsPage },
+      { path: Routes.blogs, element: <BlogRedirect to={Routes.blogPosts} /> },
+      { path: Routes.legacyBlogPosts, element: <BlogRedirect to={Routes.blogPosts} /> },
+      { path: Routes.legacyBlogCategories, element: <BlogRedirect to={Routes.blogCategories} /> },
       { path: Routes.orders, Component: OrdersPage },
       { path: Routes.orderDetail, Component: OrderDetailPage },
       { path: Routes.returnRequests, Component: ReturnRequestsPage },

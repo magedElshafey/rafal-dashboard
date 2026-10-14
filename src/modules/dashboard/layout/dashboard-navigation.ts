@@ -105,6 +105,7 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: Truck,
     match: 'prefix',
   },
+  { to: Routes.blogs, labelKey: 'blogs.title', icon: FileText, match: 'prefix' },
   {
     to: Routes.staticPages,
     labelKey: 'dashboard.sidebar.staticPages',

@@ -1,0 +1,4105 @@
+diff --git a/src/components/filters/FilterSelect.tsx b/src/components/filters/FilterSelect.tsx
+index 862d8bb..76e1cdd 100644
+--- a/src/components/filters/FilterSelect.tsx
++++ b/src/components/filters/FilterSelect.tsx
+@@ -19,6 +19,11 @@ export interface FilterSelectProps<T> extends React.ComponentProps<typeof Root>
+   onFilterChange?: (value: string | null) => void
+   resetQueryNamesOnChange?: string[]
+   resetQueryNamesOnClear?: boolean
++  isError?: boolean
++  isRetrying?: boolean
++  errorMessage?: ReactNode
++  retryLabel?: ReactNode
++  onRetry?: () => void | Promise<unknown>
+   isLoading?: boolean
+   isFetchingNextPage?: boolean
+   hasNextPage?: boolean
+@@ -40,6 +45,11 @@ const FilterSelect = <T,>({
+   onFilterChange,
+   resetQueryNamesOnChange,
+   resetQueryNamesOnClear = false,
++  isError,
++  isRetrying,
++  errorMessage,
++  retryLabel,
++  onRetry,
+   isLoading,
+   isFetchingNextPage,
+   hasNextPage,
+@@ -92,6 +102,11 @@ const FilterSelect = <T,>({
+ 
+           <SelectContent
+             dir={isRtl ? 'rtl' : 'ltr'}
++            isError={isError}
++            isRetrying={isRetrying}
++            errorMessage={errorMessage}
++            retryLabel={retryLabel}
++            onRetry={onRetry}
+             isLoading={isLoading}
+             isFetchingNextPage={isFetchingNextPage}
+             hasNextPage={hasNextPage}
+diff --git a/src/lang/resources.ts b/src/lang/resources.ts
+index b93bbdb..0c000ef 100644
+--- a/src/lang/resources.ts
++++ b/src/lang/resources.ts
+@@ -1,3 +1,5 @@
++import * as blogsEn from '@/modules/blogs/locale/en.json'
++import * as blogsAr from '@/modules/blogs/locale/ar.json'
+ import * as ar from '@/lang/ar.json'
+ import * as ordersAr from '@/modules/orders/locale/ar.json'
+ import * as ordersEn from '@/modules/orders/locale/en.json'
+@@ -53,6 +55,7 @@ export const resources = {
+   en: {
+     translation: {
+       ...en,
++      ...blogsEn,
+       ...contactMessagesEn,
+       ...ordersEn,
+       ...returnRequestsEn,
+@@ -82,6 +85,7 @@ export const resources = {
+   ar: {
+     translation: {
+       ...ar,
++      ...blogsAr,
+       ...contactMessagesAr,
+       ...ordersAr,
+       ...returnRequestsAr,
+diff --git a/src/modules/dashboard/layout/dashboard-navigation.ts b/src/modules/dashboard/layout/dashboard-navigation.ts
+index ba4a851..771acd5 100644
+--- a/src/modules/dashboard/layout/dashboard-navigation.ts
++++ b/src/modules/dashboard/layout/dashboard-navigation.ts
+@@ -105,6 +105,7 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
+     icon: Truck,
+     match: 'prefix',
+   },
++  { to: Routes.blogs, labelKey: 'blogs.title', icon: FileText, match: 'prefix' },
+   {
+     to: Routes.staticPages,
+     labelKey: 'dashboard.sidebar.staticPages',
+diff --git a/src/modules/static-pages/utils/static-page.utils.ts b/src/modules/static-pages/utils/static-page.utils.ts
+index 79f8c5f..4f5cc88 100644
+--- a/src/modules/static-pages/utils/static-page.utils.ts
++++ b/src/modules/static-pages/utils/static-page.utils.ts
+@@ -1,3 +1,4 @@
++import { normalizeSlug as normalizeStaticPageSlug } from '@/utils/slug'
+ import type {
+   StaticPage,
+   StaticPageCreatePayload,
+@@ -5,16 +6,7 @@ import type {
+   StaticPageUpdatePayload,
+ } from '@/modules/static-pages/types/static-page.types'
+ 
+-export function normalizeStaticPageSlug(value: string): string {
+-  return value
+-    .normalize('NFKC')
+-    .trim()
+-    .toLowerCase()
+-    .replace(/[\s_]+/gu, '-')
+-    .replace(/[^\p{L}\p{N}-]+/gu, '-')
+-    .replace(/-+/g, '-')
+-    .replace(/^-+|-+$/g, '')
+-}
++export { normalizeStaticPageSlug }
+ 
+ export function getLocalizedStaticPageTitle(page: StaticPage, language: string, fallback: string): string {
+   const preferred = language.startsWith('ar') ? page.title.ar : page.title.en
+diff --git a/src/routes/privateRoutes/index.tsx b/src/routes/privateRoutes/index.tsx
+index e2b3837..447804f 100644
+--- a/src/routes/privateRoutes/index.tsx
++++ b/src/routes/privateRoutes/index.tsx
+@@ -1,3 +1,4 @@
++import { BlogRedirect } from '@/modules/blogs/components/BlogRedirect'
+ import { lazy } from 'react'
+ import type { RouteObject } from 'react-router'
+ import { Navigate, Outlet } from 'react-router-dom'
+@@ -6,6 +7,8 @@ import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
+ import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
+ import { Routes } from '@/routes/routes'
+ 
++const BlogCategoriesPage = lazy(() => import('@/modules/blogs/pages/BlogCategoriesPage'))
++const BlogPostsPage = lazy(() => import('@/modules/blogs/pages/BlogPostsPage'))
+ const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'))
+ const OrdersPage = lazy(() => import('@/modules/orders/pages/OrdersPage'))
+ const OrderDetailPage = lazy(() => import('@/modules/orders/pages/OrderDetailPage'))
+@@ -53,6 +56,11 @@ export const PrivateRoutes: RouteObject[] = [
+     ),
+     children: [
+       { path: Routes.dashboard, Component: DashboardPage },
++      { path: Routes.blogCategories, Component: BlogCategoriesPage },
++      { path: Routes.blogPosts, Component: BlogPostsPage },
++      { path: Routes.blogs, element: <BlogRedirect to={Routes.blogPosts} /> },
++      { path: Routes.legacyBlogPosts, element: <BlogRedirect to={Routes.blogPosts} /> },
++      { path: Routes.legacyBlogCategories, element: <BlogRedirect to={Routes.blogCategories} /> },
+       { path: Routes.orders, Component: OrdersPage },
+       { path: Routes.orderDetail, Component: OrderDetailPage },
+       { path: Routes.returnRequests, Component: ReturnRequestsPage },
+diff --git a/src/routes/routes.ts b/src/routes/routes.ts
+index a26a50f..51fccc6 100644
+--- a/src/routes/routes.ts
++++ b/src/routes/routes.ts
+@@ -3,6 +3,11 @@ export const Routes = {
+ 
+   login: '/login',
+   dashboard: '/dashboard',
++  blogs: '/dashboard/blogs',
++  blogCategories: '/dashboard/blogs/categories',
++  legacyBlogCategories: '/dashboard/blog-categories',
++  blogPosts: '/dashboard/blogs/posts',
++  legacyBlogPosts: '/dashboard/blog-posts',
+   orders: '/dashboard/orders',
+   orderDetail: '/dashboard/orders/:id',
+   orderDetailPath: (id: number) => `/dashboard/orders/${id}`,
+diff --git a/docs/frontend/BLOGS_BACKEND_INTEGRATION_NOTES.md b/docs/frontend/BLOGS_BACKEND_INTEGRATION_NOTES.md
+new file mode 100644
+index 0000000..72f70b1
+--- /dev/null
++++ b/docs/frontend/BLOGS_BACKEND_INTEGRATION_NOTES.md
+@@ -0,0 +1,100 @@
++# Blogs backend integration and production corrections
++
++## Scope and evidence
++
++Active repository: `E:/freelance/rafal/rafal-dashboard`. The request's `D:/megz` path is stale. This correction changes only `src/modules/blogs`, this document and the review artifact. Existing uncommitted route/shared/Static Pages changes from the earlier consolidation are preserved; those modules were not modified again. No dependencies, commits or pushes.
++
++The user's supplied responses and Product Owner corrections are the evidence. No live API or Postman calls were made.
++
++The consolidated architecture remains: Component → feature hook → separate category/post services → shared HTTP client. TanStack Query owns server state, RHF owns drafts, URL parameters own filters. Existing `blog-categories` and `blog-posts` query-key identities, canonical UI routes, legacy redirects and one Blog navigation entry are unchanged.
++
++## Production parsing failure
++
++The old post schema required a category object. The production record with ID 10 has `category: null`, so parsing rejected the entire list.
++
++The schema now accepts exactly object or null; the domain type and normalizer preserve null. Desktop and mobile show **Uncategorized / بدون تصنيف**, without inventing an ID/object or making a category lookup. Existing `published_at: null` support remains.
++
++`blog-posts-null-category.fixture.json` reproduces the exact supplied response excerpt. The complete ten production records were not provided. The integration regression combines that exact record with nine explicitly constructed categorized test records. It proves ten-record parsing, mixed categorized/uncategorized rendering in both UI languages, no generic error and one GET. It does not claim to reproduce the unseen nine production records. The four priority regressions passed before other product/UI changes began.
++
++Other response fields remain validated. Malformed category objects, invalid IDs, non-boolean featured flags and missing required Arabic fields still fail. English response text is optional, but when supplied must be a string.
++
++## Global localization rule and Blog content
++
++Product policy for future feature reviews: all user-facing localizable content across Rafal should support Arabic and English. This correction implements the rule only for Blogs. Identifiers, slugs, emails, phone numbers, URLs and numeric data are not automatically translatable fields.
++
++- Category names remain Arabic/English.
++- New post forms require Arabic and English title, excerpt and body, in named language groups with RTL/LTR fields. Content is plain text; no HTML rendering or editor dependency was added.
++- GET schemas require the observed Arabic string and allow an optional English string. Legacy Arabic-only content remains valid. No English value is fabricated or copied.
++- Lists select the current UI language. If English is absent, the real Arabic title remains visible for identification, explicitly labelled **Arabic · English unavailable**. The inverse fallback is also labelled. Both missing/empty titles use the localized unavailable label.
++- Cover and localized title identify each article; reading time is secondary metadata. The desktop columns are Title, Category, Author, Publication date, Featured and Updated. Mobile cards mirror the same information. A technical slug no longer takes the mobile subtitle.
++- Publication dates remain factual timestamps. Null displays “No publication date”; future timestamps are not labelled “Published” or assigned an unverified scheduled status.
++- Category ID is removed from table/cards and the skeleton. Internal IDs and the supported ID sort remain. Categories have five columns and two mobile timestamp facts; Posts have six columns and five mobile facts.
++
++## Slug contracts
++
++The latest Product Owner correction supersedes prior Arabic-title and omit-slug-on-PUT decisions:
++
++| Operation       | Slug source / submitted value                                        |
++| --------------- | -------------------------------------------------------------------- |
++| Category Create | Normalize the final validated `name.en`                              |
++| Category Edit   | Send the persisted slug captured at drawer initialization, unchanged |
++| Post Create     | Normalize the final validated `title.en`                             |
++
++The existing shared `normalizeSlug` is reused unchanged. It performs NFKC normalization, lowercasing, hyphen separation and Unicode letter/number preservation. It does not translate, invent a suffix or timestamp.
++
++Yup derives create slugs from the source, and serializers reject invalid/empty content before HTTP. The category edit handler explicitly overrides the submitted model's slug with the captured persisted value, so changing the English name cannot rename its URL.
++
++There is no manual slug field, preview, or explanatory slug-generation hint. Removed hint keys were unused elsewhere. Invalid source errors use concise text validation. Create duplicate-slug errors map to the English source; immutable edit-slug errors appear as a form alert. Failed submissions retain the draft.
++
++## Optional post category
++
++The Product Owner confirms **Create uses `category_id` containing a category ID**. Index filtering continues to use **`blog_category_id`**; these contracts are separate.
++
++- The form begins unassigned (`categoryId: null`). No `category_id` key is sent in this state, including after clearing a selection.
++- Selected values must be positive safe integer numbers. The service sends `category_id = String(id)`, never null, undefined or zero.
++- `BlogPostCategorySelect` composes the existing `FormSelect` and category-query hook. Its first keyboard/pointer focus activates fetching; opening/typing elsewhere does not request categories.
++- Options paginate lazily, show AR/EN names, and provide loading/empty/error/retry states through the shared selector. Duplicate scroll requests are guarded. A selected ID retains a fallback if absent from loaded options.
++- One field-level RHF subscription keeps selection presentation current. No duplicate server state or effect-based fetching is introduced.
++- Selection survives other input changes and failed submissions. Backend `category_id` errors map to the selector. Create-another resets it, the bilingual fields and the image.
++
++## Request confidence
++
++| Operation                               | Evidence and implementation                                                                                             |
++| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
++| GET `/dashboard/blog-categories`        | Verified supplied bilingual category envelope, IDs, slugs, dates and metadata; strict validation/normalization retained |
++| POST `/dashboard/blog-categories`       | Product Owner requires generated slug; FormData sends `name[ar]`, `name[en]`, `slug`                                    |
++| PUT `/dashboard/blog-categories/:id`    | Product Owner now explicitly requires slug; FormData sends persisted `slug` plus both names, response identity checked  |
++| DELETE `/dashboard/blog-categories/:id` | Supplied success/message envelope; no deleted entity required                                                           |
++| GET `/dashboard/blog-posts`             | Supplied production evidence confirms nullable category and nullable publication; legacy Arabic-only text accepted      |
++| POST `/dashboard/blog-posts`            | Sends slug, six localized content fields, author, featured, image File, and optional `category_id`                      |
++
++**Intended but not independently verified:** English multipart keys `title[en]`, `excerpt[en]`, `body[en]` follow the authorized product requirement and existing nested-field convention. Their acceptance and persistence by the live Blog backend still require a successful integration response. The UI implementation is not proof of backend compatibility.
++
++Other isolated assumptions requiring integration verification:
++
++1. Category POST/PUT use repository FormData conventions; native multipart PUT parsing remains unverified. No manual Content-Type boundary or method override is added.
++2. Pagination uses the established `page` parameter. Query booleans use shared numeric 1/0; publication filters use YYYY-MM-DD. Exact boolean/date acceptance, bounds/timezone and published-filter semantics remain unverified.
++3. Multipart featured values use text '1'/'0', following repository uploads and supplied direction, independently of query encoding.
++4. No authoritative Post Create success body was supplied. HTTP success triggers scoped list refresh without inventing a cached entity.
++5. Backend upload size, dimension/MIME constraints and additional nullability remain unspecified. Client checks require one nonempty image File; no numerical limits were invented.
++6. Unicode/accented slug acceptance has not been live-tested. Ordinary English titles generate the established lowercase hyphenated format.
++
++Unsupported post Show/Edit/Delete/Publish/Unpublish operations and publication-write fields remain absent. No `blog_category_id`, `is_published`, `published_at`, `reading_time_minutes` or `cover_url` is added to Create.
++
++## Cache and regression review
++
++The earlier cache safeguards remain intact: cancel superseded reads before narrow invalidation; retain coherent complete list snapshots; leave ordering/membership/totals to the server; mark dependent post lists stale after category changes. A failed category refresh retains a warning and disables row actions until recovery. Infinite scrolling cannot interrupt refetches or extend failed-refresh snapshots.
++
++Dirty category drafts survive list changes. Mutation locks block duplicate submissions. Failed writes retain inputs/files. Shared image previews are cleaned up on replacement/reset/unmount. No Show lookups, N+1 requests, new HTTP instance, global store or dependencies were introduced.
++
++Changed production files in this correction: post schema/type/service, category schema/service, category drawer/list, post drawer/list, new `BlogPostCategorySelect`, and Blog AR/EN locales. Existing service/form/slug regressions were updated; production-response and presentation regressions and the observed fixture were added.
++
++## Verification
++
++- Latest category-ID contract correction: focused service/form tests passed **46/46 in 2 files**. Coverage includes selected positive IDs, omission without a selection, invalid IDs rejected before HTTP, `category_id` validation errors, retained drafts, and unchanged `blog_category_id` Index serialization.
++- TypeScript (`yarn tsc -p tsconfig.app.json --noEmit --pretty false`) and changed-file ESLint (`--max-warnings=0`) passed after this correction.
++- Before this final key correction, the broader Blogs and directly affected regression suite passed **152/152 in 19 files**, including locale parity. That broader suite was not rerun after the key correction; the 46 focused tests above were.
++
++The actual full working-tree unified diff, including new/untracked files and preserved earlier consolidation changes, is `artifacts/blogs-review.patch`. Its inclusion of earlier shared changes does not mean those files were modified by this correction.
++
++Live authenticated API behavior, browser E2E and viewport screenshot review are not verified by mocked HTTP/DOM tests.
+diff --git a/src/modules/blogs/__tests__/blog-categories.fixture.json b/src/modules/blogs/__tests__/blog-categories.fixture.json
+new file mode 100644
+index 0000000..0df0588
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blog-categories.fixture.json
+@@ -0,0 +1,32 @@
++{
++  "success": true,
++  "message": "Blog categories retrieved successfully",
++  "data": [
++    {
++      "id": 10,
++      "slug": "personalization",
++      "name": {
++        "ar": "التخصيص",
++        "en": "Personalization"
++      },
++      "created_at": "2026-09-28T17:50:39+00:00",
++      "updated_at": "2026-09-28T17:50:39+00:00"
++    },
++    {
++      "id": 11,
++      "slug": "gift-guides",
++      "name": {
++        "ar": "دليل الهدايا",
++        "en": "Gift Guides"
++      },
++      "created_at": "2026-09-28T17:50:39+00:00",
++      "updated_at": "2026-09-28T17:50:39+00:00"
++    }
++  ],
++  "meta": {
++    "current_page": 1,
++    "last_page": 1,
++    "per_page": 15,
++    "total": 5
++  }
++}
+diff --git a/src/modules/blogs/__tests__/blog-categories.mutations.test.tsx b/src/modules/blogs/__tests__/blog-categories.mutations.test.tsx
+new file mode 100644
+index 0000000..f1a4df0
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blog-categories.mutations.test.tsx
+@@ -0,0 +1,128 @@
++import type { ReactNode } from 'react'
++import { act, renderHook, waitFor } from '@testing-library/react'
++import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query'
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++import i18n from '@/config/i18'
++import { useUpdateBlogCategory } from '../hooks/categories/useUpdateBlogCategory'
++import { useDeleteBlogCategory } from '../hooks/categories/useDeleteBlogCategory'
++import { useBlogCategories } from '../hooks/categories/useBlogCategories'
++import { blogCategoriesKeys } from '../queries/blog-categories.keys'
++import { blogPostsKeys } from '../queries/blog-posts.keys'
++import { readBlogCategoriesFilters } from '../utils/blog-category-filters'
++import { readBlogPostsFilters } from '../utils/blog-post-filters'
++import { normalizeBlogCategory } from '../api/blog-categories.service'
++import type { BlogCategory } from '../types/blog-category.types'
++import fixture from './blog-categories.fixture.json'
++import { deferred } from './blogs-test-utils'
++const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), delete: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
++beforeEach(async () => {
++  vi.resetAllMocks()
++  await i18n.changeLanguage('en')
++})
++function setup() {
++  const client = new QueryClient({
++    defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } },
++  })
++  const filters = readBlogCategoriesFilters({ search: 'Personalization', sort_by: 'name', sort_dir: 'asc' })
++  const key = blogCategoriesKeys.list(filters)
++  const data: InfiniteData<PaginatedData<BlogCategory>> = {
++    pages: [
++      {
++        items: [normalizeBlogCategory(fixture.data[0])],
++        paginate: {
++          current_page: 1,
++          total_pages: 1,
++          total: 1,
++          per_page: 15,
++          count: 1,
++          next_page_url: null,
++          prev_page_url: null,
++        },
++        extra: null,
++      },
++    ],
++    pageParams: [1],
++  }
++  client.setQueryData(key, data)
++  const wrapper = ({ children }: { children: ReactNode }) => (
++    <QueryClientProvider client={client}>{children}</QueryClientProvider>
++  )
++  return { client, key, data, filters, wrapper }
++}
++describe('blog category cache coherence and races', () => {
++  it.each(['update', 'delete'])(
++    'replaces the complete filtered snapshot after %s and ignores late old reads',
++    async (op) => {
++      const { client, key, filters, wrapper } = setup()
++      const oldRead = deferred<unknown>()
++      http.get
++        .mockReturnValueOnce(oldRead.promise)
++        .mockResolvedValueOnce({ data: { ...fixture, data: [], meta: { ...fixture.meta, total: 0 } } })
++      http.put.mockResolvedValue({
++        data: { success: true, message: 'updated', data: { ...fixture.data[0], name: { ar: 'محدث', en: 'Zebra' } } },
++      })
++      http.delete.mockResolvedValue({ data: { success: true, message: 'deleted' } })
++      const { result } = renderHook(
++        () => ({ list: useBlogCategories(filters), update: useUpdateBlogCategory(), remove: useDeleteBlogCategory() }),
++        { wrapper }
++      )
++      // Mount starts the stale cached list read; do not start a second read in the test.
++      const signal = http.get.mock.calls[0][0].signal as AbortSignal
++      await act(async () => {
++        if (op === 'update')
++          await result.current.update.mutateAsync({
++            id: 10,
++            values: { slug: 'personalization', name: { ar: 'محدث', en: 'Zebra' } },
++          })
++        else await result.current.remove.mutateAsync(10)
++      })
++      expect(signal.aborted).toBe(true)
++      expect(client.getQueryData(key)).toMatchObject({ pages: [{ items: [], paginate: { total: 0, count: 0 } }] })
++      await act(async () => {
++        oldRead.resolve({ data: fixture })
++        await oldRead.promise
++      })
++      expect(client.getQueryData(key)).toMatchObject({ pages: [{ items: [], paginate: { total: 0, count: 0 } }] })
++      expect(http.get).toHaveBeenCalledTimes(2)
++    }
++  )
++  it.each(['update', 'delete'])('retains a coherent stale snapshot when the %s refetch fails', async (op) => {
++    const { client, key, data, filters, wrapper } = setup()
++    http.get.mockRejectedValue(new Error('offline'))
++    http.put.mockResolvedValue({
++      data: { success: true, message: 'updated', data: { ...fixture.data[0], name: { ar: 'محدث', en: 'Zebra' } } },
++    })
++    http.delete.mockResolvedValue({ data: { success: true, message: 'deleted' } })
++    const postKey = blogPostsKeys.list(readBlogPostsFilters(null))
++    client.setQueryData(postKey, { snapshot: 'old' })
++    const late = deferred<{ snapshot: string }>()
++    const postFetch = client
++      .fetchQuery({ queryKey: postKey, staleTime: 0, queryFn: () => late.promise })
++      .catch(() => undefined)
++    client.setQueryData(['unrelated'], { keep: true })
++    const { result } = renderHook(
++      () => ({ list: useBlogCategories(filters), update: useUpdateBlogCategory(), remove: useDeleteBlogCategory() }),
++      { wrapper }
++    )
++    await act(async () => {
++      if (op === 'update')
++        await result.current.update.mutateAsync({
++          id: 10,
++          values: { slug: 'personalization', name: { ar: 'محدث', en: 'Zebra' } },
++        })
++      else await result.current.remove.mutateAsync(10)
++    })
++    expect(client.getQueryData(key)).toEqual(data)
++    await waitFor(() => expect(result.current.list.isRefetchError).toBe(true))
++    expect(client.getQueryState(key)?.isInvalidated).toBe(true)
++    await act(async () => {
++      late.resolve({ snapshot: 'late' })
++      await postFetch
++    })
++    expect(client.getQueryData(postKey)).toEqual({ snapshot: 'old' })
++    expect(client.getQueryState(postKey)?.isInvalidated).toBe(true)
++    expect(client.getQueryState(['unrelated'])?.isInvalidated).toBe(false)
++  })
++})
+diff --git a/src/modules/blogs/__tests__/blog-categories.service.test.ts b/src/modules/blogs/__tests__/blog-categories.service.test.ts
+new file mode 100644
+index 0000000..c8c13ef
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blog-categories.service.test.ts
+@@ -0,0 +1,120 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++import { blogCategoriesService, serializeBlogCategory } from '@/modules/blogs/api/blog-categories.service'
++import {
++  blogCategoriesEnvelopeSchema,
++  createBlogCategoryFormSchema,
++} from '@/modules/blogs/schemas/blog-category.schema'
++import { readBlogCategoriesFilters } from '@/modules/blogs/utils/blog-category-filters'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++import fixture from '@/modules/blogs/__tests__/blog-categories.fixture.json'
++const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++const created = {
++  ...fixture.data[0],
++  id: 15,
++  slug: 'test',
++  name: { ar: 'teset', en: 'test' },
++  created_at: '2026-10-13T17:04:08+00:00',
++  updated_at: '2026-10-13T17:04:08+00:00',
++}
++beforeEach(() => {
++  vi.clearAllMocks()
++  http.get.mockResolvedValue({ data: fixture })
++  http.post.mockResolvedValue({ data: { success: true, message: 'created', data: created } })
++  http.put.mockResolvedValue({
++    data: {
++      success: true,
++      message: 'updated',
++      data: { ...created, name: { ar: 'test-12', en: 'test' }, updated_at: '2026-10-13T17:05:18+00:00' },
++    },
++  })
++  http.delete.mockResolvedValue({ data: { success: true, message: 'Blog category deleted successfully' } })
++})
++describe('blog categories contract', () => {
++  it('normalizes names and metadata and forwards pagination, filters and cancellation', async () => {
++    const signal = new AbortController().signal
++    const filters = readBlogCategoriesFilters({ search: ' gifts ', sort_by: 'name', sort_dir: 'desc' })
++    const result = await blogCategoriesService.list(filters, 1, signal)
++    expect(result.items[0]).toEqual({
++      id: 10,
++      slug: 'personalization',
++      name: fixture.data[0].name,
++      createdAt: fixture.data[0].created_at,
++      updatedAt: fixture.data[0].updated_at,
++    })
++    expect(result.paginate).toMatchObject({
++      current_page: 1,
++      total_pages: 1,
++      per_page: 15,
++      total: 5,
++      next_page_url: null,
++    })
++    expect(http.get).toHaveBeenCalledExactlyOnceWith(
++      expect.objectContaining({
++        url: '/dashboard/blog-categories',
++        query: { search: 'gifts', sort_by: 'name', sort_dir: 'desc', page: 1 },
++        signal,
++      })
++    )
++  })
++  it.each(['id', 'name', 'created_at'])('accepts documented sort %s', (sort) =>
++    expect(readBlogCategoriesFilters({ sort_by: sort }).sortBy).toBe(sort)
++  )
++  it('normalizes unsupported URL fields and canonical key identity', () => {
++    expect(blogCategoriesKeys.list(readBlogCategoriesFilters({ search: ' x ', page: '8' }))).toEqual(
++      blogCategoriesKeys.list(readBlogCategoriesFilters({ search: 'x' }))
++    )
++    expect(readBlogCategoriesFilters({ sort_by: 'slug', sort_dir: 'bad' })).toEqual(readBlogCategoriesFilters(null))
++  })
++  it('creates with bracketed names, including the generated slug', async () => {
++    const input = { slug: '', name: { ar: ' teset ', en: ' test ' } }
++    expect([...serializeBlogCategory(input).entries()]).toEqual([
++      ['name[ar]', 'teset'],
++      ['name[en]', 'test'],
++      ['slug', 'test'],
++    ])
++    expect(await blogCategoriesService.create(input)).toMatchObject({ id: 15, slug: 'test', name: created.name })
++    expect(http.post).toHaveBeenCalledWith(
++      expect.objectContaining({ url: '/dashboard/blog-categories', isFormData: true })
++    )
++    expect(http.get).not.toHaveBeenCalled()
++  })
++  it('updates with PUT and uses the full authoritative response without Show', async () => {
++    expect(
++      await blogCategoriesService.update(15, { slug: 'existing-slug', name: { ar: 'test-12', en: 'test' } })
++    ).toMatchObject({
++      id: 15,
++      name: { ar: 'test-12', en: 'test' },
++      updatedAt: '2026-10-13T17:05:18+00:00',
++    })
++    expect(http.put.mock.calls[0][0].url).toBe('/dashboard/blog-categories/15')
++    expect([...http.put.mock.calls[0][0].data.keys()]).toEqual(['name[ar]', 'name[en]', 'slug'])
++    expect(http.put.mock.calls[0][0].data.get('slug')).toBe('existing-slug')
++    expect(http.get).not.toHaveBeenCalled()
++  })
++  it('rejects an update response for another identity', async () => {
++    await expect(blogCategoriesService.update(16, { slug: created.slug, name: created.name })).rejects.toThrow(
++      'identity mismatch'
++    )
++  })
++  it('accepts deletion without entity data', async () => {
++    await expect(blogCategoriesService.delete(15)).resolves.toEqual({
++      success: true,
++      message: 'Blog category deleted successfully',
++    })
++  })
++  it.each([0, -1, 1.5, NaN])('rejects invalid IDs %s with no request', async (id) => {
++    await expect(blogCategoriesService.delete(id)).rejects.toThrow()
++    await expect(blogCategoriesService.update(id, { slug: created.slug, name: created.name })).rejects.toThrow()
++    expect(http.delete).not.toHaveBeenCalled()
++    expect(http.put).not.toHaveBeenCalled()
++  })
++  it('rejects malformed records and validates whitespace', async () => {
++    expect(
++      blogCategoriesEnvelopeSchema.safeParse({ ...fixture, data: [{ ...fixture.data[0], name: null }] }).success
++    ).toBe(false)
++    await expect(
++      createBlogCategoryFormSchema('required', 'invalid slug').validate({ name: { ar: ' ', en: 'test' } })
++    ).rejects.toThrow('required')
++  })
++})
+diff --git a/src/modules/blogs/__tests__/blog-posts-null-category.fixture.json b/src/modules/blogs/__tests__/blog-posts-null-category.fixture.json
+new file mode 100644
+index 0000000..824fa66
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blog-posts-null-category.fixture.json
+@@ -0,0 +1,33 @@
++{
++  "success": true,
++  "message": "Blog posts retrieved successfully",
++  "data": [
++    {
++      "id": 10,
++      "slug": "unde-laudantium-qui",
++      "title": {
++        "ar": "Unde laudantium qui"
++      },
++      "excerpt": {
++        "ar": "Animi nulla quasi e"
++      },
++      "body": {
++        "ar": "Excepturi cupidatat"
++      },
++      "author_name": "Suki Middleton",
++      "is_featured": true,
++      "published_at": null,
++      "reading_time_minutes": 1,
++      "cover_url": "https://api.rafal.shop/storage/91/filter-03.jpeg",
++      "category": null,
++      "created_at": "2026-10-14T04:45:54+00:00",
++      "updated_at": "2026-10-14T04:45:54+00:00"
++    }
++  ],
++  "meta": {
++    "current_page": 1,
++    "last_page": 1,
++    "per_page": 15,
++    "total": 10
++  }
++}
+diff --git a/src/modules/blogs/__tests__/blog-posts.fixture.json b/src/modules/blogs/__tests__/blog-posts.fixture.json
+new file mode 100644
+index 0000000..6104926
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blog-posts.fixture.json
+@@ -0,0 +1,68 @@
++{
++  "success": true,
++  "message": "Blog posts retrieved successfully",
++  "data": [
++    {
++      "id": 11,
++      "slug": "personalized-gift-ideas-family-occasions",
++      "title": {
++        "ar": "٥ أفكار لهدايا مخصصة تُخلّد المناسبات العائلية"
++      },
++      "excerpt": {
++        "ar": "من السلاسل المنقوشة بالاسم إلى المباخر الشخصية"
++      },
++      "body": {
++        "ar": "محتوى المقال باللغة العربية"
++      },
++      "author_name": "فريق رافال",
++      "is_featured": true,
++      "published_at": "2026-09-10T17:50:39+00:00",
++      "reading_time_minutes": 1,
++      "cover_url": "http://rafal.test/storage/163/550.jpeg",
++      "category": {
++        "id": 11,
++        "slug": "gift-guides",
++        "name": {
++          "ar": "دليل الهدايا",
++          "en": "Gift Guides"
++        }
++      },
++      "created_at": "2026-09-28T17:50:39+00:00",
++      "updated_at": "2026-09-28T17:50:39+00:00"
++    },
++    {
++      "id": 18,
++      "slug": "draft-upcoming-engraving-language-guide",
++      "title": {
++        "ar": "مسودة: دليل اختيار لغة النقش"
++      },
++      "excerpt": {
++        "ar": "وصف مختصر للمقال"
++      },
++      "body": {
++        "ar": "محتوى المقال"
++      },
++      "author_name": "فريق رافال",
++      "is_featured": false,
++      "published_at": null,
++      "reading_time_minutes": 1,
++      "cover_url": "http://rafal.test/storage/170/500.jpeg",
++      "category": {
++        "id": 10,
++        "slug": "personalization",
++        "name": {
++          "ar": "التخصيص",
++          "en": "Personalization"
++        }
++      },
++      "created_at": "2026-09-28T17:50:46+00:00",
++      "updated_at": "2026-09-28T17:50:46+00:00"
++    }
++  ],
++  "meta": {
++    "current_page": 1,
++    "last_page": 1,
++    "per_page": 15,
++    "total": 9
++  }
++}
+diff --git a/src/modules/blogs/__tests__/blog-posts.service.test.ts b/src/modules/blogs/__tests__/blog-posts.service.test.ts
+new file mode 100644
+index 0000000..82ac2dc
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blog-posts.service.test.ts
+@@ -0,0 +1,196 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++import { blogPostsService, normalizeBlogPost, serializeBlogPostCreate } from '@/modules/blogs/api/blog-posts.service'
++import { rawBlogPostSchema, createBlogPostFormSchema } from '@/modules/blogs/schemas/blog-post.schema'
++import {
++  readBlogPostsFilters,
++  serializeBlogPostsFilters,
++  validBlogPublishedRange,
++} from '@/modules/blogs/utils/blog-post-filters'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++import type { BlogPostFormValues } from '@/modules/blogs/types/blog-post.types'
++import fixture from '@/modules/blogs/__tests__/blog-posts.fixture.json'
++const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++beforeEach(() => {
++  vi.clearAllMocks()
++  http.get.mockResolvedValue({ data: fixture })
++  http.post.mockResolvedValue({ status: 201 })
++})
++export function values(): BlogPostFormValues {
++  return {
++    slug: ' article ',
++    title: { ar: ' عنوان ', en: ' English title ' },
++    excerpt: { ar: ' مقتطف ', en: ' English excerpt ' },
++    body: { ar: ' محتوى ', en: ' English body ' },
++    categoryId: null,
++    authorName: ' Rafal ',
++    isFeatured: false,
++    cover: { files: [new File(['image'], 'cover.png', { type: 'image/png' })], removedExistingIds: [] },
++  }
++}
++describe('blog posts contract', () => {
++  it('parses Arabic-only articles, nested category, null publication and backend reading time', async () => {
++    const signal = new AbortController().signal
++    const result = await blogPostsService.list(readBlogPostsFilters(null), 1, signal)
++    expect(result.items[0]).toMatchObject({
++      title: fixture.data[0].title,
++      category: fixture.data[0].category,
++      readingTimeMinutes: 1,
++    })
++    expect(result.items[1].publishedAt).toBeNull()
++    expect(result.items[0].title).not.toHaveProperty('en')
++    expect(result.paginate).toMatchObject({ total: 9, total_pages: 1, next_page_url: null })
++    expect(http.get).toHaveBeenCalledExactlyOnceWith(
++      expect.objectContaining({ url: '/dashboard/blog-posts', query: { page: 1 }, signal })
++    )
++  })
++  it('serializes every documented filter and isolates query keys', async () => {
++    const filters = readBlogPostsFilters({
++      search: ' gifts ',
++      blog_category_id: '11',
++      is_published: '0',
++      is_featured: '1',
++      published_from: '2026-09-01',
++      published_to: '2026-09-30',
++      sort_by: 'published_at',
++      sort_dir: 'asc',
++    })
++    const query = {
++      search: 'gifts',
++      blog_category_id: 11,
++      is_published: 0,
++      is_featured: 1,
++      published_from: '2026-09-01',
++      published_to: '2026-09-30',
++      sort_by: 'published_at',
++      sort_dir: 'asc',
++    }
++    expect(serializeBlogPostsFilters(filters)).toEqual(query)
++    expect(blogPostsKeys.list(filters).at(-1)).toEqual(query)
++    expect(blogPostsKeys.list(filters)).not.toEqual(blogPostsKeys.list({ ...filters, isFeatured: false }))
++    await blogPostsService.list(filters, 2)
++    expect(http.get).toHaveBeenCalledWith(expect.objectContaining({ query: { ...query, page: 2 } }))
++  })
++  it.each(['created_at', 'published_at', 'title', 'is_featured'])('accepts sort %s', (sort) => {
++    expect(readBlogPostsFilters({ sort_by: sort }).sortBy).toBe(sort)
++  })
++  it('normalizes unsupported values and ignores unrelated URL state', () => {
++    expect(
++      readBlogPostsFilters({
++        sort_by: 'author_name',
++        sort_dir: 'sideways',
++        blog_category_id: '1e2',
++        is_featured: 'yes',
++      })
++    ).toEqual(readBlogPostsFilters(null))
++    expect(blogPostsKeys.list(readBlogPostsFilters({ page: '2', unrelated: 'x', search: ' ' }))).toEqual(
++      blogPostsKeys.list(readBlogPostsFilters(null))
++    )
++  })
++  it.each([
++    ['2026-02-30', ''],
++    ['2026-10-10', '2026-10-01'],
++    ['bad', ''],
++  ])('rejects invalid ranges %s %s before HTTP', async (from, to) => {
++    const filters = readBlogPostsFilters({ published_from: from, published_to: to })
++    expect(validBlogPublishedRange(filters)).toBe(false)
++    await expect(blogPostsService.list(filters, 1)).rejects.toThrow()
++    expect(http.get).not.toHaveBeenCalled()
++  })
++  it('rejects malformed responses instead of inventing values', () => {
++    expect(rawBlogPostSchema.safeParse({ ...fixture.data[0], is_featured: 'false' }).success).toBe(false)
++    expect(rawBlogPostSchema.safeParse({ ...fixture.data[0], id: 0 }).success).toBe(false)
++    expect(normalizeBlogPost(rawBlogPostSchema.parse(fixture.data[1])).publishedAt).toBeNull()
++  })
++  it('sends a real file and the intended bilingual multipart fields without headers or lookups', async () => {
++    const input = values()
++    const data = serializeBlogPostCreate(input)
++    expect([...data.keys()].sort()).toEqual(
++      [
++        'slug',
++        'title[ar]',
++        'title[en]',
++        'excerpt[ar]',
++        'excerpt[en]',
++        'body[ar]',
++        'body[en]',
++        'author_name',
++        'is_featured',
++        'cover',
++      ].sort()
++    )
++    expect(data.get('cover')).toBe(input.cover.files[0])
++    expect(data.get('title[ar]')).toBe('عنوان')
++    expect(data.get('slug')).toBe('english-title')
++    expect(data.get('is_featured')).toBe('0')
++    expect(serializeBlogPostCreate({ ...input, isFeatured: true }).get('is_featured')).toBe('1')
++    await blogPostsService.create(input)
++    expect(http.post).toHaveBeenCalledWith(
++      expect.objectContaining({ url: '/dashboard/blog-posts', isFormData: true, data: expect.any(FormData) })
++    )
++    expect(http.post.mock.calls[0][0]).not.toHaveProperty('headers')
++    expect(http.get).not.toHaveBeenCalled()
++  })
++  it.each([new File([], 'empty.png', { type: 'image/png' }), new File(['text'], 'fake.txt', { type: 'text/plain' })])(
++    'rejects unsafe file selection before HTTP',
++    async (file) => {
++      const input = values()
++      input.cover.files = [file]
++      await expect(blogPostsService.create(input)).rejects.toThrow('Invalid blog cover')
++      expect(http.post).not.toHaveBeenCalled()
++    }
++  )
++  it('validates whitespace and missing images without fabricated upload limits', async () => {
++    const schema = createBlogPostFormSchema('required', 'image', 'invalid slug', 'invalid category')
++    await expect(schema.validate(values())).resolves.toBeDefined()
++    await expect(schema.validate({ ...values(), title: { ar: '  ', en: 'English title' } })).rejects.toThrow('required')
++    await expect(schema.validate({ ...values(), cover: { files: [], removedExistingIds: [] } })).rejects.toThrow(
++      'image'
++    )
++  })
++})
++
++it('serializes every intended English field and omits an unassigned category', () => {
++  const input = values()
++  const body = serializeBlogPostCreate(input)
++  expect(body.get('title[en]')).toBe('English title')
++  expect(body.get('excerpt[en]')).toBe('English excerpt')
++  expect(body.get('body[en]')).toBe('English body')
++  expect(body.has('category_id')).toBe(false)
++  expect(body.has('category')).toBe(false)
++  expect(body.has('blog_category_id')).toBe(false)
++})
++it('submits a selected positive category as category_id, keeping the index filter contract distinct', async () => {
++  const input = { ...values(), categoryId: 11 }
++  await blogPostsService.create(input)
++  expect(http.post.mock.calls[0][0].data.get('category_id')).toBe('11')
++  expect(http.post.mock.calls[0][0].data.has('category')).toBe(false)
++  expect(http.post.mock.calls[0][0].data.has('blog_category_id')).toBe(false)
++  expect(serializeBlogPostsFilters(readBlogPostsFilters({ blog_category_id: '11' }))).toEqual({ blog_category_id: 11 })
++})
++it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, '11', undefined])(
++  'rejects invalid selected category %s before HTTP',
++  async (categoryId) => {
++    const input = { ...values(), categoryId: categoryId as never }
++    await expect(createBlogPostFormSchema('required', 'image', 'slug', 'category').validate(input)).rejects.toThrow()
++    await expect(blogPostsService.create(input)).rejects.toThrow()
++    expect(http.post).not.toHaveBeenCalled()
++  }
++)
++it('accepts optional English response text without fabricating translations or weakening its type', () => {
++  const bilingual = {
++    ...fixture.data[0],
++    title: { ar: 'عنوان', en: 'Title' },
++    excerpt: { ar: 'وصف', en: 'Excerpt' },
++    body: { ar: 'محتوى', en: 'Body' },
++    category: null,
++  }
++  expect(normalizeBlogPost(rawBlogPostSchema.parse(bilingual))).toMatchObject({
++    title: bilingual.title,
++    excerpt: bilingual.excerpt,
++    body: bilingual.body,
++    category: null,
++  })
++  expect(rawBlogPostSchema.safeParse({ ...bilingual, title: { ar: 'عنوان', en: 123 } }).success).toBe(false)
++  expect(rawBlogPostSchema.safeParse({ ...bilingual, title: { ar: 'عنوان', en: null } }).success).toBe(false)
++})
+diff --git a/src/modules/blogs/__tests__/blogs-forms.test.tsx b/src/modules/blogs/__tests__/blogs-forms.test.tsx
+new file mode 100644
+index 0000000..166e564
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-forms.test.tsx
+@@ -0,0 +1,425 @@
++import i18n from '@/config/i18'
++import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++import BlogCategoriesPage from '@/modules/blogs/pages/BlogCategoriesPage'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++import { readBlogCategoriesFilters } from '@/modules/blogs/utils/blog-category-filters'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++import { readBlogPostsFilters } from '@/modules/blogs/utils/blog-post-filters'
++import BlogPostsPage from '@/modules/blogs/pages/BlogPostsPage'
++import categories from '@/modules/blogs/__tests__/blog-categories.fixture.json'
++import posts from '@/modules/blogs/__tests__/blog-posts.fixture.json'
++import { deferred, renderBlogs, setupBlogs } from '@/modules/blogs/__tests__/blogs-test-utils'
++const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
++const created = {
++  ...categories.data[0],
++  id: 15,
++  slug: 'test',
++  name: { ar: 'teset', en: 'test' },
++  created_at: '2026-10-13T17:04:08+00:00',
++  updated_at: '2026-10-13T17:04:08+00:00',
++}
++beforeEach(async () => {
++  vi.resetAllMocks()
++  await setupBlogs()
++  http.get.mockImplementation(async ({ url }) => ({ data: url === '/dashboard/blog-categories' ? categories : posts }))
++  http.post.mockResolvedValue({ data: { success: true, message: 'created', data: created } })
++})
++afterEach(() => vi.unstubAllGlobals())
++async function fillPost() {
++  await userEvent.click(screen.getByRole('button', { name: 'Create blog post' }))
++  expect(screen.queryByRole('textbox', { name: /^Slug/ })).not.toBeInTheDocument()
++  await userEvent.type(screen.getByRole('textbox', { name: /Title \(Arabic\)/ }), 'عنوان')
++  await userEvent.type(screen.getByRole('textbox', { name: /Excerpt \(Arabic\)/ }), 'مقتطف')
++  await userEvent.type(screen.getByRole('textbox', { name: /Body \(Arabic\)/ }), 'محتوى')
++  await userEvent.type(screen.getByRole('textbox', { name: /Title \(English\)/ }), 'English title')
++  await userEvent.type(screen.getByRole('textbox', { name: /Excerpt \(English\)/ }), 'English excerpt')
++  await userEvent.type(screen.getByRole('textbox', { name: /Body \(English\)/ }), 'English body')
++  await userEvent.type(screen.getByRole('textbox', { name: /Author/ }), 'Rafal')
++  const file = new File(['image'], 'cover.png', { type: 'image/png' })
++  await userEvent.upload(screen.getByLabelText('Browse images', { selector: 'input' }), file)
++  await waitFor(() => expect(screen.getByRole('button', { name: 'Create post' })).toBeEnabled())
++  return file
++}
++describe('blog forms', () => {
++  it('creates a category exactly once with localized fields, a derived slug and no Show lookup', async () => {
++    const pending = deferred<unknown>()
++    http.post.mockReturnValue(pending.promise)
++    renderBlogs(<BlogCategoriesPage />)
++    await screen.findAllByText('Personalization')
++    await userEvent.click(screen.getByRole('button', { name: 'Create category' }))
++    const dialog = screen.getByRole('dialog')
++    const submit = within(dialog).getByRole('button', { name: 'Create category' })
++    expect(submit).toBeDisabled()
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(Arabic\)/ }), 'teset')
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(English\)/ }), 'test')
++    await waitFor(() => expect(submit).toBeEnabled())
++    fireEvent.click(submit)
++    fireEvent.click(submit)
++    await waitFor(() => expect(http.post).toHaveBeenCalledTimes(1))
++    expect([...http.post.mock.calls[0][0].data.entries()]).toEqual([
++      ['name[ar]', 'teset'],
++      ['name[en]', 'test'],
++      ['slug', 'test'],
++    ])
++    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled()
++    await act(async () => pending.resolve({ data: { success: true, message: 'created', data: created } }))
++    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++    expect(http.get.mock.calls.every(([request]) => request.url === '/dashboard/blog-categories')).toBe(true)
++  })
++  it('creates another category with clean values and focus retained', async () => {
++    renderBlogs(<BlogCategoriesPage />)
++    await screen.findAllByText('Personalization')
++    await userEvent.click(screen.getByRole('button', { name: 'Create category' }))
++    const ar = screen.getByRole('textbox', { name: /Name \(Arabic\)/ })
++    await userEvent.type(ar, 'teset')
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(English\)/ }), 'test')
++    await userEvent.click(screen.getByRole('button', { name: 'Create & create another' }))
++    await waitFor(() => expect(ar).toHaveValue(''))
++    expect(screen.getByRole('dialog')).toBeInTheDocument()
++    await waitFor(() => expect(ar).toHaveFocus())
++  })
++  it('edits from full list data, disables pristine updates and retains a coherent snapshot on failed refresh', async () => {
++    const updated = {
++      ...categories.data[0],
++      name: { ar: 'محدث', en: 'Updated' },
++      updated_at: '2026-10-13T17:05:18+00:00',
++    }
++    http.put.mockResolvedValue({ data: { success: true, message: 'updated', data: updated } })
++    const { client } = renderBlogs(<BlogCategoriesPage />)
++    await screen.findAllByText('Personalization')
++    client.setQueryData(blogPostsKeys.list(readBlogPostsFilters(null)), { pages: [], pageParams: [] })
++    client.setQueryData(['unrelated'], { keep: true })
++    await userEvent.click(screen.getAllByRole('button', { name: 'Edit category Personalization' })[0])
++    expect(http.get).toHaveBeenCalledTimes(1)
++    const submit = screen.getByRole('button', { name: 'Update category' })
++    expect(submit).toBeDisabled()
++    const name = screen.getByRole('textbox', { name: /Name \(English\)/ })
++    expect(name).toHaveValue('Personalization')
++    await userEvent.clear(name)
++    await userEvent.type(name, 'Updated')
++    await waitFor(() => expect(submit).toBeEnabled())
++    http.get.mockRejectedValueOnce(new Error('refresh fails'))
++    await userEvent.click(submit)
++    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++    expect(await screen.findAllByText('Personalization', { selector: 'bdi' })).toHaveLength(2)
++    expect(screen.getAllByRole('button', { name: 'Edit category Personalization' })[0]).toBeDisabled()
++    expect(http.put.mock.calls[0][0].data.get('slug')).toBe(categories.data[0].slug)
++    const cached = client.getQueryData<{ pages: { items: { name: { en: string }; updatedAt: string }[] }[] }>(
++      blogCategoriesKeys.list(readBlogCategoriesFilters(null))
++    )
++    expect(cached?.pages[0].items[0]).toMatchObject({
++      name: { en: 'Personalization' },
++      updatedAt: categories.data[0].updated_at,
++    })
++    expect(client.getQueryState(blogPostsKeys.list(readBlogPostsFilters(null)))?.isInvalidated).toBe(true)
++    expect(client.getQueryState(['unrelated'])?.isInvalidated).toBe(false)
++    expect(http.get.mock.calls.every(([request]) => request.url === '/dashboard/blog-categories')).toBe(true)
++  })
++  it('maps category 422 errors and preserves both names', async () => {
++    http.post.mockRejectedValue({
++      isAxiosError: true,
++      response: { status: 422, data: { message: 'Validation failed', errors: { 'name.en': ['Name already exists'] } } },
++    })
++    renderBlogs(<BlogCategoriesPage />)
++    await screen.findAllByText('Personalization')
++    await userEvent.click(screen.getByRole('button', { name: 'Create category' }))
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(Arabic\)/ }), 'teset')
++    const en = screen.getByRole('textbox', { name: /Name \(English\)/ })
++    await userEvent.type(en, 'test')
++    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create category' }))
++    expect(await screen.findByText('Name already exists')).toBeInTheDocument()
++    expect(en).toHaveValue('test')
++    expect(screen.getByRole('textbox', { name: /Name \(Arabic\)/ })).toHaveValue('teset')
++  })
++  it('uploads a real file once, blocks close while pending and cleans previews on success', async () => {
++    const pending = deferred<unknown>()
++    http.post.mockReturnValue(pending.promise)
++    renderBlogs(<BlogPostsPage />)
++    await screen.findAllByText(posts.data[0].title.ar)
++    const file = await fillPost()
++    expect(screen.getByRole('img', { name: 'cover.png' })).toHaveAttribute('src', 'blob:blog-cover')
++    const submit = screen.getByRole('button', { name: 'Create post' })
++    fireEvent.click(submit)
++    fireEvent.click(submit)
++    await waitFor(() => expect(http.post).toHaveBeenCalledTimes(1))
++    expect(http.post.mock.calls[0][0].data.get('cover')).toBe(file)
++    expect(http.post.mock.calls[0][0].data.get('slug')).toBe('english-title')
++    expect(http.post.mock.calls[0][0].data.has('blog_category_id')).toBe(false)
++    expect(http.post.mock.calls[0][0].data.has('published_at')).toBe(false)
++    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
++    await act(async () => pending.resolve({ status: 201, data: undefined }))
++    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:blog-cover')
++    expect(http.get.mock.calls.map(([request]) => request.url)).toEqual([
++      '/dashboard/blog-posts',
++      '/dashboard/blog-posts',
++    ])
++  })
++  it.each(['422', 'network'])('preserves post content and file after %s failure', async (kind) => {
++    http.post.mockRejectedValue(
++      kind === '422'
++        ? {
++            isAxiosError: true,
++            response: {
++              status: 422,
++              data: {
++                message: 'Validation failed',
++                errors: {
++                  'title.ar': ['Title needs correction'],
++                  'excerpt.ar': ['Excerpt needs correction'],
++                  'body.ar': ['Body needs correction'],
++                },
++              },
++            },
++          }
++        : new Error('internal')
++    )
++    renderBlogs(<BlogPostsPage />)
++    await screen.findAllByText(posts.data[0].title.ar)
++    await fillPost()
++    await userEvent.click(screen.getByRole('button', { name: 'Create post' }))
++    expect(await screen.findByRole('alert')).toHaveTextContent(
++      kind === '422' ? 'Validation failed' : 'Could not create the blog post'
++    )
++    if (kind === '422') {
++      expect(screen.getByText('Title needs correction')).toBeInTheDocument()
++      expect(screen.getByText('Excerpt needs correction')).toBeInTheDocument()
++      expect(screen.getByText('Body needs correction')).toBeInTheDocument()
++    }
++    expect(screen.getByRole('textbox', { name: /Title \(Arabic\)/ })).toHaveValue('عنوان')
++    expect(screen.getByRole('textbox', { name: /Body \(Arabic\)/ })).toHaveValue('محتوى')
++    expect(screen.getByRole('img', { name: 'cover.png' })).toBeInTheDocument()
++    expect(http.get).toHaveBeenCalledTimes(1)
++  })
++  it('replaces an unsubmitted image and revokes its old preview without a request', async () => {
++    renderBlogs(<BlogPostsPage />)
++    await screen.findAllByText(posts.data[0].title.ar)
++    await fillPost()
++    const replacement = new File(['replacement'], 'new.png', { type: 'image/png' })
++    await userEvent.click(screen.getByRole('button', { name: 'Replace cover.png' }))
++    await userEvent.upload(screen.getByLabelText('Choose a replacement image'), replacement)
++    expect(await screen.findByRole('img', { name: 'new.png' })).toBeInTheDocument()
++    expect(URL.revokeObjectURL).toHaveBeenCalled()
++    expect(http.post).not.toHaveBeenCalled()
++  })
++})
++
++it('keeps an edit draft when a refreshed category no longer belongs to the list', async () => {
++  const { client } = renderBlogs(<BlogCategoriesPage />, '?search=Personalization&sort_by=name')
++  await screen.findAllByText('Personalization')
++  await userEvent.click(screen.getAllByRole('button', { name: 'Edit category Personalization' })[0])
++  const name = screen.getByRole('textbox', { name: /Name \(English\)/ })
++  await userEvent.clear(name)
++  await userEvent.type(name, 'My unsaved draft')
++  http.get.mockResolvedValueOnce({ data: { ...categories, data: [], meta: { ...categories.meta, total: 0 } } })
++  await act(async () => {
++    await client.invalidateQueries({ queryKey: blogCategoriesKeys.lists() })
++  })
++  expect(screen.getByRole('dialog')).toBeInTheDocument()
++  expect(name).toHaveValue('My unsaved draft')
++  expect(screen.getByRole('button', { name: 'Update category' })).toBeEnabled()
++  expect(http.put).not.toHaveBeenCalled()
++})
++it.each(['category', 'post'])('maps duplicate slug errors to the %s source and retains the draft', async (kind) => {
++  http.post.mockRejectedValue({
++    isAxiosError: true,
++    response: { status: 422, data: { message: 'Validation failed', errors: { slug: ['This slug is already used'] } } },
++  })
++  renderBlogs(kind === 'category' ? <BlogCategoriesPage /> : <BlogPostsPage />)
++  if (kind === 'category') {
++    await screen.findAllByText('Personalization')
++    await userEvent.click(screen.getByRole('button', { name: 'Create category' }))
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(Arabic\)/ }), 'هدايا')
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(English\)/ }), 'Gift Guides')
++  } else {
++    await screen.findAllByText(posts.data[0].title.ar)
++    await fillPost()
++  }
++  const dialog = screen.getByRole('dialog')
++  await userEvent.click(
++    within(dialog).getByRole('button', { name: kind === 'category' ? 'Create category' : 'Create post' })
++  )
++  expect(await screen.findByText('This slug is already used')).toBeInTheDocument()
++  const source = screen.getByRole('textbox', { name: kind === 'category' ? /Name \(English\)/ : /Title \(English\)/ })
++  expect(source).toHaveValue(kind === 'category' ? 'Gift Guides' : 'English title')
++  expect(source).toHaveAttribute('aria-invalid', 'true')
++  if (kind === 'post') expect(screen.getByRole('img', { name: 'cover.png' })).toBeInTheDocument()
++  expect(http.get).toHaveBeenCalledTimes(1)
++})
++it('validates and submits the latest category name without requests while typing', async () => {
++  renderBlogs(<BlogCategoriesPage />)
++  await screen.findAllByText('Personalization')
++  await userEvent.click(screen.getByRole('button', { name: 'Create category' }))
++  await userEvent.type(screen.getByRole('textbox', { name: /Name \(Arabic\)/ }), 'هدايا')
++  const source = screen.getByRole('textbox', { name: /Name \(English\)/ })
++  await userEvent.type(source, '?! / --')
++  const submit = within(screen.getByRole('dialog')).getByRole('button', { name: 'Create category' })
++  expect(submit).toBeDisabled()
++  expect(screen.getByText('Enter text containing letters or numbers.')).toBeInTheDocument()
++  expect(http.post).not.toHaveBeenCalled()
++  await userEvent.clear(source)
++  await userEvent.type(source, ' First Name ')
++  await userEvent.clear(source)
++  await userEvent.type(source, ' Latest Gift Guides ')
++  expect(source).toHaveValue(' Latest Gift Guides ')
++  expect(http.get).toHaveBeenCalledTimes(1)
++  await userEvent.click(submit)
++  await waitFor(() => expect(http.post).toHaveBeenCalledTimes(1))
++  expect(http.post.mock.calls[0][0].data.get('slug')).toBe('latest-gift-guides')
++})
++it('creates another post, clears its file and restores Arabic title focus', async () => {
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await fillPost()
++  await userEvent.click(screen.getByRole('button', { name: 'Create & create another' }))
++  const title = screen.getByRole('textbox', { name: /Title \(Arabic\)/ })
++  await waitFor(() => expect(title).toHaveValue(''))
++  await waitFor(() => expect(title).toHaveFocus())
++  expect(screen.getByRole('textbox', { name: /Body \(Arabic\)/ })).toHaveValue('')
++  expect(screen.queryByRole('img', { name: 'cover.png' })).not.toBeInTheDocument()
++  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:blog-cover')
++  expect(screen.getByRole('button', { name: 'Create post' })).toBeDisabled()
++})
++
++it.each(['category', 'post'])('refreshes %s after creation even while the initial list is unfinished', async (kind) => {
++  const initial = deferred<unknown>()
++  http.get.mockReturnValueOnce(initial.promise)
++  renderBlogs(kind === 'category' ? <BlogCategoriesPage /> : <BlogPostsPage />)
++  await waitFor(() => expect(http.get).toHaveBeenCalledTimes(1))
++  const signal = http.get.mock.calls[0][0].signal as AbortSignal
++  if (kind === 'category') {
++    await userEvent.click(screen.getByRole('button', { name: 'Create category' }))
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(Arabic\)/ }), 'هدايا')
++    await userEvent.type(screen.getByRole('textbox', { name: /Name \(English\)/ }), 'Gift Guides')
++  } else await fillPost()
++  await userEvent.click(
++    within(screen.getByRole('dialog')).getByRole('button', {
++      name: kind === 'category' ? 'Create category' : 'Create post',
++    })
++  )
++  await waitFor(() => expect(http.get).toHaveBeenCalledTimes(2))
++  expect(signal.aborted).toBe(true)
++  const text = kind === 'category' ? 'Personalization' : posts.data[0].title.ar
++  await screen.findAllByText(text)
++  const fixture = kind === 'category' ? categories : posts
++  await act(async () => initial.resolve({ data: { ...fixture, data: [], meta: { ...fixture.meta, total: 0 } } }))
++  expect(screen.getAllByText(text)).toHaveLength(2)
++  expect(http.post).toHaveBeenCalledTimes(1)
++  expect(http.get).toHaveBeenCalledTimes(2)
++})
++
++it('keeps a selected category, bilingual content and image after category/English 422 errors', async () => {
++  http.post.mockRejectedValue({
++    isAxiosError: true,
++    response: {
++      status: 422,
++      data: {
++        message: 'Validation failed',
++        errors: {
++          category_id: ['Category needs correction'],
++          'title.en': ['English title needs correction'],
++          'excerpt.en': ['English excerpt needs correction'],
++          'body.en': ['English body needs correction'],
++        },
++      },
++    },
++  })
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await fillPost()
++  expect(http.get).toHaveBeenCalledTimes(1)
++  await userEvent.click(screen.getByRole('combobox', { name: 'Category (optional)' }))
++  await userEvent.click(await screen.findByRole('option', { name: 'Gift Guides' }))
++  await userEvent.type(screen.getByRole('textbox', { name: /Author/ }), ' team')
++  expect(screen.getByRole('combobox', { name: 'Category (optional)' })).toHaveTextContent('Gift Guides')
++  await userEvent.click(screen.getByRole('button', { name: 'Create post' }))
++  expect(await screen.findByText('Category needs correction')).toBeInTheDocument()
++  expect(screen.getByText('English title needs correction')).toBeInTheDocument()
++  expect(screen.getByText('English excerpt needs correction')).toBeInTheDocument()
++  expect(screen.getByText('English body needs correction')).toBeInTheDocument()
++  expect(screen.getByRole('textbox', { name: /Title \(English\)/ })).toHaveValue('English title')
++  expect(screen.getByRole('textbox', { name: /Body \(English\)/ })).toHaveValue('English body')
++  expect(screen.getByRole('textbox', { name: /Title \(Arabic\)/ })).toHaveValue('عنوان')
++  expect(screen.getByRole('combobox', { name: 'Category (optional)' })).toHaveTextContent('Gift Guides')
++  expect(screen.getByRole('img', { name: 'cover.png' })).toBeInTheDocument()
++  expect(http.post.mock.calls[0][0].data.get('category_id')).toBe('11')
++  expect(http.post.mock.calls[0][0].data.has('blog_category_id')).toBe(false)
++  expect(http.get).toHaveBeenCalledTimes(2)
++})
++it('allows clearing a selected category and omits it from a successful create', async () => {
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await fillPost()
++  await userEvent.click(screen.getByRole('combobox', { name: 'Category (optional)' }))
++  await userEvent.click(await screen.findByRole('option', { name: 'Gift Guides' }))
++  await userEvent.click(screen.getByRole('button', { name: 'Clear category' }))
++  expect(screen.getByRole('combobox', { name: 'Category (optional)' })).toHaveTextContent('Uncategorized')
++  await userEvent.click(screen.getByRole('button', { name: 'Create post' }))
++  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++  expect(http.post.mock.calls[0][0].data.has('category_id')).toBe(false)
++})
++it('lazily paginates form categories, blocks duplicate scroll requests and retries failures', async () => {
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await userEvent.click(screen.getByRole('button', { name: 'Create blog post' }))
++  expect(http.get).toHaveBeenCalledTimes(1)
++  http.get.mockRejectedValueOnce(new Error('offline'))
++  await userEvent.click(screen.getByRole('combobox', { name: 'Category (optional)' }))
++  const retry = await screen.findByRole('button', { name: 'Retry categories' })
++  http.get.mockResolvedValueOnce({
++    data: { ...categories, data: [categories.data[0]], meta: { ...categories.meta, last_page: 2 } },
++  })
++  await userEvent.click(retry)
++  await screen.findByRole('option', { name: 'Personalization' })
++  const pending = deferred<unknown>()
++  http.get.mockReturnValueOnce(pending.promise)
++  const viewport = document.querySelector('[data-radix-select-viewport]')!
++  fireEvent.scroll(viewport)
++  fireEvent.scroll(viewport)
++  await waitFor(() => expect(http.get).toHaveBeenCalledTimes(4))
++  await act(async () => pending.reject(new Error('next page')))
++  expect(await screen.findByRole('button', { name: 'Retry categories' })).toBeInTheDocument()
++  http.get.mockResolvedValueOnce({
++    data: { ...categories, data: [categories.data[1]], meta: { ...categories.meta, current_page: 2, last_page: 2 } },
++  })
++  await userEvent.click(screen.getByRole('button', { name: 'Retry categories' }))
++  await userEvent.click(await screen.findByRole('option', { name: 'Gift Guides' }))
++  expect(screen.getByRole('combobox', { name: 'Category (optional)' })).toHaveTextContent('Gift Guides')
++  expect(
++    http.get.mock.calls.filter(([r]) => r.url === '/dashboard/blog-categories').map(([r]) => r.query.page)
++  ).toEqual([1, 1, 2, 2])
++  expect(http.post).not.toHaveBeenCalled()
++})
++it('displays persisted-slug edit errors without suggesting an automatic URL change', async () => {
++  http.put.mockRejectedValue({
++    isAxiosError: true,
++    response: { status: 422, data: { message: 'Validation failed', errors: { slug: ['Stored slug rejected'] } } },
++  })
++  renderBlogs(<BlogCategoriesPage />)
++  await screen.findAllByText('Personalization')
++  await userEvent.click(screen.getAllByRole('button', { name: 'Edit category Personalization' })[0])
++  await userEvent.type(screen.getByRole('textbox', { name: /Name \(English\)/ }), ' changed')
++  await userEvent.click(screen.getByRole('button', { name: 'Update category' }))
++  expect(await screen.findByRole('alert')).toHaveTextContent('Stored slug rejected')
++  expect(http.put.mock.calls[0][0].data.get('slug')).toBe('personalization')
++  expect(screen.getByRole('textbox', { name: /Name \(English\)/ })).toHaveValue('Personalization changed')
++  expect(screen.queryByRole('textbox', { name: /slug/i })).not.toBeInTheDocument()
++})
++
++it('allows an unassigned post when the category catalog is empty', async () => {
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await fillPost()
++  http.get.mockResolvedValueOnce({ data: { ...categories, data: [], meta: { ...categories.meta, total: 0 } } })
++  await userEvent.click(screen.getByRole('combobox', { name: 'Category (optional)' }))
++  expect(await screen.findByText(i18n.t('label.no_options'))).toBeInTheDocument()
++  await userEvent.keyboard('{Escape}')
++  expect(screen.getByRole('button', { name: 'Create post' })).toBeEnabled()
++  await userEvent.click(screen.getByRole('button', { name: 'Create post' }))
++  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++  expect(http.post.mock.calls[0][0].data.has('category_id')).toBe(false)
++})
+diff --git a/src/modules/blogs/__tests__/blogs-index.test.tsx b/src/modules/blogs/__tests__/blogs-index.test.tsx
+new file mode 100644
+index 0000000..202e6a5
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-index.test.tsx
+@@ -0,0 +1,328 @@
++import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++import i18n from '@/config/i18'
++import BlogCategoriesPage from '@/modules/blogs/pages/BlogCategoriesPage'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++import { readBlogCategoriesFilters } from '@/modules/blogs/utils/blog-category-filters'
++import BlogPostsPage from '@/modules/blogs/pages/BlogPostsPage'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++import { readBlogPostsFilters } from '@/modules/blogs/utils/blog-post-filters'
++import categories from '@/modules/blogs/__tests__/blog-categories.fixture.json'
++import posts from '@/modules/blogs/__tests__/blog-posts.fixture.json'
++import { deferred, renderBlogs, setupBlogs } from '@/modules/blogs/__tests__/blogs-test-utils'
++const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
++beforeEach(async () => {
++  vi.clearAllMocks()
++  await setupBlogs()
++  http.get.mockImplementation(async ({ url }) => ({ data: url === '/dashboard/blog-categories' ? categories : posts }))
++})
++afterEach(() => vi.unstubAllGlobals())
++describe('blog index experiences', () => {
++  it.each(['en', 'ar'])(
++    'renders categories and Arabic articles with %s UI from one list request each',
++    async (language) => {
++      await i18n.changeLanguage(language)
++      const first = renderBlogs(<BlogCategoriesPage />)
++      await screen.findAllByText(language === 'ar' ? 'التخصيص' : 'Personalization')
++      expect(first.container.querySelectorAll('h1')).toHaveLength(1)
++      expect(http.get).toHaveBeenCalledTimes(1)
++      first.unmount()
++      const second = renderBlogs(<BlogPostsPage />)
++      await screen.findAllByText(posts.data[0].title.ar)
++      expect(second.container.querySelectorAll('h1')).toHaveLength(1)
++      expect(second.container.querySelector('img')).toHaveAttribute('src', posts.data[0].cover_url)
++      expect(second.container.querySelectorAll('[data-slot="responsive-data-mobile-cards"]')).toHaveLength(1)
++      expect(http.get.mock.calls.map(([request]) => request.url)).toEqual([
++        '/dashboard/blog-categories',
++        '/dashboard/blog-posts',
++      ])
++      expect(screen.queryByRole('button', { name: /Delete post|Edit post|Publish post/ })).not.toBeInTheDocument()
++    }
++  )
++  it.each(['categories', 'posts'])('shows structural loading, empty data and safe Retry for %s', async (kind) => {
++    const pending = deferred<unknown>()
++    http.get.mockReturnValueOnce(pending.promise)
++    const fixture = kind === 'categories' ? categories : posts
++    const { container } = renderBlogs(kind === 'categories' ? <BlogCategoriesPage /> : <BlogPostsPage />)
++    expect(screen.getByText('Loading content...')).toBeInTheDocument()
++    expect(container.querySelectorAll('[aria-hidden="true"] [data-slot="responsive-data-desktop"]')).toHaveLength(1)
++    expect(container.querySelectorAll('[aria-hidden="true"] [data-slot="responsive-data-mobile-cards"]')).toHaveLength(
++      1
++    )
++    await act(async () => pending.reject(new Error('database details')))
++    expect(await screen.findByText('Unable to load content')).toBeInTheDocument()
++    expect(screen.queryByText('database details')).not.toBeInTheDocument()
++    http.get.mockResolvedValueOnce({ data: { ...fixture, data: [], meta: { ...fixture.meta, total: 0 } } })
++    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
++    expect(await screen.findByText(kind === 'categories' ? 'No blog categories' : 'No blog posts')).toBeInTheDocument()
++  })
++
++  it.each(['categories', 'posts'])(
++    'blocks pagination during refetch, retains cached %s after failure, then recovers',
++    async (kind) => {
++      let intersect = () => {}
++      vi.stubGlobal(
++        'IntersectionObserver',
++        class {
++          constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
++            intersect = () => callback([{ isIntersecting: true }])
++          }
++          observe() {}
++          disconnect() {}
++        }
++      )
++      const fixture = kind === 'categories' ? categories : posts
++      http.get.mockResolvedValueOnce({ data: { ...fixture, meta: { ...fixture.meta, last_page: 2 } } })
++      const { client } = renderBlogs(kind === 'categories' ? <BlogCategoriesPage /> : <BlogPostsPage />)
++      const text = kind === 'categories' ? 'Personalization' : posts.data[0].title.ar
++      await screen.findAllByText(text)
++      const refresh = deferred<unknown>()
++      http.get.mockReturnValueOnce(refresh.promise)
++      let refetch!: Promise<void>
++      act(() => {
++        refetch = client.invalidateQueries({
++          queryKey: kind === 'categories' ? blogCategoriesKeys.lists() : blogPostsKeys.lists(),
++        })
++      })
++      await waitFor(() => expect(http.get).toHaveBeenCalledTimes(2))
++      await act(async () => intersect())
++      expect(http.get).toHaveBeenCalledTimes(2)
++      await act(async () => {
++        refresh.reject(new Error('internal'))
++        await refetch
++      })
++      expect(await screen.findByText('Unable to refresh data')).toBeInTheDocument()
++      expect(screen.getAllByText(text)).toHaveLength(2)
++      await act(async () => intersect())
++      expect(http.get).toHaveBeenCalledTimes(2)
++      http.get.mockResolvedValueOnce({
++        data: { ...fixture, data: [fixture.data[1]], meta: { ...fixture.meta, total: 1 } },
++      })
++      await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
++      await waitFor(() => expect(screen.queryByText('Unable to refresh data')).not.toBeInTheDocument())
++      expect(screen.queryByText(text)).not.toBeInTheDocument()
++      expect(http.get.mock.calls.map(([r]) => r.query.page)).toEqual([1, 1, 1])
++      if (kind === 'categories')
++        expect(screen.getAllByRole('button', { name: 'Delete category Gift Guides' })[0]).toBeEnabled()
++    }
++  )
++  it('keeps an empty cached result visible with a background-error notice', async () => {
++    http.get.mockResolvedValueOnce({ data: { ...posts, data: [], meta: { ...posts.meta, total: 0 } } })
++    const { client } = renderBlogs(<BlogPostsPage />)
++    await screen.findByText('No blog posts')
++    http.get.mockRejectedValueOnce(new Error('internal'))
++    await act(async () => {
++      await client.invalidateQueries({ queryKey: blogPostsKeys.lists() })
++    })
++    expect(await screen.findByText('Unable to refresh data')).toBeInTheDocument()
++    expect(screen.getByText('No blog posts')).toBeInTheDocument()
++  })
++  it('uses every post filter from the URL with no category lookup, then resets', async () => {
++    const search =
++      '?search=gift&blog_category_id=11&is_published=0&is_featured=1&published_from=2026-09-01&published_to=2026-09-30&sort_by=title&sort_dir=asc&page=4'
++    http.get.mockResolvedValueOnce({ data: { ...posts, data: [] } })
++    renderBlogs(<BlogPostsPage />, search)
++    await screen.findByText('No matching posts')
++    expect(http.get).toHaveBeenCalledExactlyOnceWith(
++      expect.objectContaining({
++        query: {
++          search: 'gift',
++          blog_category_id: 11,
++          is_published: 0,
++          is_featured: 1,
++          published_from: '2026-09-01',
++          published_to: '2026-09-30',
++          sort_by: 'title',
++          sort_dir: 'asc',
++          page: 1,
++        },
++      })
++    )
++    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }))
++    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(''))
++    await screen.findAllByText(posts.data[0].title.ar)
++    expect(http.get.mock.calls.at(-1)?.[0].query).toEqual({ page: 1 })
++  })
++  it('debounces search and resets URL pagination for categories', async () => {
++    renderBlogs(<BlogCategoriesPage />, '?page=4&sort_by=name&sort_dir=desc')
++    await screen.findAllByText('Personalization')
++    await userEvent.type(screen.getByRole('textbox', { name: 'Search blog categories' }), 'gifts')
++    await waitFor(() =>
++      expect(http.get.mock.calls.at(-1)?.[0].query).toEqual({
++        page: 1,
++        search: 'gifts',
++        sort_by: 'name',
++        sort_dir: 'desc',
++      })
++    )
++    expect(screen.getByTestId('location')).not.toHaveTextContent('page=')
++  })
++  it('blocks malformed publication dates before any request and offers reset', async () => {
++    renderBlogs(<BlogPostsPage />, '?published_from=2026-02-30')
++    expect(await screen.findByRole('alert')).toHaveTextContent('Enter valid publication dates')
++    expect(http.get).not.toHaveBeenCalled()
++    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }))
++    await screen.findAllByText(posts.data[0].title.ar)
++  })
++  it('does not fetch category options until the filter is opened', async () => {
++    renderBlogs(<BlogPostsPage />)
++    await screen.findAllByText(posts.data[0].title.ar)
++    await userEvent.click(screen.getByRole('button', { name: 'Filter' }))
++    expect(http.get).toHaveBeenCalledTimes(1)
++    await userEvent.click(screen.getByRole('combobox', { name: 'Category' }))
++    await screen.findByRole('option', { name: 'Gift Guides' })
++    expect(http.get.mock.calls.map(([request]) => request.url)).toEqual([
++      '/dashboard/blog-posts',
++      '/dashboard/blog-categories',
++    ])
++  })
++  it('handles no publication date and long untrusted titles as text', async () => {
++    const text = '<script>alert(1)</script>' + 'عنوان'.repeat(200)
++    http.get.mockResolvedValueOnce({
++      data: { ...posts, data: [{ ...posts.data[1], title: { ar: text }, cover_url: '' }] },
++    })
++    const { container } = renderBlogs(<BlogPostsPage />)
++    await screen.findAllByText(text)
++    expect(screen.getAllByText('No publication date')).toHaveLength(2)
++    expect(screen.getAllByText('No cover')).toHaveLength(2)
++    expect(container.querySelector('script')).toBeNull()
++    expect(screen.getAllByTitle(text)[0]).toHaveClass('break-words', 'whitespace-normal')
++  })
++  it('distinguishes permission errors without redirecting', async () => {
++    http.get.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403 } })
++    renderBlogs(<BlogPostsPage />)
++    expect(await screen.findByText('You do not have permission to access this data.')).toBeInTheDocument()
++    expect(http.get.mock.calls[0][0].suppressForbiddenRedirect).toBe(true)
++  })
++  it('confirms deletion, blocks duplicate requests and retains coherent metadata and blocks stale actions if refresh fails', async () => {
++    const deletion = deferred<unknown>()
++    http.delete.mockReturnValue(deletion.promise)
++    const { client } = renderBlogs(<BlogCategoriesPage />)
++    await screen.findAllByText('Personalization')
++    client.setQueryData(['unrelated'], { keep: true })
++    await userEvent.click(screen.getAllByRole('button', { name: 'Delete category Personalization' })[0])
++    expect(http.delete).not.toHaveBeenCalled()
++    const confirm = within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete category' })
++    fireEvent.click(confirm)
++    fireEvent.click(confirm)
++    await waitFor(() => expect(http.delete).toHaveBeenCalledTimes(1))
++    expect(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' })).toBeDisabled()
++    http.get.mockRejectedValueOnce(new Error('refresh failed'))
++    await act(async () => deletion.resolve({ data: { success: true, message: 'deleted' } }))
++    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
++    expect(screen.getAllByText('Personalization')).toHaveLength(2)
++    expect(screen.getAllByRole('button', { name: 'Delete category Personalization' })[0]).toBeDisabled()
++    expect(await screen.findByText('Unable to refresh data')).toBeInTheDocument()
++    expect(client.getQueryData(['unrelated'])).toEqual({ keep: true })
++    const data = client.getQueryData<{ pages: { items: { id: number }[] }[] }>(
++      blogCategoriesKeys.list(readBlogCategoriesFilters(null))
++    )
++    expect(data?.pages[0].items.map((item) => item.id)).toEqual([10, 11])
++    expect(data?.pages[0]).toMatchObject({ paginate: { total: 5, count: 2 } })
++  })
++  it('keeps failed deletion open and supports cancellation without another request', async () => {
++    http.delete.mockRejectedValue(new Error('internal'))
++    renderBlogs(<BlogCategoriesPage />)
++    await userEvent.click((await screen.findAllByRole('button', { name: 'Delete category Personalization' }))[0])
++    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete category' }))
++    expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the category')
++    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
++    expect(http.delete).toHaveBeenCalledTimes(1)
++    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
++  })
++  it('loads server pages once, retains rows on next-page failure, retries, then stops', async () => {
++    let intersect = () => {}
++    vi.stubGlobal(
++      'IntersectionObserver',
++      class {
++        constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
++          intersect = () => callback([{ isIntersecting: true }])
++        }
++        observe() {}
++        disconnect() {}
++      }
++    )
++    http.get
++      .mockResolvedValueOnce({ data: { ...posts, data: [posts.data[0]], meta: { ...posts.meta, last_page: 2 } } })
++      .mockRejectedValueOnce(new Error('next'))
++      .mockResolvedValueOnce({
++        data: { ...posts, data: [posts.data[1]], meta: { ...posts.meta, current_page: 2, last_page: 2 } },
++      })
++    const { client } = renderBlogs(<BlogPostsPage />)
++    await screen.findAllByText(posts.data[0].title.ar)
++    await act(async () => {
++      intersect()
++      intersect()
++    })
++    expect(await screen.findByText('Unable to refresh data')).toBeInTheDocument()
++    expect(screen.getAllByText(posts.data[0].title.ar)).toHaveLength(2)
++    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
++    await screen.findAllByText(posts.data[1].title.ar)
++    await act(async () => intersect())
++    expect(http.get.mock.calls.map(([request]) => request.query.page)).toEqual([1, 2, 2])
++    expect(client.getQueryData(blogPostsKeys.list(readBlogPostsFilters(null)))).toBeDefined()
++  })
++})
++
++it('keeps an unloaded category ID selected and offers retry inside the open selector', async () => {
++  http.get.mockImplementation(async ({ url }) => {
++    if (url === '/dashboard/blog-categories') throw new Error('offline')
++    return { data: posts }
++  })
++  renderBlogs(<BlogPostsPage />, '?blog_category_id=99')
++  await screen.findAllByText(posts.data[0].title.ar)
++  await userEvent.click(screen.getByRole('button', { name: 'Filter' }))
++  const select = screen.getByRole('combobox', { name: 'Category' })
++  expect(select).toHaveTextContent('Category #99')
++  expect(http.get).toHaveBeenCalledTimes(1)
++  await userEvent.click(select)
++  const retry = await screen.findByRole('button', { name: 'Retry categories' })
++  expect(screen.getByRole('option', { name: 'Category #99' })).toBeInTheDocument()
++  http.get.mockResolvedValueOnce({ data: categories })
++  await userEvent.click(retry)
++  expect(await screen.findByRole('option', { name: 'Gift Guides' })).toBeInTheDocument()
++  expect(screen.getByRole('option', { name: 'Category #99' })).toBeInTheDocument()
++  expect(http.get.mock.calls.filter(([r]) => r.url === '/dashboard/blog-categories')).toHaveLength(2)
++})
++it('paginates category options once per request and retries a failed next page', async () => {
++  const more = deferred<unknown>()
++  http.get
++    .mockResolvedValueOnce({ data: posts })
++    .mockResolvedValueOnce({
++      data: { ...categories, data: [categories.data[0]], meta: { ...categories.meta, last_page: 2 } },
++    })
++    .mockReturnValueOnce(more.promise)
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await userEvent.click(screen.getByRole('button', { name: 'Filter' }))
++  await userEvent.click(screen.getByRole('combobox', { name: 'Category' }))
++  await screen.findByRole('option', { name: 'Personalization' })
++  const viewport = document.querySelector('[data-radix-select-viewport]')!
++  fireEvent.scroll(viewport)
++  fireEvent.scroll(viewport)
++  await waitFor(() => expect(http.get).toHaveBeenCalledTimes(3))
++  await act(async () => more.reject(new Error('next page')))
++  const retry = await screen.findByRole('button', { name: 'Retry categories' })
++  expect(screen.getByRole('option', { name: 'Personalization' })).toBeInTheDocument()
++  http.get.mockResolvedValueOnce({
++    data: { ...categories, data: [categories.data[1]], meta: { ...categories.meta, current_page: 2, last_page: 2 } },
++  })
++  await userEvent.click(retry)
++  await screen.findByRole('option', { name: 'Gift Guides' })
++  fireEvent.scroll(viewport)
++  expect(
++    http.get.mock.calls.filter(([r]) => r.url === '/dashboard/blog-categories').map(([r]) => r.query.page)
++  ).toEqual([1, 2, 2])
++})
++it('shows Arabic category options in an RTL selector', async () => {
++  await i18n.changeLanguage('ar')
++  renderBlogs(<BlogPostsPage />)
++  await screen.findAllByText(posts.data[0].title.ar)
++  await userEvent.click(screen.getByRole('button', { name: i18n.t('button.filter') }))
++  await userEvent.click(screen.getByRole('combobox', { name: i18n.t('blogPosts.fields.category') }))
++  expect(await screen.findByRole('option', { name: categories.data[0].name.ar })).toBeInTheDocument()
++  expect(document.querySelector('[data-slot="select-content"]')).toHaveAttribute('dir', 'rtl')
++})
+diff --git a/src/modules/blogs/__tests__/blogs-locales.test.ts b/src/modules/blogs/__tests__/blogs-locales.test.ts
+new file mode 100644
+index 0000000..3cd2b3d
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-locales.test.ts
+@@ -0,0 +1,21 @@
++import { describe, expect, it } from 'vitest'
++import postsEn from '../locale/en.json'
++import postsAr from '../locale/ar.json'
++function entries(value: object, prefix = ''): [string, string][] {
++  return Object.entries(value).flatMap(([key, item]) =>
++    typeof item === 'string' ? [[prefix + key, item] as [string, string]] : entries(item, prefix + key + '.')
++  )
++}
++describe('blogs translations', () => {
++  it.each([[postsEn, postsAr]])('preserves AR/EN key and interpolation parity', (en, ar) => {
++    const english = entries(en),
++      arabic = entries(ar)
++    expect(arabic.map(([key]) => key).sort()).toEqual(english.map(([key]) => key).sort())
++    for (const [key, value] of english) {
++      const translated = arabic.find(([name]) => name === key)?.[1]
++      expect(translated).toBeTruthy()
++      expect(translated).toMatch(/[\u0600-\u06ff]/)
++      expect(translated?.match(/{{[^}]+}}/g) ?? []).toEqual(value.match(/{{[^}]+}}/g) ?? [])
++    }
++  })
++})
+diff --git a/src/modules/blogs/__tests__/blogs-presentation.test.tsx b/src/modules/blogs/__tests__/blogs-presentation.test.tsx
+new file mode 100644
+index 0000000..a1e83ba
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-presentation.test.tsx
+@@ -0,0 +1,119 @@
++import { screen } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++import i18n from '@/config/i18'
++import { BlogCategoriesList } from '../components/categories/BlogCategoriesList'
++import { BlogPostsList } from '../components/posts/BlogPostsList'
++import BlogPostsPage from '../pages/BlogPostsPage'
++import { normalizeBlogCategory } from '../api/blog-categories.service'
++import { normalizeBlogPost } from '../api/blog-posts.service'
++import { rawBlogPostSchema } from '../schemas/blog-post.schema'
++import categories from './blog-categories.fixture.json'
++import posts from './blog-posts.fixture.json'
++import { renderBlogs, setupBlogs } from './blogs-test-utils'
++const http = vi.hoisted(() => ({ get: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++beforeEach(async () => {
++  vi.clearAllMocks()
++  await setupBlogs()
++  http.get.mockResolvedValue({ data: posts })
++})
++afterEach(() => vi.unstubAllGlobals())
++
++describe('Blog presentation corrections', () => {
++  it('removes category IDs and mirrors the five-column/two-fact layout while loading', () => {
++    const loading = renderBlogs(<BlogCategoriesList loading />)
++    expect(loading.container.querySelectorAll('th')).toHaveLength(5)
++    expect(loading.container.querySelector('tbody tr')?.children).toHaveLength(5)
++    expect(loading.container.querySelector('article')?.lastElementChild?.children).toHaveLength(2)
++    loading.unmount()
++    const loaded = renderBlogs(<BlogCategoriesList items={categories.data.map(normalizeBlogCategory)} />)
++    expect(screen.getAllByRole('columnheader').map((node) => node.textContent)).toEqual([
++      'Name',
++      'Slug',
++      'Created',
++      'Updated',
++      'Actions',
++    ])
++    expect(loaded.container.querySelector('tbody tr')?.children).toHaveLength(5)
++    expect(loaded.container.querySelector('article dl')?.children).toHaveLength(2)
++    expect(screen.queryByText('10')).not.toBeInTheDocument()
++    expect(screen.queryByText('11')).not.toBeInTheDocument()
++    expect(screen.queryByText('ID')).not.toBeInTheDocument()
++  })
++  it.each(['en', 'ar'])('selects the available %s article title with correct direction', async (language) => {
++    await i18n.changeLanguage(language)
++    const article = normalizeBlogPost(
++      rawBlogPostSchema.parse({ ...posts.data[0], title: { ar: 'عنوان المقال', en: 'Article title' }, category: null })
++    )
++    renderBlogs(<BlogPostsList items={[article]} />)
++    const title = language === 'ar' ? 'عنوان المقال' : 'Article title'
++    expect(screen.getAllByText(title)).toHaveLength(2)
++    expect(screen.getAllByTitle(title)[0]).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr')
++    expect(screen.queryByText(language === 'ar' ? 'Article title' : 'عنوان المقال')).not.toBeInTheDocument()
++    expect(screen.getAllByText(i18n.t('blogPosts.uncategorized'))).toHaveLength(2)
++  })
++  it('labels legacy Arabic fallback explicitly, keeps dates factual and removes technical slug prominence', () => {
++    const article = normalizeBlogPost(
++      rawBlogPostSchema.parse({ ...posts.data[0], published_at: '2099-01-01T12:00:00+00:00' })
++    )
++    const { container } = renderBlogs(<BlogPostsList items={[article]} />)
++    expect(screen.getAllByText(/Arabic · English unavailable/)).toHaveLength(2)
++    expect(screen.getAllByTitle(article.title.ar)[0]).toHaveAttribute('lang', 'ar')
++    expect(container.querySelectorAll('time[datetime="2099-01-01T12:00:00+00:00"]')).toHaveLength(2)
++    expect(screen.queryByText(/^Published( now)?$/)).not.toBeInTheDocument()
++    expect(screen.queryByText(article.slug)).not.toBeInTheDocument()
++    expect(screen.getAllByRole('columnheader').map((node) => node.textContent)).toEqual([
++      'Title',
++      'Category',
++      'Author',
++      'Publication date',
++      'Featured',
++      'Updated',
++    ])
++  })
++  it('mirrors the article cover, secondary metadata, six columns and five mobile facts while loading', () => {
++    const loading = renderBlogs(<BlogPostsList loading />)
++    expect(loading.container.querySelector('tbody tr')?.children).toHaveLength(6)
++    expect(loading.container.querySelector('article')?.lastElementChild?.children).toHaveLength(5)
++    expect(loading.container.querySelector('tbody tr td .space-y-1')?.children).toHaveLength(2)
++    loading.unmount()
++    const loaded = renderBlogs(<BlogPostsList items={[normalizeBlogPost(rawBlogPostSchema.parse(posts.data[0]))]} />)
++    expect(loaded.container.querySelector('tbody tr')?.children).toHaveLength(6)
++    expect(loaded.container.querySelector('article dl')?.children).toHaveLength(5)
++    expect(loaded.container.querySelector('tbody tr td .space-y-1')?.children).toHaveLength(2)
++  })
++  it.each(['en', 'ar'])(
++    'offers bilingual form fields with %s UI, no slug hints and a lazy optional category',
++    async (language) => {
++      await i18n.changeLanguage(language)
++      renderBlogs(<BlogPostsPage />)
++      await screen.findAllByText(posts.data[0].title.ar)
++      await userEvent.click(screen.getByRole('button', { name: i18n.t('blogPosts.create') }))
++      for (const prefix of ['title', 'excerpt', 'body']) {
++        expect(
++          screen.getByRole('textbox', {
++            name: new RegExp(i18n.t('blogPosts.' + prefix + 'Ar').replace(/[()]/g, '\\$&')),
++          })
++        ).toHaveAttribute('dir', 'rtl')
++        expect(
++          screen.getByRole('textbox', {
++            name: new RegExp(i18n.t('blogPosts.' + prefix + 'En').replace(/[()]/g, '\\$&')),
++          })
++        ).toHaveAttribute('dir', 'ltr')
++      }
++      expect(screen.queryByRole('textbox', { name: /slug/i })).not.toBeInTheDocument()
++      expect(screen.queryByText(/generated from|يُنشأ الرابط/)).not.toBeInTheDocument()
++      expect(http.get).toHaveBeenCalledTimes(1)
++      http.get.mockResolvedValueOnce({ data: categories })
++      await userEvent.click(screen.getByRole('combobox', { name: i18n.t('blogPosts.categoryOptional') }))
++      expect(
++        await screen.findByRole('option', { name: categories.data[0].name[language as 'ar' | 'en'] })
++      ).toBeInTheDocument()
++      expect(document.querySelector('[data-slot="select-content"]')).toHaveAttribute(
++        'dir',
++        language === 'ar' ? 'rtl' : 'ltr'
++      )
++    }
++  )
++})
+diff --git a/src/modules/blogs/__tests__/blogs-production-response.test.tsx b/src/modules/blogs/__tests__/blogs-production-response.test.tsx
+new file mode 100644
+index 0000000..8ed672a
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-production-response.test.tsx
+@@ -0,0 +1,59 @@
++import { screen } from '@testing-library/react'
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++import i18n from '@/config/i18'
++import BlogPostsPage from '../pages/BlogPostsPage'
++import { blogPostsService } from '../api/blog-posts.service'
++import { readBlogPostsFilters } from '../utils/blog-post-filters'
++import { blogPostsEnvelopeSchema } from '../schemas/blog-post.schema'
++import observed from './blog-posts-null-category.fixture.json'
++import examples from './blog-posts.fixture.json'
++import { renderBlogs, setupBlogs } from './blogs-test-utils'
++const http = vi.hoisted(() => ({ get: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++// Only the null-category record was provided verbatim. The other nine are test records.
++const tenPosts = {
++  ...observed,
++  data: [...observed.data, ...Array.from({ length: 9 }, (_, i) => ({ ...examples.data[0], id: 100 + i }))],
++}
++beforeEach(async () => {
++  vi.resetAllMocks()
++  await setupBlogs()
++  http.get.mockResolvedValue({ data: tenPosts })
++})
++afterEach(() => vi.unstubAllGlobals())
++describe('production null category regression', () => {
++  it('parses all ten records without fabricating a category or English translation', async () => {
++    const result = await blogPostsService.list(readBlogPostsFilters(null), 1)
++    expect(result.items).toHaveLength(10)
++    expect(result.items[0]).toMatchObject({
++      category: null,
++      publishedAt: null,
++      title: { ar: observed.data[0].title.ar },
++    })
++    expect(result.items[0].title).not.toHaveProperty('en')
++    expect(result.items[1].category).toEqual(examples.data[0].category)
++    expect(http.get).toHaveBeenCalledTimes(1)
++  })
++  it.each(['en', 'ar'])('renders the mixed list in %s with one request and no generic error', async (language) => {
++    await i18n.changeLanguage(language)
++    renderBlogs(<BlogPostsPage />)
++    expect(await screen.findAllByText(language === 'ar' ? 'بدون تصنيف' : 'Uncategorized')).toHaveLength(2)
++    expect(screen.getAllByText(observed.data[0].title.ar)).toHaveLength(2)
++    expect(screen.getAllByText(examples.data[0].category.name[language as 'ar' | 'en'])).toHaveLength(18)
++    expect(screen.queryByText('Unable to load content')).not.toBeInTheDocument()
++    expect(screen.queryByText('تعذر تحميل المحتوى')).not.toBeInTheDocument()
++    expect(http.get).toHaveBeenCalledTimes(1)
++  })
++  it('still rejects malformed categories, booleans and missing required Arabic fields', () => {
++    for (const change of [
++      { category: {} },
++      { category: { ...examples.data[0].category, id: 0 } },
++      { is_featured: 'yes' },
++      { title: { en: 'Only English' } },
++    ]) {
++      expect(
++        blogPostsEnvelopeSchema.safeParse({ ...observed, data: [{ ...observed.data[0], ...change }] }).success
++      ).toBe(false)
++    }
++  })
++})
+diff --git a/src/modules/blogs/__tests__/blogs-routes.test.tsx b/src/modules/blogs/__tests__/blogs-routes.test.tsx
+new file mode 100644
+index 0000000..8cd4cee
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-routes.test.tsx
+@@ -0,0 +1,74 @@
++import { Suspense } from 'react'
++import { render, screen } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++import { MemoryRouter, matchRoutes, useLocation, useRoutes } from 'react-router-dom'
++import i18n from '@/config/i18'
++import { Routes } from '@/routes/routes'
++import { PrivateRoutes } from '@/routes/privateRoutes'
++import { dashboardNavigation } from '@/modules/dashboard/layout/dashboard-navigation'
++import { BlogNavigation } from '../components/BlogNavigation'
++vi.mock('@/modules/blogs/pages/BlogPostsPage', () => ({ default: () => <BlogNavigation /> }))
++vi.mock('@/modules/blogs/pages/BlogCategoriesPage', () => ({ default: () => <BlogNavigation /> }))
++const children = PrivateRoutes.flatMap((route) => route.children ?? [])
++const blogRoutes = children.filter((route) => route.path?.startsWith('/dashboard/blog'))
++function Router() {
++  const location = useLocation()
++  const content = useRoutes(blogRoutes)
++  return (
++    <>
++      <output data-testid="location">{location.pathname + location.search + location.hash}</output>
++      <Suspense fallback="loading">{content}</Suspense>
++    </>
++  )
++}
++beforeEach(async () => {
++  await i18n.changeLanguage('en')
++})
++describe('unified blog routes', () => {
++  it('registers canonical pages once and one parent sidebar destination', () => {
++    expect(Routes.blogPosts).toBe('/dashboard/blogs/posts')
++    expect(Routes.blogCategories).toBe('/dashboard/blogs/categories')
++    for (const url of [Routes.blogPosts, Routes.blogCategories]) {
++      expect(matchRoutes(PrivateRoutes, url)?.at(-1)?.route.Component).toBeDefined()
++      expect(children.filter((route) => route.path === url)).toHaveLength(1)
++    }
++    expect(new Set(blogRoutes.map((route) => route.path)).size).toBe(blogRoutes.length)
++    expect(dashboardNavigation.filter((item) => item.to.startsWith('/dashboard/blog'))).toEqual([
++      expect.objectContaining({ to: Routes.blogs, labelKey: 'blogs.title', match: 'prefix' }),
++    ])
++  })
++  it.each([
++    [Routes.blogs, Routes.blogPosts, 'Posts'],
++    [Routes.legacyBlogPosts, Routes.blogPosts, 'Posts'],
++    [Routes.legacyBlogCategories, Routes.blogCategories, 'Categories'],
++  ])('redirects %s preserving URL filter state and hash', async (from, to, label) => {
++    const search = '?search=gift&blog_category_id=11&is_featured=0&sort_by=title&sort_dir=asc&page=2#list'
++    render(
++      <MemoryRouter initialEntries={[from + search]}>
++        <Router />
++      </MemoryRouter>
++    )
++    expect(await screen.findByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
++    expect(screen.getByTestId('location')).toHaveTextContent(to + search)
++  })
++  it.each(['en', 'ar'])('supports local navigation and active labels in %s', async (lang) => {
++    await i18n.changeLanguage(lang)
++    render(
++      <MemoryRouter initialEntries={[Routes.blogPosts]}>
++        <Router />
++      </MemoryRouter>
++    )
++    const posts = await screen.findByRole('link', { name: lang === 'ar' ? 'المقالات' : 'Posts' })
++    const categories = screen.getByRole('link', { name: lang === 'ar' ? 'تصنيفات المقالات' : 'Categories' })
++    expect(posts).toHaveAttribute('aria-current', 'page')
++    expect(categories).not.toHaveAttribute('aria-current')
++    await userEvent.click(categories)
++    expect(screen.getByTestId('location')).toHaveTextContent(Routes.blogCategories)
++    expect(screen.getByRole('link', { name: lang === 'ar' ? 'تصنيفات المقالات' : 'Categories' })).toHaveAttribute(
++      'aria-current',
++      'page'
++    )
++    expect(i18n.t('blogs.title')).toBe(lang === 'ar' ? 'المدونة' : 'Blog')
++  })
++})
+diff --git a/src/modules/blogs/__tests__/blogs-slugs.test.ts b/src/modules/blogs/__tests__/blogs-slugs.test.ts
+new file mode 100644
+index 0000000..a0eff35
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-slugs.test.ts
+@@ -0,0 +1,69 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++import { normalizeSlug } from '@/utils/slug'
++import { createBlogCategoryFormSchema } from '../schemas/blog-category.schema'
++import { createBlogPostFormSchema } from '../schemas/blog-post.schema'
++import { blogCategoriesService, serializeBlogCategory } from '../api/blog-categories.service'
++import { blogPostsService, serializeBlogPostCreate } from '../api/blog-posts.service'
++import type { BlogPostFormValues } from '../types/blog-post.types'
++const http = vi.hoisted(() => ({ post: vi.fn() }))
++vi.mock('@/utils/http', () => ({ $http: http }))
++beforeEach(() => vi.clearAllMocks())
++const post = (): BlogPostFormValues => ({
++  slug: 'obsolete',
++  title: { ar: 'دليل الهدايا', en: 'Gift Guides' },
++  excerpt: { ar: 'وصف', en: 'Excerpt' },
++  body: { ar: 'محتوى', en: 'Body' },
++  categoryId: null,
++  authorName: 'Rafal',
++  isFeatured: false,
++  cover: { files: [new File(['image'], 'cover.png', { type: 'image/png' })], removedExistingIds: [] },
++})
++describe('automatic blog slugs', () => {
++  it.each([
++    ['Gift Guides', 'gift-guides'],
++    ['  MiXeD   Name  ', 'mixed-name'],
++    ['--Gift__--Guides!! / care--', 'gift-guides-care'],
++    ['Café Déjà Vu', 'café-déjà-vu'],
++    ['Ｃａｆｅ', 'cafe'],
++    ['دليل الهدايا', 'دليل-الهدايا'],
++    ['', ''],
++    [' ?! / _ -- ', ''],
++  ])('normalizes %s deterministically', (source, expected) => {
++    expect(normalizeSlug(source)).toBe(expected)
++    expect(normalizeSlug(normalizeSlug(source))).toBe(expected)
++  })
++  it('derives category slug from the final English name in both schema and FormData', async () => {
++    const values = { slug: 'stale-preview', name: { ar: 'الهدايا', en: '  Gift Guides  ' } }
++    const validated = await createBlogCategoryFormSchema('required', 'invalid').validate(values)
++    expect(validated.slug).toBe('gift-guides')
++    expect(serializeBlogCategory(values).get('slug')).toBe(validated.slug)
++    expect(values.name.en).toBe('  Gift Guides  ')
++  })
++  it('preserves legacy category slug during edit and sends it unchanged in PUT fields', async () => {
++    const values = { slug: 'Legacy_URL', name: { ar: 'تغيير', en: 'Renamed Category' } }
++    expect((await createBlogCategoryFormSchema('required', 'invalid', 'edit').validate(values)).slug).toBe('Legacy_URL')
++    expect([...serializeBlogCategory(values, 'edit').keys()]).toEqual(['name[ar]', 'name[en]', 'slug'])
++    expect(serializeBlogCategory(values, 'edit').get('slug')).toBe('Legacy_URL')
++  })
++  it('derives a post slug from the final English title without altering either language', async () => {
++    const values = post()
++    values.title.ar = '  دليل الهدايا  '
++    values.title.en = '  Latest Gift Guide  '
++    const validated = await createBlogPostFormSchema('required', 'image', 'invalid', 'category').validate(values)
++    expect(validated.slug).toBe('latest-gift-guide')
++    expect(serializeBlogPostCreate(values).get('slug')).toBe(validated.slug)
++    expect(serializeBlogPostCreate(values).get('title[en]')).toBe('Latest Gift Guide')
++    expect(values.title.ar).toBe('  دليل الهدايا  ')
++  })
++  it.each(['', '?! / --'])('rejects unusable source %s before HTTP', async (source) => {
++    const category = { slug: 'stale', name: { ar: 'اسم', en: source } }
++    const article = { ...post(), title: { ar: 'عنوان', en: source } }
++    await expect(createBlogCategoryFormSchema('required', 'invalid').validate(category)).rejects.toThrow()
++    await expect(
++      createBlogPostFormSchema('required', 'image', 'invalid', 'category').validate(article)
++    ).rejects.toThrow()
++    await expect(blogCategoriesService.create(category)).rejects.toThrow()
++    await expect(blogPostsService.create(article)).rejects.toThrow()
++    expect(http.post).not.toHaveBeenCalled()
++  })
++})
+diff --git a/src/modules/blogs/__tests__/blogs-test-utils.tsx b/src/modules/blogs/__tests__/blogs-test-utils.tsx
+new file mode 100644
+index 0000000..acea062
+--- /dev/null
++++ b/src/modules/blogs/__tests__/blogs-test-utils.tsx
+@@ -0,0 +1,60 @@
++import type { ReactNode } from 'react'
++import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
++import { render } from '@testing-library/react'
++import { MemoryRouter, useLocation } from 'react-router-dom'
++import { vi } from 'vitest'
++import i18n from '@/config/i18'
++export async function setupBlogs() {
++  await i18n.changeLanguage('en')
++  vi.stubGlobal(
++    'ResizeObserver',
++    class {
++      observe() {}
++      unobserve() {}
++      disconnect() {}
++    }
++  )
++  vi.stubGlobal(
++    'IntersectionObserver',
++    class {
++      observe() {}
++      unobserve() {}
++      disconnect() {}
++    }
++  )
++  Element.prototype.scrollIntoView = vi.fn()
++  HTMLElement.prototype.hasPointerCapture = vi.fn(() => false)
++  HTMLElement.prototype.setPointerCapture = vi.fn()
++  HTMLElement.prototype.releasePointerCapture = vi.fn()
++  URL.createObjectURL = vi.fn(() => 'blob:blog-cover')
++  URL.revokeObjectURL = vi.fn()
++}
++function Location() {
++  const location = useLocation()
++  return <output data-testid="location">{location.search}</output>
++}
++export function renderBlogs(ui: ReactNode, search = '') {
++  const client = new QueryClient({
++    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 300000 }, mutations: { retry: false } },
++  })
++  return {
++    ...render(
++      <QueryClientProvider client={client}>
++        <MemoryRouter initialEntries={['/dashboard/blogs' + search]}>
++          <Location />
++          {ui}
++        </MemoryRouter>
++      </QueryClientProvider>
++    ),
++    client,
++  }
++}
++export function deferred<T>() {
++  let resolve!: (value: T) => void
++  let reject!: (error: unknown) => void
++  const promise = new Promise<T>((res, rej) => {
++    resolve = res
++    reject = rej
++  })
++  return { promise, resolve, reject }
++}
+diff --git a/src/modules/blogs/api/blog-categories.service.ts b/src/modules/blogs/api/blog-categories.service.ts
+new file mode 100644
+index 0000000..4a231ec
+--- /dev/null
++++ b/src/modules/blogs/api/blog-categories.service.ts
+@@ -0,0 +1,93 @@
++import { normalizeSlug } from '@/utils/slug'
++import { $http } from '@/utils/http'
++import { blogCategoryEnvelopeSchema } from '@/modules/blogs/schemas/blog-category.schema'
++import type { BlogCategoryFormValues } from '@/modules/blogs/types/blog-category.types'
++import {
++  blogCategoriesEnvelopeSchema,
++  blogCategoryDeleteSchema,
++  blogCategoryIdSchema,
++} from '@/modules/blogs/schemas/blog-category.schema'
++import type { BlogCategory, BlogCategoriesFilters, RawBlogCategory } from '@/modules/blogs/types/blog-category.types'
++import { serializeBlogCategoriesFilters } from '@/modules/blogs/utils/blog-category-filters'
++export function normalizeBlogCategory(raw: RawBlogCategory): BlogCategory {
++  return { id: raw.id, slug: raw.slug, name: raw.name, createdAt: raw.created_at, updatedAt: raw.updated_at }
++}
++export function serializeBlogCategory(values: BlogCategoryFormValues, mode: 'create' | 'edit' = 'create') {
++  const body = new FormData()
++  for (const locale of ['ar', 'en'] as const) {
++    const value = values.name[locale].trim()
++    if (!value) throw new Error('Missing category name')
++    body.set(`name[${locale}]`, value)
++  }
++  if (mode === 'create') {
++    const slug = normalizeSlug(values.name.en)
++    if (!slug) throw new Error('Invalid category slug source')
++    body.set('slug', slug)
++  } else {
++    if (!values.slug.trim()) throw new Error('Missing persisted category slug')
++    body.set('slug', values.slug)
++  }
++  return body
++}
++export const blogCategoriesService = {
++  async create(values: BlogCategoryFormValues) {
++    const response = await $http.post({
++      url: '/dashboard/blog-categories',
++      data: serializeBlogCategory(values),
++      isFormData: true,
++      suppressSuccessNotification: true,
++      suppressErrorNotification: true,
++      suppressForbiddenRedirect: true,
++    })
++    return normalizeBlogCategory(blogCategoryEnvelopeSchema.parse(response.data).data)
++  },
++  async update(id: number, values: BlogCategoryFormValues) {
++    blogCategoryIdSchema.parse(id)
++    // Multipart PUT follows the repository convention; backend encoding is not independently verified.
++    const response = await $http.put({
++      url: `/dashboard/blog-categories/${id}`,
++      data: serializeBlogCategory(values, 'edit'),
++      isFormData: true,
++      suppressSuccessNotification: true,
++      suppressErrorNotification: true,
++      suppressForbiddenRedirect: true,
++    })
++    const category = normalizeBlogCategory(blogCategoryEnvelopeSchema.parse(response.data).data)
++    if (category.id !== id) throw new Error('Blog category identity mismatch')
++    return category
++  },
++  async list(filters: BlogCategoriesFilters, page: number, signal?: AbortSignal): Promise<PaginatedData<BlogCategory>> {
++    blogCategoryIdSchema.parse(page)
++    const response = await $http.get({
++      url: '/dashboard/blog-categories',
++      query: { ...serializeBlogCategoriesFilters(filters), page },
++      signal,
++      suppressErrorNotification: true,
++      suppressForbiddenRedirect: true,
++    })
++    const { data, meta } = blogCategoriesEnvelopeSchema.parse(response.data)
++    const items = data.map(normalizeBlogCategory)
++    return {
++      items,
++      paginate: {
++        current_page: meta.current_page,
++        total_pages: meta.last_page,
++        per_page: meta.per_page,
++        total: meta.total,
++        count: items.length,
++        next_page_url: meta.current_page < meta.last_page ? String(meta.current_page + 1) : null,
++        prev_page_url: meta.current_page > 1 ? String(meta.current_page - 1) : null,
++      },
++      extra: null,
++    }
++  },
++  async delete(id: number) {
++    blogCategoryIdSchema.parse(id)
++    const response = await $http.delete({
++      url: `/dashboard/blog-categories/${id}`,
++      suppressErrorNotification: true,
++      suppressForbiddenRedirect: true,
++    })
++    return blogCategoryDeleteSchema.parse(response.data)
++  },
++}
+diff --git a/src/modules/blogs/api/blog-posts.service.ts b/src/modules/blogs/api/blog-posts.service.ts
+new file mode 100644
+index 0000000..9aa473c
+--- /dev/null
++++ b/src/modules/blogs/api/blog-posts.service.ts
+@@ -0,0 +1,89 @@
++import { normalizeSlug } from '@/utils/slug'
++import { $http } from '@/utils/http'
++import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
++import { blogCategoryIdSchema } from '@/modules/blogs/schemas/blog-category.schema'
++import { blogPostsEnvelopeSchema, isBlogCover } from '@/modules/blogs/schemas/blog-post.schema'
++import type { BlogPost, BlogPostFormValues, BlogPostsFilters, RawBlogPost } from '@/modules/blogs/types/blog-post.types'
++import { serializeBlogPostsFilters, validBlogPublishedRange } from '@/modules/blogs/utils/blog-post-filters'
++export function normalizeBlogPost(raw: RawBlogPost): BlogPost {
++  return {
++    id: raw.id,
++    slug: raw.slug,
++    title: raw.title,
++    excerpt: raw.excerpt,
++    body: raw.body,
++    authorName: raw.author_name,
++    isFeatured: raw.is_featured,
++    publishedAt: raw.published_at,
++    readingTimeMinutes: raw.reading_time_minutes,
++    coverUrl: raw.cover_url,
++    category: raw.category,
++    createdAt: raw.created_at,
++    updatedAt: raw.updated_at,
++  }
++}
++export function serializeBlogPostCreate(values: BlogPostFormValues) {
++  if (values.cover.files.length !== 1 || !isBlogCover(values.cover.files[0])) throw new Error('Invalid blog cover')
++  const body = new FormData()
++  // English keys follow the product requirement; live acceptance/persistence still needs verification.
++  const fields = {
++    slug: normalizeSlug(values.title.en),
++    'title[ar]': values.title.ar,
++    'title[en]': values.title.en,
++    'excerpt[ar]': values.excerpt.ar,
++    'excerpt[en]': values.excerpt.en,
++    'body[ar]': values.body.ar,
++    'body[en]': values.body.en,
++    author_name: values.authorName,
++  }
++  Object.entries(fields).forEach(([key, value]) => {
++    if (!value.trim()) throw new Error('Missing blog content')
++    body.set(key, value.trim())
++  })
++  if (values.categoryId !== null) {
++    const categoryId = blogCategoryIdSchema.parse(values.categoryId)
++    body.set('category_id', String(categoryId))
++  }
++  body.set('is_featured', String(toApiBoolean(values.isFeatured)))
++  body.set('cover', values.cover.files[0])
++  return body
++}
++export const blogPostsService = {
++  async list(filters: BlogPostsFilters, page: number, signal?: AbortSignal): Promise<PaginatedData<BlogPost>> {
++    blogCategoryIdSchema.parse(page)
++    if (!validBlogPublishedRange(filters)) throw new Error('Invalid blog publication range')
++    const response = await $http.get({
++      url: '/dashboard/blog-posts',
++      query: { ...serializeBlogPostsFilters(filters), page },
++      signal,
++      suppressErrorNotification: true,
++      suppressForbiddenRedirect: true,
++    })
++    const { data, meta } = blogPostsEnvelopeSchema.parse(response.data)
++    const items = data.map(normalizeBlogPost)
++    return {
++      items,
++      paginate: {
++        current_page: meta.current_page,
++        total_pages: meta.last_page,
++        per_page: meta.per_page,
++        total: meta.total,
++        count: items.length,
++        next_page_url: meta.current_page < meta.last_page ? String(meta.current_page + 1) : null,
++        prev_page_url: meta.current_page > 1 ? String(meta.current_page - 1) : null,
++      },
++      extra: null,
++    }
++  },
++  async create(values: BlogPostFormValues) {
++    // No authoritative create response was supplied. Use HTTP success, never fabricate a cached entity.
++    await $http.post({
++      url: '/dashboard/blog-posts',
++      data: serializeBlogPostCreate(values),
++      isFormData: true,
++      suppressErrorNotification: true,
++      suppressSuccessNotification: true,
++      suppressForbiddenRedirect: true,
++    })
++  },
++}
+diff --git a/src/modules/blogs/components/BlogNavigation.tsx b/src/modules/blogs/components/BlogNavigation.tsx
+new file mode 100644
+index 0000000..06f485d
+--- /dev/null
++++ b/src/modules/blogs/components/BlogNavigation.tsx
+@@ -0,0 +1,26 @@
++import { NavLink } from 'react-router-dom'
++import { useTranslation } from 'react-i18next'
++import { Routes } from '@/routes/routes'
++export function BlogNavigation() {
++  const { t } = useTranslation()
++  return (
++    <nav aria-label={t('blogs.navigation')} className="flex flex-wrap gap-2">
++      {[
++        [Routes.blogPosts, 'blogs.posts'],
++        [Routes.blogCategories, 'blogs.categories'],
++      ].map(([to, label]) => (
++        <NavLink
++          key={to}
++          to={to}
++          end
++          className={({ isActive }) =>
++            'rounded-md px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
++            (isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')
++          }
++        >
++          {t(label)}
++        </NavLink>
++      ))}
++    </nav>
++  )
++}
+diff --git a/src/modules/blogs/components/BlogRedirect.tsx b/src/modules/blogs/components/BlogRedirect.tsx
+new file mode 100644
+index 0000000..9bc77b6
+--- /dev/null
++++ b/src/modules/blogs/components/BlogRedirect.tsx
+@@ -0,0 +1,5 @@
++import { Navigate, useLocation } from 'react-router-dom'
++export function BlogRedirect({ to }: { to: string }) {
++  const { search, hash } = useLocation()
++  return <Navigate to={{ pathname: to, search, hash }} replace />
++}
+diff --git a/src/modules/blogs/components/categories/BlogCategoriesList.tsx b/src/modules/blogs/components/categories/BlogCategoriesList.tsx
+new file mode 100644
+index 0000000..9de2cfc
+--- /dev/null
++++ b/src/modules/blogs/components/categories/BlogCategoriesList.tsx
+@@ -0,0 +1,131 @@
++import { useTranslation } from 'react-i18next'
++import { Pencil, Trash2 } from 'lucide-react'
++import {
++  ResponsiveDataDesktop,
++  ResponsiveDataTable,
++  ResponsiveDataTableRow,
++  ResponsiveDataTableCell,
++  ResponsiveDataMobileCards,
++  ResponsiveDataMobileCard,
++  ResponsiveDataFact,
++} from '@/components/shared/data-display/ResponsiveDataLayout'
++import { Button } from '@/components/ui/button'
++import { Skeleton } from '@/components/ui/skeleton'
++import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
++import type { BlogCategory } from '@/modules/blogs/types/blog-category.types'
++type Props = {
++  items?: BlogCategory[]
++  loading?: boolean
++  onDelete?: (item: BlogCategory) => void
++  onEdit?: (item: BlogCategory) => void
++  disabled?: boolean
++}
++export function BlogCategoriesList({ items = [], loading = false, onDelete, onEdit, disabled }: Props) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const rows = loading ? Array.from({ length: 5 }, () => null) : items
++  const columns = ['name', 'slug', 'created_at', 'updated_at', 'actions'].map((id) => ({
++    id,
++    header: t(`blogCategories.fields.${id}`),
++  }))
++  const name = (item: BlogCategory) =>
++    item.name[locale] || item.name.ar || item.name.en || t('blogCategories.unavailable')
++  const action = (item: BlogCategory) => (
++    <div className="flex shrink-0">
++      <Button
++        variant="ghost"
++        size="icon"
++        disabled={disabled}
++        aria-label={t('blogCategories.editNamed', { name: name(item) })}
++        onClick={() => onEdit?.(item)}
++      >
++        <Pencil aria-hidden="true" />
++      </Button>
++      <Button
++        variant="ghost"
++        size="icon"
++        disabled={disabled}
++        aria-label={t('blogCategories.deleteNamed', { name: name(item) })}
++        onClick={() => onDelete?.(item)}
++      >
++        <Trash2 aria-hidden="true" />
++      </Button>
++    </div>
++  )
++  const date = (value: string) => (
++    <time dateTime={value} dir="auto">
++      {formatDateTime(value, { locale })}
++    </time>
++  )
++  return (
++    <div aria-hidden={loading || undefined}>
++      <ResponsiveDataDesktop>
++        <ResponsiveDataTable columns={columns}>
++          {rows.map((item, index) => (
++            <ResponsiveDataTableRow key={item?.id ?? index}>
++              <ResponsiveDataTableCell className="max-w-64 whitespace-normal break-words">
++                {item ? <bdi>{name(item)}</bdi> : <Skeleton className="h-5 w-36" />}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell className="max-w-48 whitespace-normal break-all">
++                {item ? <bdi>{item.slug || t('blogCategories.unavailable')}</bdi> : <Skeleton className="h-5 w-24" />}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell>
++                {item ? date(item.createdAt) : <Skeleton className="h-5 w-32" />}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell>
++                {item ? date(item.updatedAt) : <Skeleton className="h-5 w-32" />}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell>
++                {item ? action(item) : <Skeleton className="h-9 w-18" />}
++              </ResponsiveDataTableCell>
++            </ResponsiveDataTableRow>
++          ))}
++        </ResponsiveDataTable>
++      </ResponsiveDataDesktop>
++      <ResponsiveDataMobileCards>
++        {rows.map((item, index) => {
++          if (!item)
++            return (
++              <article key={index} className="rounded-xl border border-border bg-surface p-4">
++                <header className="flex items-start justify-between gap-3">
++                  <div className="space-y-2">
++                    <Skeleton className="h-5 w-36" />
++                    <Skeleton className="h-4 w-24" />
++                  </div>
++                  <Skeleton className="h-9 w-18" />
++                </header>
++                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
++                  {Array.from({ length: 2 }, (_, fact) => (
++                    <div key={fact} className="space-y-1">
++                      <Skeleton className="h-3 w-16" />
++                      <Skeleton className="h-5 w-32" />
++                    </div>
++                  ))}
++                </div>
++              </article>
++            )
++          return (
++            <ResponsiveDataMobileCard
++              key={item?.id ?? index}
++              title={item ? <bdi>{name(item)}</bdi> : <Skeleton className="h-5 w-36" />}
++              subtitle={
++                item ? <bdi>{item.slug || t('blogCategories.unavailable')}</bdi> : <Skeleton className="h-4 w-24" />
++              }
++              actions={item ? action(item) : <Skeleton className="h-9 w-18" />}
++              facts={
++                <>
++                  <ResponsiveDataFact label={t('blogCategories.fields.created_at')}>
++                    {item ? date(item.createdAt) : <Skeleton className="h-5 w-32" />}
++                  </ResponsiveDataFact>
++                  <ResponsiveDataFact label={t('blogCategories.fields.updated_at')}>
++                    {item ? date(item.updatedAt) : <Skeleton className="h-5 w-32" />}
++                  </ResponsiveDataFact>
++                </>
++              }
++            />
++          )
++        })}
++      </ResponsiveDataMobileCards>
++    </div>
++  )
++}
+diff --git a/src/modules/blogs/components/categories/BlogCategoryDrawer.tsx b/src/modules/blogs/components/categories/BlogCategoryDrawer.tsx
+new file mode 100644
+index 0000000..25fe17d
+--- /dev/null
++++ b/src/modules/blogs/components/categories/BlogCategoryDrawer.tsx
+@@ -0,0 +1,90 @@
++import { useRef, useState } from 'react'
++import { useTranslation } from 'react-i18next'
++import { FormWrapper } from '@/components/core/FormWrapper'
++import { FormInput } from '@/components/form'
++import { EntityFormDrawer } from '@/components/shared/entity-form-drawer'
++import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
++import { getApiErrorMessage } from '@/utils/error/api-error.helpers'
++import { useCreateBlogCategory } from '@/modules/blogs/hooks/categories/useCreateBlogCategory'
++import { useUpdateBlogCategory } from '@/modules/blogs/hooks/categories/useUpdateBlogCategory'
++import { createBlogCategoryFormSchema } from '@/modules/blogs/schemas/blog-category.schema'
++import type { BlogCategory, BlogCategoryFormValues } from '@/modules/blogs/types/blog-category.types'
++const empty: BlogCategoryFormValues = { slug: '', name: { ar: '', en: '' } }
++export function BlogCategoryDrawer({ category, onClose }: { category: BlogCategory | null; onClose: () => void }) {
++  const { t } = useTranslation()
++  const mode = category ? 'edit' : 'create'
++  const create = useCreateBlogCategory()
++  const update = useUpdateBlogCategory()
++  const pending = create.isPending || update.isPending
++  const lock = useRef(false)
++  const [state, setState] = useState({ isDirty: false, isValid: false })
++  const [error, setError] = useState<string | null>(null)
++  return (
++    <EntityFormDrawer
++      open
++      mode={mode}
++      onOpenChange={(open) => {
++        if (!open) onClose()
++      }}
++      titles={{ create: t('blogCategories.create'), edit: t('blogCategories.edit') }}
++      descriptions={{ create: t('blogCategories.formDescription'), edit: t('blogCategories.formDescription') }}
++      submitLabels={{ create: t('blogCategories.create'), edit: t('blogCategories.update') }}
++      createAnotherLabel={t('blogPosts.createAnother')}
++      cancelLabel={t('button.cancel')}
++      closeLabel={t('common.close')}
++      formId="blog-category-form"
++      isSubmitting={pending}
++      isSubmitDisabled={!state.isValid || (mode === 'edit' && !state.isDirty)}
++    >
++      <FormWrapper<BlogCategoryFormValues>
++        formId="blog-category-form"
++        defaultValues={category ? { slug: category.slug, name: category.name } : empty}
++        schema={createBlogCategoryFormSchema(t('blogPosts.required'), t('blogs.invalidSlug'), mode)}
++        validationMode="onChange"
++        onFormStateChange={setState}
++        submissionDisabled={pending}
++        className="space-y-5"
++        onSubmit={async (values, methods, event) => {
++          if (lock.current || pending || (mode === 'edit' && !state.isDirty)) return
++          lock.current = true
++          setError(null)
++          try {
++            const result = category
++              ? await update.mutateAsync({ id: category.id, values: { ...values, slug: category.slug } })
++              : await create.mutateAsync(values)
++            methods.reset(category ? { slug: result.slug, name: result.name } : empty)
++            const submitter = (event?.nativeEvent as SubmitEvent | undefined)?.submitter as HTMLElement | null
++            if (!category && submitter?.dataset.submitIntent === 'create-another')
++              window.requestAnimationFrame(() => methods.setFocus('name.ar'))
++            else onClose()
++          } catch (failure) {
++            setError(
++              getApiErrorMessage(failure, t(category ? 'blogCategories.updateError' : 'blogCategories.createError'))
++            )
++            applyApiValidationErrors<BlogCategoryFormValues>(
++              failure,
++              (field, detail, options) => {
++                if (category && field === 'slug') setError(detail.message ?? t('blogCategories.updateError'))
++                else methods.setError(field, detail, options)
++              },
++              {
++                slug: category ? 'slug' : 'name.en',
++                name: 'name.ar',
++                'name.ar': 'name.ar',
++                'name[ar]': 'name.ar',
++                'name.en': 'name.en',
++                'name[en]': 'name.en',
++              }
++            )
++          } finally {
++            lock.current = false
++          }
++        }}
++      >
++        {error && <p role="alert">{error}</p>}
++        <FormInput name="name.ar" label={t('blogCategories.nameAr')} dir="rtl" required autoFocus disabled={pending} />
++        <FormInput name="name.en" label={t('blogCategories.nameEn')} dir="ltr" required disabled={pending} />
++      </FormWrapper>
++    </EntityFormDrawer>
++  )
++}
+diff --git a/src/modules/blogs/components/categories/BlogCategoryFilters.tsx b/src/modules/blogs/components/categories/BlogCategoryFilters.tsx
+new file mode 100644
+index 0000000..211163e
+--- /dev/null
++++ b/src/modules/blogs/components/categories/BlogCategoryFilters.tsx
+@@ -0,0 +1,24 @@
++import { useTranslation } from 'react-i18next'
++import FilterSelect from '@/components/filters/FilterSelect'
++import { blogCategorySortValues } from '@/modules/blogs/utils/blog-category-filters'
++export function BlogCategoryFilters() {
++  const { t } = useTranslation()
++  return (
++    <div className="space-y-4">
++      <FilterSelect
++        name="sort_by"
++        label={t('blogCategories.sortBy')}
++        data={blogCategorySortValues.map((value) => ({ value, label: t(`blogCategories.fields.${value}`) }))}
++        valueKey="value"
++        labelKey="label"
++      />
++      <FilterSelect
++        name="sort_dir"
++        label={t('blogCategories.sortDir')}
++        data={['asc', 'desc'].map((value) => ({ value, label: t(`blogCategories.${value}`) }))}
++        valueKey="value"
++        labelKey="label"
++      />
++    </div>
++  )
++}
+diff --git a/src/modules/blogs/components/posts/BlogPostCategorySelect.tsx b/src/modules/blogs/components/posts/BlogPostCategorySelect.tsx
+new file mode 100644
+index 0000000..ef5fef7
+--- /dev/null
++++ b/src/modules/blogs/components/posts/BlogPostCategorySelect.tsx
+@@ -0,0 +1,51 @@
++import { useState } from 'react'
++import { useWatch } from 'react-hook-form'
++import { useTranslation } from 'react-i18next'
++import { FormSelect } from '@/components/form'
++import { useBlogCategories } from '../../hooks/categories/useBlogCategories'
++import type { BlogPostFormValues } from '../../types/blog-post.types'
++
++export function BlogPostCategorySelect({ disabled }: { disabled: boolean }) {
++  const { t, i18n } = useTranslation()
++  const [activated, setActivated] = useState(false)
++  // Focus (keyboard or pointer) starts the first lookup; typing in other fields does not.
++  const query = useBlogCategories({ search: '', sortBy: null, sortDir: null }, activated)
++  const selected = useWatch<BlogPostFormValues, 'categoryId'>({ name: 'categoryId' })
++  const language = i18n.language.startsWith('ar') ? 'ar' : 'en'
++  const options =
++    query.data?.pages
++      .flatMap((page) => page.items)
++      .map((item) => ({
++        id: item.id,
++        name: item.name[language] || item.name.ar || item.name.en || item.slug,
++      })) ?? []
++  if (selected && !options.some((option) => option.id === selected))
++    options.unshift({ id: selected, name: t('blogPosts.categoryId', { id: selected }) })
++  return (
++    <div onFocusCapture={() => setActivated(true)}>
++      <FormSelect
++        name="categoryId"
++        label={t('blogPosts.categoryOptional')}
++        placeholder={t('blogPosts.uncategorized')}
++        data={options}
++        valueKey="id"
++        labelKey="name"
++        disabled={disabled}
++        clearable
++        clearLabel={t('blogPosts.clearCategory')}
++        deserializeValue={(value) => (value === '' ? null : Number(value))}
++        isLoading={query.isLoading}
++        isFetchingNextPage={query.isFetchingNextPage}
++        hasNextPage={query.hasNextPage && !query.isError}
++        onLoadMore={() => {
++          if (!query.isFetching) return query.fetchNextPage()
++        }}
++        isError={query.isError || query.isPaused}
++        isRetrying={query.isFetching}
++        errorMessage={t('blogPosts.categoryError')}
++        retryLabel={t('blogPosts.retry')}
++        onRetry={() => (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())}
++      />
++    </div>
++  )
++}
+diff --git a/src/modules/blogs/components/posts/BlogPostCreateDrawer.tsx b/src/modules/blogs/components/posts/BlogPostCreateDrawer.tsx
+new file mode 100644
+index 0000000..defa92c
+--- /dev/null
++++ b/src/modules/blogs/components/posts/BlogPostCreateDrawer.tsx
+@@ -0,0 +1,148 @@
++import { BlogPostCategorySelect } from './BlogPostCategorySelect'
++import { useRef, useState } from 'react'
++import { useTranslation } from 'react-i18next'
++import { FormWrapper } from '@/components/core/FormWrapper'
++import { FormInput, FormTextArea, FormCheckbox } from '@/components/form'
++import { FormImageUploader } from '@/components/form/image-upload/FormImageUploader'
++import { EntityFormDrawer } from '@/components/shared/entity-form-drawer'
++import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
++import { getApiErrorMessage } from '@/utils/error/api-error.helpers'
++import { useCreateBlogPost } from '@/modules/blogs/hooks/posts/useCreateBlogPost'
++import { createBlogPostFormSchema } from '@/modules/blogs/schemas/blog-post.schema'
++import type { BlogPostFormValues } from '@/modules/blogs/types/blog-post.types'
++const empty: BlogPostFormValues = {
++  slug: '',
++  title: { ar: '', en: '' },
++  excerpt: { ar: '', en: '' },
++  body: { ar: '', en: '' },
++  categoryId: null,
++  authorName: '',
++  isFeatured: false,
++  cover: { files: [], removedExistingIds: [] },
++}
++export function BlogPostCreateDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
++  const { t } = useTranslation()
++  const mutation = useCreateBlogPost()
++  const lock = useRef(false)
++  const [state, setState] = useState({ isDirty: false, isValid: false })
++  const [error, setError] = useState<string | null>(null)
++  return (
++    <EntityFormDrawer
++      open={open}
++      mode="create"
++      onOpenChange={onOpenChange}
++      titles={{ create: t('blogPosts.create') }}
++      descriptions={{ create: t('blogPosts.createDescription') }}
++      submitLabels={{ create: mutation.isPending ? t('blogPosts.saving') : t('blogPosts.save') }}
++      createAnotherLabel={t('blogPosts.createAnother')}
++      cancelLabel={t('button.cancel')}
++      closeLabel={t('common.close')}
++      formId="blog-post-create"
++      isSubmitting={mutation.isPending}
++      isSubmitDisabled={!state.isValid}
++    >
++      <FormWrapper<BlogPostFormValues>
++        key={String(open)}
++        formId="blog-post-create"
++        defaultValues={empty}
++        schema={createBlogPostFormSchema(
++          t('blogPosts.required'),
++          t('blogPosts.invalidImage'),
++          t('blogs.invalidSlug'),
++          t('blogPosts.invalidCategory')
++        )}
++        className="space-y-5"
++        validationMode="onChange"
++        onFormStateChange={setState}
++        submissionDisabled={mutation.isPending}
++        onSubmit={async (values, methods, event) => {
++          if (lock.current || mutation.isPending) return
++          lock.current = true
++          setError(null)
++          try {
++            await mutation.mutateAsync(values)
++            methods.reset(empty)
++            const submitter = (event?.nativeEvent as SubmitEvent | undefined)?.submitter as HTMLElement | null
++            if (submitter?.dataset.submitIntent === 'create-another')
++              window.requestAnimationFrame(() => methods.setFocus('title.ar'))
++            else onOpenChange(false)
++          } catch (failure) {
++            setError(getApiErrorMessage(failure, t('blogPosts.createError')))
++            applyApiValidationErrors(failure, methods.setError, {
++              slug: 'title.en',
++              category_id: 'categoryId',
++              title: 'title.ar',
++              'title.ar': 'title.ar',
++              'title.en': 'title.en',
++              'title[ar]': 'title.ar',
++              excerpt: 'excerpt.ar',
++              'excerpt.ar': 'excerpt.ar',
++              'excerpt.en': 'excerpt.en',
++              'excerpt[ar]': 'excerpt.ar',
++              body: 'body.ar',
++              'body.ar': 'body.ar',
++              'body.en': 'body.en',
++              'body[ar]': 'body.ar',
++              author_name: 'authorName',
++              is_featured: 'isFeatured',
++              cover: 'cover',
++            })
++          } finally {
++            lock.current = false
++          }
++        }}
++      >
++        {error && <p role="alert">{error}</p>}
++        {(['ar', 'en'] as const).map((language) => (
++          <fieldset key={language} className="space-y-4">
++            <legend className="mb-3 font-semibold">
++              {t(language === 'ar' ? 'blogPosts.arabicContent' : 'blogPosts.englishContent')}
++            </legend>
++            <FormInput
++              name={'title.' + language}
++              label={t(language === 'ar' ? 'blogPosts.titleAr' : 'blogPosts.titleEn')}
++              dir={language === 'ar' ? 'rtl' : 'ltr'}
++              required
++              autoFocus={language === 'ar'}
++              disabled={mutation.isPending}
++            />
++            <FormTextArea
++              name={'excerpt.' + language}
++              label={t(language === 'ar' ? 'blogPosts.excerptAr' : 'blogPosts.excerptEn')}
++              dir={language === 'ar' ? 'rtl' : 'ltr'}
++              rows={3}
++              required
++              disabled={mutation.isPending}
++            />
++            <FormTextArea
++              name={'body.' + language}
++              label={t(language === 'ar' ? 'blogPosts.bodyAr' : 'blogPosts.bodyEn')}
++              dir={language === 'ar' ? 'rtl' : 'ltr'}
++              rows={8}
++              required
++              disabled={mutation.isPending}
++            />
++          </fieldset>
++        ))}
++        <BlogPostCategorySelect disabled={mutation.isPending} />
++        <FormInput
++          name="authorName"
++          label={t('blogPosts.fields.author')}
++          dir="auto"
++          required
++          disabled={mutation.isPending}
++        />
++        <FormCheckbox name="isFeatured" label={t('blogPosts.fields.is_featured')} disabled={mutation.isPending} />
++        <FormImageUploader<BlogPostFormValues>
++          name="cover"
++          label={t('blogPosts.cover')}
++          mode="single"
++          accept="image/*"
++          required
++          disabled={mutation.isPending}
++        />
++        <p className="text-sm text-muted-foreground">{t('blogPosts.coverHelp')}</p>
++      </FormWrapper>
++    </EntityFormDrawer>
++  )
++}
+diff --git a/src/modules/blogs/components/posts/BlogPostFilters.tsx b/src/modules/blogs/components/posts/BlogPostFilters.tsx
+new file mode 100644
+index 0000000..60d1a53
+--- /dev/null
++++ b/src/modules/blogs/components/posts/BlogPostFilters.tsx
+@@ -0,0 +1,97 @@
++import { useState } from 'react'
++import { useTranslation } from 'react-i18next'
++import FilterSelect from '@/components/filters/FilterSelect'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import { useBlogCategories } from '@/modules/blogs/hooks/categories/useBlogCategories'
++import {
++  blogPostSortValues,
++  readBlogPostsFilters,
++  validBlogPublishedRange,
++} from '@/modules/blogs/utils/blog-post-filters'
++export function BlogPostFilters() {
++  const { t, i18n } = useTranslation()
++  const { forwardQuery, forwardAddQuery } = useQuery()
++  const [categoryOpen, setCategoryOpen] = useState(false)
++  const categories = useBlogCategories({ search: '', sortBy: null, sortDir: null }, categoryOpen)
++  const options =
++    categories.data?.pages
++      .flatMap((page) => page.items)
++      .map((item) => ({
++        value: String(item.id),
++        label: item.name[i18n.language.startsWith('ar') ? 'ar' : 'en'] || item.name.ar || item.slug,
++      })) ?? []
++  const selected = forwardQuery?.blog_category_id
++  if (selected && !options.some((option) => option.value === selected))
++    options.unshift({ value: selected, label: t('blogPosts.categoryId', { id: selected }) })
++  const valid = validBlogPublishedRange(readBlogPostsFilters(forwardQuery))
++  return (
++    <div className="space-y-4">
++      <FilterSelect
++        name="blog_category_id"
++        label={t('blogPosts.fields.category')}
++        data={options}
++        valueKey="value"
++        labelKey="label"
++        onOpenChange={setCategoryOpen}
++        isError={categories.isError || categories.isPaused}
++        isRetrying={categories.isFetching}
++        errorMessage={t('blogPosts.categoryError')}
++        retryLabel={t('blogPosts.retry')}
++        onRetry={() => (categories.isFetchNextPageError ? categories.fetchNextPage() : categories.refetch())}
++        isLoading={categories.isLoading}
++        isFetchingNextPage={categories.isFetchingNextPage}
++        hasNextPage={categories.hasNextPage && !categories.isFetchNextPageError}
++        onLoadMore={() => {
++          if (!categories.isFetching) return categories.fetchNextPage()
++        }}
++      />
++      {(['is_published', 'is_featured'] as const).map((name) => (
++        <FilterSelect
++          key={name}
++          name={name}
++          label={t(`blogPosts.fields.${name}`)}
++          data={[
++            { value: '1', label: t('blogPosts.yes') },
++            { value: '0', label: t('blogPosts.no') },
++          ]}
++          valueKey="value"
++          labelKey="label"
++        />
++      ))}
++      {(['published_from', 'published_to'] as const).map((name) => (
++        <div key={name}>
++          <Label htmlFor={name}>{t(`blogPosts.fields.${name}`)}</Label>
++          <Input
++            id={name}
++            type="date"
++            value={forwardQuery?.[name] ?? ''}
++            aria-invalid={!valid}
++            aria-describedby={!valid ? 'blog-date-error' : undefined}
++            onChange={(event) => forwardAddQuery({ [name]: event.target.value })}
++          />
++        </div>
++      ))}
++      {!valid && (
++        <p id="blog-date-error" role="alert">
++          {t('blogPosts.invalidRange')}
++        </p>
++      )}
++      <FilterSelect
++        name="sort_by"
++        label={t('blogCategories.sortBy')}
++        data={blogPostSortValues.map((value) => ({ value, label: t(`blogPosts.fields.${value}`) }))}
++        valueKey="value"
++        labelKey="label"
++      />
++      <FilterSelect
++        name="sort_dir"
++        label={t('blogCategories.sortDir')}
++        data={['asc', 'desc'].map((value) => ({ value, label: t(`blogCategories.${value}`) }))}
++        valueKey="value"
++        labelKey="label"
++      />
++    </div>
++  )
++}
+diff --git a/src/modules/blogs/components/posts/BlogPostsList.tsx b/src/modules/blogs/components/posts/BlogPostsList.tsx
+new file mode 100644
+index 0000000..67df60b
+--- /dev/null
++++ b/src/modules/blogs/components/posts/BlogPostsList.tsx
+@@ -0,0 +1,186 @@
++import { useState } from 'react'
++import { useTranslation } from 'react-i18next'
++import {
++  ResponsiveDataDesktop,
++  ResponsiveDataTable,
++  ResponsiveDataTableRow,
++  ResponsiveDataTableCell,
++  ResponsiveDataMobileCards,
++  ResponsiveDataMobileCard,
++  ResponsiveDataFact,
++} from '@/components/shared/data-display/ResponsiveDataLayout'
++import { Badge } from '@/components/ui/badge'
++import { Skeleton } from '@/components/ui/skeleton'
++import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
++import type { BlogPost } from '@/modules/blogs/types/blog-post.types'
++function Cover({ url }: { url: string }) {
++  const { t } = useTranslation()
++  const [failed, setFailed] = useState(false)
++  return /^https?:\/\//i.test(url) && !failed ? (
++    <img
++      src={url}
++      alt=""
++      loading="lazy"
++      width={64}
++      height={48}
++      className="h-12 w-16 shrink-0 rounded-md object-cover"
++      onError={() => setFailed(true)}
++    />
++  ) : (
++    <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md bg-muted text-center text-xs">
++      {t('blogPosts.noCover')}
++    </span>
++  )
++}
++export function BlogPostsList({ items = [], loading = false }: { items?: BlogPost[]; loading?: boolean }) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const rows = loading ? Array.from({ length: 5 }, () => null) : items
++  const columns = ['title', 'category', 'author', 'published_at', 'is_featured', 'updated_at'].map((id) => ({
++    id,
++    header: t(`blogPosts.fields.${id}`),
++  }))
++  const title = (item: BlogPost) => {
++    const other = locale === 'ar' ? 'en' : 'ar'
++    const contentLocale = item.title[locale]?.trim() ? locale : other
++    const content = item.title[contentLocale]
++    const fallback = Boolean(content?.trim()) && contentLocale !== locale
++    return (
++      <span className="flex min-w-0 items-center gap-3">
++        <Cover key={item.coverUrl} url={item.coverUrl} />
++        <span className="min-w-0 space-y-1">
++          <bdi
++            className="line-clamp-2 min-w-0 break-words whitespace-normal [overflow-wrap:anywhere]"
++            title={content}
++            lang={contentLocale}
++            dir={contentLocale === 'ar' ? 'rtl' : 'ltr'}
++          >
++            {content?.trim() ? content : t('blogPosts.unavailable')}
++          </bdi>
++          <span className="block text-xs text-muted-foreground">
++            {fallback && <>{t(contentLocale === 'ar' ? 'blogPosts.arabicFallback' : 'blogPosts.englishFallback')} · </>}
++            {t('blogPosts.readingTime', { count: item.readingTimeMinutes })}
++          </span>
++        </span>
++      </span>
++    )
++  }
++  const category = (item: BlogPost) => (
++    <bdi>
++      {item.category
++        ? item.category.name[locale] || item.category.name.ar || item.category.slug || t('blogPosts.unavailable')
++        : t('blogPosts.uncategorized')}
++    </bdi>
++  )
++  const featured = (item: BlogPost) => (
++    <Badge variant={item.isFeatured ? 'secondary' : 'outline'}>
++      {t(item.isFeatured ? 'blogPosts.yes' : 'blogPosts.no')}
++    </Badge>
++  )
++  const date = (value: string | null) =>
++    value ? (
++      <time dateTime={value} dir="auto">
++        {formatDateTime(value, { locale })}
++      </time>
++    ) : (
++      t('blogPosts.noPublicationDate')
++    )
++  const placeholder = <Skeleton className="h-5 w-28" />
++  return (
++    <div aria-hidden={loading || undefined}>
++      <ResponsiveDataDesktop>
++        <ResponsiveDataTable columns={columns}>
++          {rows.map((item, index) => (
++            <ResponsiveDataTableRow key={item?.id ?? index}>
++              <ResponsiveDataTableCell className="max-w-80 whitespace-normal">
++                {item ? (
++                  title(item)
++                ) : (
++                  <div className="flex items-center gap-3">
++                    <Skeleton className="h-12 w-16" />
++                    <div className="space-y-1">
++                      {placeholder}
++                      <Skeleton className="h-4 w-24" />
++                    </div>
++                  </div>
++                )}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell className="max-w-48 whitespace-normal break-words">
++                {item ? category(item) : placeholder}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell className="max-w-40 whitespace-normal break-words">
++                {item ? <bdi>{item.authorName || t('blogPosts.unavailable')}</bdi> : placeholder}
++              </ResponsiveDataTableCell>
++              <ResponsiveDataTableCell>{item ? date(item.publishedAt) : placeholder}</ResponsiveDataTableCell>
++              <ResponsiveDataTableCell>{item ? featured(item) : placeholder}</ResponsiveDataTableCell>
++              <ResponsiveDataTableCell>{item ? date(item.updatedAt) : placeholder}</ResponsiveDataTableCell>
++            </ResponsiveDataTableRow>
++          ))}
++        </ResponsiveDataTable>
++      </ResponsiveDataDesktop>
++      <ResponsiveDataMobileCards>
++        {rows.map((item, index) => {
++          if (!item)
++            return (
++              <article key={index} className="rounded-xl border border-border bg-surface p-4">
++                <header className="space-y-2">
++                  <div className="flex items-center gap-3">
++                    <Skeleton className="h-12 w-16" />
++                    <div className="space-y-1">
++                      <Skeleton className="h-5 w-28" />
++                      <Skeleton className="h-4 w-24" />
++                    </div>
++                  </div>
++                </header>
++                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
++                  {Array.from({ length: 5 }, (_, fact) => (
++                    <div key={fact} className="space-y-1">
++                      <Skeleton className="h-3 w-16" />
++                      <Skeleton className="h-5 w-28" />
++                    </div>
++                  ))}
++                </div>
++              </article>
++            )
++          return (
++            <ResponsiveDataMobileCard
++              key={item?.id ?? index}
++              title={
++                item ? (
++                  title(item)
++                ) : (
++                  <div className="flex items-center gap-3">
++                    <Skeleton className="h-12 w-16" />
++                    <div className="space-y-1">
++                      {placeholder}
++                      <Skeleton className="h-4 w-24" />
++                    </div>
++                  </div>
++                )
++              }
++              facts={
++                <>
++                  <ResponsiveDataFact label={t('blogPosts.fields.category')}>
++                    {item ? category(item) : placeholder}
++                  </ResponsiveDataFact>
++                  <ResponsiveDataFact label={t('blogPosts.fields.author')}>
++                    {item ? <bdi>{item.authorName || t('blogPosts.unavailable')}</bdi> : placeholder}
++                  </ResponsiveDataFact>
++                  <ResponsiveDataFact label={t('blogPosts.fields.published_at')}>
++                    {item ? date(item.publishedAt) : placeholder}
++                  </ResponsiveDataFact>
++                  <ResponsiveDataFact label={t('blogPosts.fields.is_featured')}>
++                    {item ? featured(item) : placeholder}
++                  </ResponsiveDataFact>
++                  <ResponsiveDataFact label={t('blogPosts.fields.updated_at')}>
++                    {item ? date(item.updatedAt) : placeholder}
++                  </ResponsiveDataFact>
++                </>
++              }
++            />
++          )
++        })}
++      </ResponsiveDataMobileCards>
++    </div>
++  )
++}
+diff --git a/src/modules/blogs/hooks/categories/useBlogCategories.ts b/src/modules/blogs/hooks/categories/useBlogCategories.ts
+new file mode 100644
+index 0000000..a170637
+--- /dev/null
++++ b/src/modules/blogs/hooks/categories/useBlogCategories.ts
+@@ -0,0 +1,12 @@
++import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
++import { blogCategoriesService } from '@/modules/blogs/api/blog-categories.service'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++import type { BlogCategoriesFilters } from '@/modules/blogs/types/blog-category.types'
++export function useBlogCategories(filters: BlogCategoriesFilters, enabled = true) {
++  return useInfinitePaginatedQuery({
++    queryKey: blogCategoriesKeys.list(filters),
++    queryFn: (page, signal) => blogCategoriesService.list(filters, page, signal),
++    enabled,
++    retry: false,
++  })
++}
+diff --git a/src/modules/blogs/hooks/categories/useCreateBlogCategory.ts b/src/modules/blogs/hooks/categories/useCreateBlogCategory.ts
+new file mode 100644
+index 0000000..417bfdd
+--- /dev/null
++++ b/src/modules/blogs/hooks/categories/useCreateBlogCategory.ts
+@@ -0,0 +1,20 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { useTranslation } from 'react-i18next'
++import { toast } from 'sonner'
++import { toastApiError } from '@/utils/error/api-error-toast.helpers'
++import { blogCategoriesService } from '@/modules/blogs/api/blog-categories.service'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++export function useCreateBlogCategory() {
++  const client = useQueryClient()
++  const { t } = useTranslation()
++  return useMutation({
++    mutationFn: blogCategoriesService.create,
++    retry: false,
++    onSuccess: async () => {
++      await client.cancelQueries({ queryKey: blogCategoriesKeys.lists() })
++      await client.invalidateQueries({ queryKey: blogCategoriesKeys.lists() })
++      toast.success(t('blogCategories.created'))
++    },
++    onError: (error) => toastApiError(error, t('blogCategories.createError')),
++  })
++}
+diff --git a/src/modules/blogs/hooks/categories/useDeleteBlogCategory.ts b/src/modules/blogs/hooks/categories/useDeleteBlogCategory.ts
+new file mode 100644
+index 0000000..f6811fb
+--- /dev/null
++++ b/src/modules/blogs/hooks/categories/useDeleteBlogCategory.ts
+@@ -0,0 +1,30 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { useTranslation } from 'react-i18next'
++import { toast } from 'sonner'
++import { toastApiError } from '@/utils/error/api-error-toast.helpers'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++import { blogCategoriesService } from '@/modules/blogs/api/blog-categories.service'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++export function useDeleteBlogCategory() {
++  const client = useQueryClient()
++  const { t } = useTranslation()
++  return useMutation({
++    mutationFn: blogCategoriesService.delete,
++    retry: false,
++    onSuccess: async () => {
++      await Promise.all([
++        client.cancelQueries({ queryKey: blogCategoriesKeys.lists() }),
++        client.cancelQueries({ queryKey: blogPostsKeys.lists() }),
++      ])
++      // Keep the last complete server snapshot: membership, ordering and totals must agree.
++      // Cancel first so an older request cannot overwrite the authoritative refetch.
++      await Promise.all([
++        client.invalidateQueries({ queryKey: blogCategoriesKeys.lists() }),
++        // The relationship after deletion is unspecified; do not fabricate a local post update.
++        client.invalidateQueries({ queryKey: blogPostsKeys.lists(), refetchType: 'none' }),
++      ])
++      toast.success(t('blogCategories.deleted'))
++    },
++    onError: (error) => toastApiError(error, t('blogCategories.deleteError')),
++  })
++}
+diff --git a/src/modules/blogs/hooks/categories/useUpdateBlogCategory.ts b/src/modules/blogs/hooks/categories/useUpdateBlogCategory.ts
+new file mode 100644
+index 0000000..41b1933
+--- /dev/null
++++ b/src/modules/blogs/hooks/categories/useUpdateBlogCategory.ts
+@@ -0,0 +1,31 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { useTranslation } from 'react-i18next'
++import { toast } from 'sonner'
++import { toastApiError } from '@/utils/error/api-error-toast.helpers'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++import { blogCategoriesService } from '@/modules/blogs/api/blog-categories.service'
++import { blogCategoriesKeys } from '@/modules/blogs/queries/blog-categories.keys'
++import type { BlogCategoryFormValues } from '@/modules/blogs/types/blog-category.types'
++export function useUpdateBlogCategory() {
++  const client = useQueryClient()
++  const { t } = useTranslation()
++  return useMutation({
++    mutationFn: ({ id, values }: { id: number; values: BlogCategoryFormValues }) =>
++      blogCategoriesService.update(id, values),
++    retry: false,
++    onSuccess: async () => {
++      await Promise.all([
++        client.cancelQueries({ queryKey: blogCategoriesKeys.lists() }),
++        client.cancelQueries({ queryKey: blogPostsKeys.lists() }),
++      ])
++      // Keep the last complete server snapshot: membership, ordering and totals must agree.
++      // Cancel first so an older request cannot overwrite the authoritative refetch.
++      await Promise.all([
++        client.invalidateQueries({ queryKey: blogCategoriesKeys.lists() }),
++        client.invalidateQueries({ queryKey: blogPostsKeys.lists(), refetchType: 'none' }),
++      ])
++      toast.success(t('blogCategories.updated'))
++    },
++    onError: (error) => toastApiError(error, t('blogCategories.updateError')),
++  })
++}
+diff --git a/src/modules/blogs/hooks/posts/useBlogPosts.ts b/src/modules/blogs/hooks/posts/useBlogPosts.ts
+new file mode 100644
+index 0000000..8f14039
+--- /dev/null
++++ b/src/modules/blogs/hooks/posts/useBlogPosts.ts
+@@ -0,0 +1,13 @@
++import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
++import { blogPostsService } from '@/modules/blogs/api/blog-posts.service'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++import type { BlogPostsFilters } from '@/modules/blogs/types/blog-post.types'
++import { validBlogPublishedRange } from '@/modules/blogs/utils/blog-post-filters'
++export function useBlogPosts(filters: BlogPostsFilters) {
++  return useInfinitePaginatedQuery({
++    queryKey: blogPostsKeys.list(filters),
++    queryFn: (page, signal) => blogPostsService.list(filters, page, signal),
++    enabled: validBlogPublishedRange(filters),
++    retry: false,
++  })
++}
+diff --git a/src/modules/blogs/hooks/posts/useCreateBlogPost.ts b/src/modules/blogs/hooks/posts/useCreateBlogPost.ts
+new file mode 100644
+index 0000000..eb0c774
+--- /dev/null
++++ b/src/modules/blogs/hooks/posts/useCreateBlogPost.ts
+@@ -0,0 +1,20 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { useTranslation } from 'react-i18next'
++import { toast } from 'sonner'
++import { toastApiError } from '@/utils/error/api-error-toast.helpers'
++import { blogPostsService } from '@/modules/blogs/api/blog-posts.service'
++import { blogPostsKeys } from '@/modules/blogs/queries/blog-posts.keys'
++export function useCreateBlogPost() {
++  const client = useQueryClient()
++  const { t } = useTranslation()
++  return useMutation({
++    mutationFn: blogPostsService.create,
++    retry: false,
++    onSuccess: async () => {
++      await client.cancelQueries({ queryKey: blogPostsKeys.lists() })
++      await client.invalidateQueries({ queryKey: blogPostsKeys.lists() })
++      toast.success(t('blogPosts.created'))
++    },
++    onError: (error) => toastApiError(error, t('blogPosts.createError')),
++  })
++}
+diff --git a/src/modules/blogs/locale/ar.json b/src/modules/blogs/locale/ar.json
+new file mode 100644
+index 0000000..019533e
+--- /dev/null
++++ b/src/modules/blogs/locale/ar.json
+@@ -0,0 +1,107 @@
++{
++  "blogCategories": {
++    "title": "تصنيفات المدونة",
++    "list": "التصنيفات",
++    "total": "عدد التصنيفات: {{count}}",
++    "search": "البحث في تصنيفات المدونة",
++    "filters": "تصفية التصنيفات",
++    "sortBy": "ترتيب حسب",
++    "sortDir": "اتجاه الترتيب",
++    "asc": "تصاعدي",
++    "desc": "تنازلي",
++    "fields": {
++      "name": "الاسم",
++      "id": "المعرّف",
++      "slug": "الاسم في الرابط",
++      "created_at": "تاريخ الإنشاء",
++      "updated_at": "آخر تحديث",
++      "actions": "الإجراءات"
++    },
++    "unavailable": "غير متاح",
++    "empty": "لا توجد تصنيفات للمدونة",
++    "noResults": "لا توجد تصنيفات مطابقة",
++    "reset": "إعادة ضبط الفلاتر",
++    "loadingMore": "جارٍ تحميل المزيد",
++    "delete": "حذف التصنيف",
++    "deleteNamed": "حذف التصنيف {{name}}",
++    "deleteDescription": "هل تريد حذف «{{name}}»؟ لا يمكن التراجع عن هذا الإجراء.",
++    "deleted": "تم حذف التصنيف",
++    "deleteError": "تعذّر حذف التصنيف",
++    "forbidden": "ليس لديك صلاحية الوصول إلى هذه البيانات.",
++    "create": "إنشاء تصنيف",
++    "edit": "تعديل التصنيف",
++    "update": "حفظ التعديلات",
++    "editNamed": "تعديل التصنيف {{name}}",
++    "nameAr": "الاسم بالعربية",
++    "nameEn": "الاسم بالإنجليزية",
++    "formDescription": "أدخل اسم التصنيف بالعربية والإنجليزية.",
++    "created": "تم إنشاء التصنيف",
++    "updated": "تم تحديث التصنيف",
++    "createError": "تعذّر إنشاء التصنيف",
++    "updateError": "تعذّر تحديث التصنيف"
++  },
++  "blogPosts": {
++    "title": "مقالات المدونة",
++    "list": "المقالات",
++    "total": "عدد المقالات: {{count}}",
++    "search": "البحث في مقالات المدونة",
++    "filters": "تصفية المقالات",
++    "fields": {
++      "title": "العنوان",
++      "slug": "الاسم في الرابط",
++      "category": "التصنيف",
++      "author": "الكاتب",
++      "is_featured": "مميز",
++      "is_published": "منشور",
++      "published_from": "تاريخ النشر من",
++      "published_to": "تاريخ النشر إلى",
++      "published_at": "تاريخ النشر",
++      "created_at": "تاريخ الإنشاء",
++      "updated_at": "آخر تحديث"
++    },
++    "categoryId": "التصنيف رقم {{id}}",
++    "categoryError": "تعذّر تحميل التصنيفات. أعد المحاولة لعرض الخيارات المتاحة.",
++    "retry": "إعادة تحميل التصنيفات",
++    "yes": "نعم",
++    "no": "لا",
++    "noCover": "لا توجد صورة",
++    "unavailable": "غير متاح",
++    "noPublicationDate": "لم يُحدّد تاريخ النشر",
++    "invalidRange": "أدخل تاريخَي نشر صالحين، على أن تكون النهاية في تاريخ البداية أو بعده.",
++    "empty": "لا توجد مقالات للمدونة",
++    "noResults": "لا توجد مقالات مطابقة",
++    "create": "إنشاء مقال",
++    "save": "إنشاء المقال",
++    "saving": "جارٍ الرفع والحفظ…",
++    "createAnother": "إنشاء وإضافة آخر",
++    "createDescription": "أضف محتوى المقال بالعربية والإنجليزية وصورة الغلاف.",
++    "titleAr": "العنوان بالعربية",
++    "excerptAr": "المقتطف بالعربية",
++    "bodyAr": "المحتوى بالعربية",
++    "cover": "صورة الغلاف",
++    "coverHelp": "اختر ملف صورة غير فارغ. يتحقق الخادم من صيغ الصور المدعومة وحدود الرفع.",
++    "required": "هذا الحقل مطلوب",
++    "invalidImage": "اختر ملف صورة واحدًا غير فارغ",
++    "created": "تم إنشاء المقال",
++    "createError": "تعذّر إنشاء المقال",
++    "uncategorized": "بدون تصنيف",
++    "titleEn": "العنوان (الإنجليزية)",
++    "excerptEn": "المقتطف (الإنجليزية)",
++    "bodyEn": "المحتوى (الإنجليزية)",
++    "arabicContent": "المحتوى العربي",
++    "englishContent": "المحتوى الإنجليزي",
++    "categoryOptional": "التصنيف (اختياري)",
++    "invalidCategory": "اختر تصنيفًا صالحًا أو اترك الحقل فارغًا.",
++    "clearCategory": "إزالة التصنيف",
++    "arabicFallback": "العربية · الإنجليزية غير متاحة",
++    "englishFallback": "الإنجليزية · العربية غير متاحة",
++    "readingTime": "مدة القراءة: {{count}} دقيقة"
++  },
++  "blogs": {
++    "title": "المدونة",
++    "posts": "المقالات",
++    "categories": "تصنيفات المقالات",
++    "navigation": "التنقل في المدونة",
++    "invalidSlug": "أدخل نصًا يحتوي على حروف أو أرقام."
++  }
++}
+diff --git a/src/modules/blogs/locale/en.json b/src/modules/blogs/locale/en.json
+new file mode 100644
+index 0000000..af54fd7
+--- /dev/null
++++ b/src/modules/blogs/locale/en.json
+@@ -0,0 +1,107 @@
++{
++  "blogCategories": {
++    "title": "Blog categories",
++    "list": "Categories",
++    "total": "Categories: {{count}}",
++    "search": "Search blog categories",
++    "filters": "Category filters",
++    "sortBy": "Sort by",
++    "sortDir": "Sort direction",
++    "asc": "Ascending",
++    "desc": "Descending",
++    "fields": {
++      "name": "Name",
++      "id": "ID",
++      "slug": "Slug",
++      "created_at": "Created",
++      "updated_at": "Updated",
++      "actions": "Actions"
++    },
++    "unavailable": "Unavailable",
++    "empty": "No blog categories",
++    "noResults": "No matching categories",
++    "reset": "Reset filters",
++    "loadingMore": "Loading more",
++    "delete": "Delete category",
++    "deleteNamed": "Delete category {{name}}",
++    "deleteDescription": "Delete “{{name}}”? This action cannot be undone.",
++    "deleted": "Category deleted",
++    "deleteError": "Could not delete the category",
++    "forbidden": "You do not have permission to access this data.",
++    "create": "Create category",
++    "edit": "Edit category",
++    "update": "Update category",
++    "editNamed": "Edit category {{name}}",
++    "nameAr": "Name (Arabic)",
++    "nameEn": "Name (English)",
++    "formDescription": "Enter the category name in Arabic and English.",
++    "created": "Category created",
++    "updated": "Category updated",
++    "createError": "Could not create the category",
++    "updateError": "Could not update the category"
++  },
++  "blogPosts": {
++    "title": "Blog posts",
++    "list": "Articles",
++    "total": "Articles: {{count}}",
++    "search": "Search blog posts",
++    "filters": "Post filters",
++    "fields": {
++      "title": "Title",
++      "slug": "Slug",
++      "category": "Category",
++      "author": "Author",
++      "is_featured": "Featured",
++      "is_published": "Published",
++      "published_from": "Published from",
++      "published_to": "Published to",
++      "published_at": "Publication date",
++      "created_at": "Created",
++      "updated_at": "Updated"
++    },
++    "categoryId": "Category #{{id}}",
++    "categoryError": "Could not load categories. Retry to see all available options.",
++    "retry": "Retry categories",
++    "yes": "Yes",
++    "no": "No",
++    "noCover": "No cover",
++    "unavailable": "Unavailable",
++    "noPublicationDate": "No publication date",
++    "invalidRange": "Enter valid publication dates, with the end on or after the start.",
++    "empty": "No blog posts",
++    "noResults": "No matching posts",
++    "create": "Create blog post",
++    "save": "Create post",
++    "saving": "Uploading and saving…",
++    "createAnother": "Create & create another",
++    "createDescription": "Add Arabic and English article content and a cover image.",
++    "titleAr": "Title (Arabic)",
++    "excerptAr": "Excerpt (Arabic)",
++    "bodyAr": "Body (Arabic)",
++    "cover": "Cover image",
++    "coverHelp": "Choose a non-empty image file. The server validates supported image formats and upload limits.",
++    "required": "This field is required",
++    "invalidImage": "Select one non-empty image file",
++    "created": "Blog post created",
++    "createError": "Could not create the blog post",
++    "uncategorized": "Uncategorized",
++    "titleEn": "Title (English)",
++    "excerptEn": "Excerpt (English)",
++    "bodyEn": "Body (English)",
++    "arabicContent": "Arabic content",
++    "englishContent": "English content",
++    "categoryOptional": "Category (optional)",
++    "invalidCategory": "Select a valid category or leave this field empty.",
++    "clearCategory": "Clear category",
++    "arabicFallback": "Arabic · English unavailable",
++    "englishFallback": "English · Arabic unavailable",
++    "readingTime": "{{count}} min read"
++  },
++  "blogs": {
++    "title": "Blog",
++    "posts": "Posts",
++    "categories": "Categories",
++    "navigation": "Blog navigation",
++    "invalidSlug": "Enter text containing letters or numbers."
++  }
++}
+diff --git a/src/modules/blogs/pages/BlogCategoriesPage.tsx b/src/modules/blogs/pages/BlogCategoriesPage.tsx
+new file mode 100644
+index 0000000..a0b5096
+--- /dev/null
++++ b/src/modules/blogs/pages/BlogCategoriesPage.tsx
+@@ -0,0 +1,179 @@
++import { BlogNavigation } from '@/modules/blogs/components/BlogNavigation'
++import { useRef, useState } from 'react'
++import { isAxiosError } from 'axios'
++import { useTranslation } from 'react-i18next'
++import FiltersWrapper from '@/components/filters/FiltersWrapper'
++import DeleteAlert, { type DeleteAlertRef } from '@/components/shared/DeleteAlert'
++import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
++import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
++import { EmptyState } from '@/components/shared/empty-state'
++import { QueryStateBoundary } from '@/components/shared/query-state'
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { Button } from '@/components/ui/button'
++import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
++import QueryProvider from '@/store/queryContext/queryContext'
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import { getApiErrorMessage } from '@/utils/error/api-error.helpers'
++import { BlogCategoryDrawer } from '@/modules/blogs/components/categories/BlogCategoryDrawer'
++import { BlogCategoryFilters } from '@/modules/blogs/components/categories/BlogCategoryFilters'
++import { BlogCategoriesList } from '@/modules/blogs/components/categories/BlogCategoriesList'
++import { useBlogCategories } from '@/modules/blogs/hooks/categories/useBlogCategories'
++import { useDeleteBlogCategory } from '@/modules/blogs/hooks/categories/useDeleteBlogCategory'
++import {
++  blogCategoryFilterNames,
++  readBlogCategoriesFilters,
++  serializeBlogCategoriesFilters,
++} from '@/modules/blogs/utils/blog-category-filters'
++import type { BlogCategory } from '@/modules/blogs/types/blog-category.types'
++function Content() {
++  const { t, i18n } = useTranslation()
++  const { forwardQuery, forwardDeleteQuery } = useQuery()
++  const filters = readBlogCategoriesFilters(forwardQuery)
++  const query = useBlogCategories(filters)
++  const [form, setForm] = useState<'create' | BlogCategory | null>(null)
++  const mutation = useDeleteBlogCategory()
++  const alert = useRef<DeleteAlertRef>(null)
++  const lock = useRef(false)
++  const [selected, setSelected] = useState<BlogCategory | null>(null)
++  const items = query.data?.pages.flatMap((page) => page.items) ?? []
++  const createButton = <Button onClick={() => setForm('create')}>{t('blogCategories.create')}</Button>
++  const filtered = Object.keys(serializeBlogCategoriesFilters(filters)).length > 0
++  const reset = () => forwardDeleteQuery(['search', ...blogCategoryFilterNames, 'page'])
++  const loadMore = useInfiniteScroll({
++    enabled: Boolean(query.hasNextPage && !query.isFetching && !query.isError && !query.isPaused),
++    onLoadMore: query.fetchNextPage,
++    operationKey: JSON.stringify([filters, query.data?.pages.length]),
++  })
++  const header = (
++    <div>
++      <h2 className="font-semibold">{t('blogCategories.list')}</h2>
++      <p className="text-sm text-muted-foreground">
++        {t('blogCategories.total', { count: query.data?.pages[0]?.paginate.total ?? 0 })}
++      </p>
++    </div>
++  )
++  const remove = async () => {
++    if (!selected || lock.current || mutation.isPending) return
++    lock.current = true
++    try {
++      await mutation.mutateAsync(selected.id)
++      alert.current?.close()
++      setSelected(null)
++    } catch {
++      /* Keep confirmation open for retry. */
++    } finally {
++      lock.current = false
++    }
++  }
++  const forbidden = isAxiosError(query.error) && query.error.response?.status === 403
++  return (
++    <main className="min-w-0 space-y-4">
++      <DashboardPageHeader title={t('blogCategories.title')} actions={createButton} />
++      <BlogNavigation />
++      <FiltersWrapper
++        searchLabel={t('blogCategories.search')}
++        searchPlaceholder={t('blogCategories.search')}
++        filterNames={blogCategoryFilterNames}
++        resetQueryNamesOnChange={['page']}
++        dialogTitle={t('blogCategories.filters')}
++      >
++        <BlogCategoryFilters />
++      </FiltersWrapper>
++      {forbidden && <p role="alert">{t('blogCategories.forbidden')}</p>}
++      <QueryStateBoundary
++        isLoading={query.isLoading}
++        isLoadingError={query.isError && !query.data}
++        isRefetchError={query.isRefetchError && !query.isFetchNextPageError}
++        isPaused={query.isPaused}
++        isFetching={query.isFetching}
++        hasData={Boolean(query.data)}
++        onRetry={query.refetch}
++        loadingFallback={
++          <ResponsiveDataLayout
++            header={header}
++            isEmpty={false}
++            empty={null}
++            isLoading
++            loading={<BlogCategoriesList loading />}
++          >
++            {null}
++          </ResponsiveDataLayout>
++        }
++      >
++        <ResponsiveDataLayout
++          header={header}
++          isEmpty={items.length === 0}
++          empty={
++            <EmptyState
++              title={t(filtered ? 'blogCategories.noResults' : 'blogCategories.empty')}
++              primaryAction={filtered ? <Button onClick={reset}>{t('blogCategories.reset')}</Button> : createButton}
++            />
++          }
++        >
++          <BlogCategoriesList
++            items={items}
++            disabled={mutation.isPending || query.isRefetchError || query.isPaused}
++            onEdit={setForm}
++            onDelete={(item) => {
++              mutation.reset()
++              setSelected(item)
++              alert.current?.handleOpen(true)
++            }}
++          />
++          {query.isFetchNextPageError && (
++            <QueryStateNotice
++              kind="refetch-error"
++              isRetrying={query.isFetchingNextPage}
++              onRetry={() => void query.fetchNextPage()}
++            />
++          )}
++          <div ref={loadMore} className="min-h-1" />
++          {query.isFetchingNextPage && (
++            <div role="status" aria-busy="true">
++              <span className="sr-only">{t('blogCategories.loadingMore')}</span>
++              <BlogCategoriesList loading />
++            </div>
++          )}
++        </ResponsiveDataLayout>
++      </QueryStateBoundary>
++      {form && (
++        <BlogCategoryDrawer
++          key={form === 'create' ? form : form.id}
++          category={form === 'create' ? null : form}
++          onClose={() => setForm(null)}
++        />
++      )}
++      <DeleteAlert
++        ref={alert}
++        title={t('blogCategories.delete')}
++        body={
++          <>
++            <p>
++              {t('blogCategories.deleteDescription', {
++                name:
++                  selected?.name[i18n.language.startsWith('ar') ? 'ar' : 'en'] ||
++                  selected?.name.ar ||
++                  selected?.slug ||
++                  '',
++              })}
++            </p>
++            {mutation.isError && (
++              <p role="alert">{getApiErrorMessage(mutation.error, t('blogCategories.deleteError'))}</p>
++            )}
++          </>
++        }
++        confirmLabel={t('blogCategories.delete')}
++        isPending={mutation.isPending}
++        onDelete={remove}
++        onCancel={() => setSelected(null)}
++      />
++    </main>
++  )
++}
++export default function BlogCategoriesPage() {
++  return (
++    <QueryProvider resetQueryNamesOnChange={['page']}>
++      <Content />
++    </QueryProvider>
++  )
++}
+diff --git a/src/modules/blogs/pages/BlogPostsPage.tsx b/src/modules/blogs/pages/BlogPostsPage.tsx
+new file mode 100644
+index 0000000..d7ace14
+--- /dev/null
++++ b/src/modules/blogs/pages/BlogPostsPage.tsx
+@@ -0,0 +1,129 @@
++import { BlogNavigation } from '@/modules/blogs/components/BlogNavigation'
++import { useState } from 'react'
++import { isAxiosError } from 'axios'
++import { useTranslation } from 'react-i18next'
++import FiltersWrapper from '@/components/filters/FiltersWrapper'
++import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
++import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
++import { EmptyState } from '@/components/shared/empty-state'
++import { QueryStateBoundary } from '@/components/shared/query-state'
++import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
++import { Button } from '@/components/ui/button'
++import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
++import QueryProvider from '@/store/queryContext/queryContext'
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import { BlogPostFilters } from '@/modules/blogs/components/posts/BlogPostFilters'
++import { BlogPostsList } from '@/modules/blogs/components/posts/BlogPostsList'
++import { BlogPostCreateDrawer } from '@/modules/blogs/components/posts/BlogPostCreateDrawer'
++import { useBlogPosts } from '@/modules/blogs/hooks/posts/useBlogPosts'
++import {
++  blogPostFilterNames,
++  readBlogPostsFilters,
++  serializeBlogPostsFilters,
++  validBlogPublishedRange,
++} from '@/modules/blogs/utils/blog-post-filters'
++function Content() {
++  const { t } = useTranslation()
++  const { forwardQuery, forwardDeleteQuery } = useQuery()
++  const filters = readBlogPostsFilters(forwardQuery)
++  const valid = validBlogPublishedRange(filters)
++  const query = useBlogPosts(filters)
++  const [createOpen, setCreateOpen] = useState(false)
++  const items = query.data?.pages.flatMap((page) => page.items) ?? []
++  const filtered = Object.keys(serializeBlogPostsFilters(filters)).length > 0
++  const reset = () => forwardDeleteQuery(['search', ...blogPostFilterNames, 'page'])
++  const loadMore = useInfiniteScroll({
++    enabled: Boolean(valid && query.hasNextPage && !query.isFetching && !query.isError && !query.isPaused),
++    onLoadMore: query.fetchNextPage,
++    operationKey: JSON.stringify([filters, query.data?.pages.length]),
++  })
++  const create = <Button onClick={() => setCreateOpen(true)}>{t('blogPosts.create')}</Button>
++  const header = (
++    <div>
++      <h2 className="font-semibold">{t('blogPosts.list')}</h2>
++      <p className="text-sm text-muted-foreground">
++        {t('blogPosts.total', { count: query.data?.pages[0]?.paginate.total ?? 0 })}
++      </p>
++    </div>
++  )
++  const forbidden = isAxiosError(query.error) && query.error.response?.status === 403
++  return (
++    <main className="min-w-0 space-y-4">
++      <DashboardPageHeader title={t('blogPosts.title')} actions={create} />
++      <BlogNavigation />
++      <FiltersWrapper
++        searchLabel={t('blogPosts.search')}
++        searchPlaceholder={t('blogPosts.search')}
++        filterNames={blogPostFilterNames}
++        resetQueryNamesOnChange={['page']}
++        dialogTitle={t('blogPosts.filters')}
++        onApply={(draft) => (validBlogPublishedRange(readBlogPostsFilters(draft)) ? draft : false)}
++      >
++        <BlogPostFilters />
++      </FiltersWrapper>
++      {forbidden && <p role="alert">{t('blogCategories.forbidden')}</p>}
++      {!valid ? (
++        <div role="alert">
++          <p>{t('blogPosts.invalidRange')}</p>
++          <Button onClick={reset}>{t('blogCategories.reset')}</Button>
++        </div>
++      ) : (
++        <QueryStateBoundary
++          isLoading={query.isLoading}
++          isLoadingError={query.isError && !query.data}
++          isRefetchError={query.isRefetchError && !query.isFetchNextPageError}
++          isPaused={query.isPaused}
++          isFetching={query.isFetching}
++          hasData={Boolean(query.data)}
++          onRetry={query.refetch}
++          loadingFallback={
++            <ResponsiveDataLayout
++              header={header}
++              isEmpty={false}
++              empty={null}
++              isLoading
++              loading={<BlogPostsList loading />}
++            >
++              {null}
++            </ResponsiveDataLayout>
++          }
++        >
++          <ResponsiveDataLayout
++            header={header}
++            isEmpty={items.length === 0}
++            empty={
++              <EmptyState
++                title={t(filtered ? 'blogPosts.noResults' : 'blogPosts.empty')}
++                primaryAction={filtered ? <Button onClick={reset}>{t('blogCategories.reset')}</Button> : create}
++              />
++            }
++          >
++            <BlogPostsList items={items} />
++            {query.isFetchNextPageError && (
++              <QueryStateNotice
++                kind="refetch-error"
++                isRetrying={query.isFetchingNextPage}
++                onRetry={() => void query.fetchNextPage()}
++              />
++            )}
++            <div ref={loadMore} className="min-h-1" />
++            {query.isFetchingNextPage && (
++              <div role="status" aria-busy="true">
++                <span className="sr-only">{t('blogCategories.loadingMore')}</span>
++                <BlogPostsList loading />
++              </div>
++            )}
++          </ResponsiveDataLayout>
++        </QueryStateBoundary>
++      )}
++      {createOpen && <BlogPostCreateDrawer open={createOpen} onOpenChange={setCreateOpen} />}
++    </main>
++  )
++}
++export default function BlogPostsPage() {
++  return (
++    <QueryProvider resetQueryNamesOnChange={['page']}>
++      <Content />
++    </QueryProvider>
++  )
++}
+diff --git a/src/modules/blogs/queries/blog-categories.keys.ts b/src/modules/blogs/queries/blog-categories.keys.ts
+new file mode 100644
+index 0000000..a458db2
+--- /dev/null
++++ b/src/modules/blogs/queries/blog-categories.keys.ts
+@@ -0,0 +1,7 @@
++import type { BlogCategoriesFilters } from '@/modules/blogs/types/blog-category.types'
++import { serializeBlogCategoriesFilters } from '@/modules/blogs/utils/blog-category-filters'
++export const blogCategoriesKeys = {
++  lists: () => ['blog-categories', 'list'] as const,
++  list: (filters: BlogCategoriesFilters) =>
++    [...blogCategoriesKeys.lists(), serializeBlogCategoriesFilters(filters)] as const,
++}
+diff --git a/src/modules/blogs/queries/blog-posts.keys.ts b/src/modules/blogs/queries/blog-posts.keys.ts
+new file mode 100644
+index 0000000..cd7ee4f
+--- /dev/null
++++ b/src/modules/blogs/queries/blog-posts.keys.ts
+@@ -0,0 +1,6 @@
++import type { BlogPostsFilters } from '@/modules/blogs/types/blog-post.types'
++import { serializeBlogPostsFilters } from '@/modules/blogs/utils/blog-post-filters'
++export const blogPostsKeys = {
++  lists: () => ['blog-posts', 'list'] as const,
++  list: (filters: BlogPostsFilters) => [...blogPostsKeys.lists(), serializeBlogPostsFilters(filters)] as const,
++}
+diff --git a/src/modules/blogs/schemas/blog-category.schema.ts b/src/modules/blogs/schemas/blog-category.schema.ts
+new file mode 100644
+index 0000000..c3918a0
+--- /dev/null
++++ b/src/modules/blogs/schemas/blog-category.schema.ts
+@@ -0,0 +1,53 @@
++import { normalizeSlug } from '@/utils/slug'
++import { z } from 'zod'
++import * as yup from 'yup'
++export const blogCategoryIdSchema = z.number().int().positive().safe()
++export const blogCategoryReferenceSchema = z.object({
++  id: blogCategoryIdSchema,
++  slug: z.string(),
++  name: z.object({ ar: z.string(), en: z.string() }),
++})
++export const rawBlogCategorySchema = blogCategoryReferenceSchema.extend({
++  created_at: z.string().datetime({ offset: true }),
++  updated_at: z.string().datetime({ offset: true }),
++})
++export const blogCategoriesEnvelopeSchema = z.object({
++  success: z.literal(true),
++  message: z.string(),
++  data: z.array(rawBlogCategorySchema),
++  meta: z.object({
++    current_page: z.number().int().positive(),
++    last_page: z.number().int().positive(),
++    per_page: z.number().int().positive(),
++    total: z.number().int().nonnegative(),
++  }),
++})
++export const blogCategoryDeleteSchema = z.object({ success: z.literal(true), message: z.string() })
++
++export const blogCategoryEnvelopeSchema = z.object({
++  success: z.literal(true),
++  message: z.string(),
++  data: rawBlogCategorySchema,
++})
++export function createBlogCategoryFormSchema(
++  required: string,
++  invalidSlug: string,
++  mode: 'create' | 'edit' = 'create'
++) {
++  return yup
++    .object({
++      slug: yup.string().required(required),
++      name: yup.object({
++        ar: yup.string().trim().required(required),
++        en: yup
++          .string()
++          .trim()
++          .required(required)
++          .test('slug-source', invalidSlug, (value) => mode === 'edit' || Boolean(normalizeSlug(value ?? ''))),
++      }),
++    })
++    .transform((value) => ({
++      ...value,
++      slug: mode === 'create' ? normalizeSlug(value?.name?.en ?? '') : (value?.slug ?? ''),
++    }))
++}
+diff --git a/src/modules/blogs/schemas/blog-post.schema.ts b/src/modules/blogs/schemas/blog-post.schema.ts
+new file mode 100644
+index 0000000..e0ece09
+--- /dev/null
++++ b/src/modules/blogs/schemas/blog-post.schema.ts
+@@ -0,0 +1,63 @@
++import { normalizeSlug } from '@/utils/slug'
++import { z } from 'zod'
++import * as yup from 'yup'
++import {
++  blogCategoriesEnvelopeSchema,
++  blogCategoryIdSchema,
++  blogCategoryReferenceSchema,
++} from '@/modules/blogs/schemas/blog-category.schema'
++import type { ImageUploadValue } from '@/components/form/image-upload/image-upload.types'
++const localizedContent = z.object({ ar: z.string(), en: z.string().optional() })
++export const rawBlogPostSchema = z.object({
++  id: blogCategoryIdSchema,
++  slug: z.string(),
++  title: localizedContent,
++  excerpt: localizedContent,
++  body: localizedContent,
++  author_name: z.string(),
++  is_featured: z.boolean(),
++  published_at: z.string().datetime({ offset: true }).nullable(),
++  reading_time_minutes: z.number().int().nonnegative(),
++  cover_url: z.string(),
++  category: blogCategoryReferenceSchema.nullable(),
++  created_at: z.string().datetime({ offset: true }),
++  updated_at: z.string().datetime({ offset: true }),
++})
++export const blogPostsEnvelopeSchema = blogCategoriesEnvelopeSchema.extend({ data: z.array(rawBlogPostSchema) })
++export function isBlogCover(file: unknown): file is File {
++  return file instanceof File && file.size > 0 && file.type.startsWith('image/')
++}
++export function createBlogPostFormSchema(
++  required: string,
++  invalidImage: string,
++  invalidSlug: string,
++  invalidCategory: string
++) {
++  const text = () => yup.string().trim().required(required)
++  return yup
++    .object({
++      slug: text(),
++      title: yup.object({
++        ar: text(),
++        en: text().test('slug-source', invalidSlug, (value) => Boolean(normalizeSlug(value ?? ''))),
++      }),
++      excerpt: yup.object({ ar: text(), en: text() }),
++      body: yup.object({ ar: text(), en: text() }),
++      categoryId: yup
++        .mixed<number>()
++        .nullable()
++        .defined()
++        .test(
++          'category-id',
++          invalidCategory,
++          (value) => value === null || (typeof value === 'number' && Number.isSafeInteger(value) && value > 0)
++        ),
++      authorName: text(),
++      isFeatured: yup.boolean().required(required),
++      cover: yup
++        .mixed<ImageUploadValue>()
++        .required(required)
++        .test('image', invalidImage, (value) => value?.files?.length === 1 && isBlogCover(value.files[0])),
++    })
++    .transform((value) => ({ ...value, slug: normalizeSlug(value?.title?.en ?? '') }))
++}
+diff --git a/src/modules/blogs/types/blog-category.types.ts b/src/modules/blogs/types/blog-category.types.ts
+new file mode 100644
+index 0000000..fc2363f
+--- /dev/null
++++ b/src/modules/blogs/types/blog-category.types.ts
+@@ -0,0 +1,17 @@
++import type { z } from 'zod'
++import type { rawBlogCategorySchema } from '@/modules/blogs/schemas/blog-category.schema'
++export type RawBlogCategory = z.infer<typeof rawBlogCategorySchema>
++export type BlogCategory = {
++  id: number
++  slug: string
++  name: { ar: string; en: string }
++  createdAt: string
++  updatedAt: string
++}
++export type BlogCategoriesFilters = {
++  search: string
++  sortBy: 'id' | 'name' | 'created_at' | null
++  sortDir: 'asc' | 'desc' | null
++}
++
++export type BlogCategoryFormValues = { slug: string; name: { ar: string; en: string } }
+diff --git a/src/modules/blogs/types/blog-post.types.ts b/src/modules/blogs/types/blog-post.types.ts
+new file mode 100644
+index 0000000..1f5f10f
+--- /dev/null
++++ b/src/modules/blogs/types/blog-post.types.ts
+@@ -0,0 +1,39 @@
++import type { z } from 'zod'
++import type { rawBlogPostSchema } from '@/modules/blogs/schemas/blog-post.schema'
++import type { ImageUploadValue } from '@/components/form/image-upload/image-upload.types'
++export type RawBlogPost = z.infer<typeof rawBlogPostSchema>
++export type BlogPost = {
++  id: number
++  slug: string
++  title: { ar: string; en?: string }
++  excerpt: { ar: string; en?: string }
++  body: { ar: string; en?: string }
++  authorName: string
++  isFeatured: boolean
++  publishedAt: string | null
++  readingTimeMinutes: number
++  coverUrl: string
++  category: { id: number; slug: string; name: { ar: string; en: string } } | null
++  createdAt: string
++  updatedAt: string
++}
++export type BlogPostsFilters = {
++  search: string
++  categoryId: number | null
++  isPublished: boolean | null
++  isFeatured: boolean | null
++  publishedFrom: string
++  publishedTo: string
++  sortBy: 'created_at' | 'published_at' | 'title' | 'is_featured' | null
++  sortDir: 'asc' | 'desc' | null
++}
++export type BlogPostFormValues = {
++  slug: string
++  title: { ar: string; en: string }
++  excerpt: { ar: string; en: string }
++  body: { ar: string; en: string }
++  categoryId: number | null
++  authorName: string
++  isFeatured: boolean
++  cover: ImageUploadValue
++}
+diff --git a/src/modules/blogs/utils/blog-category-filters.ts b/src/modules/blogs/utils/blog-category-filters.ts
+new file mode 100644
+index 0000000..b6ef5b9
+--- /dev/null
++++ b/src/modules/blogs/utils/blog-category-filters.ts
+@@ -0,0 +1,17 @@
++import type { BlogCategoriesFilters } from '@/modules/blogs/types/blog-category.types'
++export const blogCategorySortValues = ['id', 'name', 'created_at'] as const
++export const blogCategoryFilterNames = ['sort_by', 'sort_dir']
++export function readBlogCategoriesFilters(query: Record<string, string> | null): BlogCategoriesFilters {
++  return {
++    search: query?.search?.trim() ?? '',
++    sortBy: blogCategorySortValues.find((value) => value === query?.sort_by) ?? null,
++    sortDir: query?.sort_dir === 'asc' || query?.sort_dir === 'desc' ? query.sort_dir : null,
++  }
++}
++export function serializeBlogCategoriesFilters(filters: BlogCategoriesFilters) {
++  return {
++    ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
++    ...(filters.sortBy ? { sort_by: filters.sortBy } : {}),
++    ...(filters.sortDir ? { sort_dir: filters.sortDir } : {}),
++  }
++}
+diff --git a/src/modules/blogs/utils/blog-post-filters.ts b/src/modules/blogs/utils/blog-post-filters.ts
+new file mode 100644
+index 0000000..03488d1
+--- /dev/null
++++ b/src/modules/blogs/utils/blog-post-filters.ts
+@@ -0,0 +1,52 @@
++import { toApiBoolean } from '@/utils/api/serialize-api-boolean'
++import type { BlogPostsFilters } from '@/modules/blogs/types/blog-post.types'
++export const blogPostSortValues = ['created_at', 'published_at', 'title', 'is_featured'] as const
++export const blogPostFilterNames = [
++  'blog_category_id',
++  'is_published',
++  'is_featured',
++  'published_from',
++  'published_to',
++  'sort_by',
++  'sort_dir',
++]
++const triState = (value?: string) => (value === '1' ? true : value === '0' ? false : null)
++export function readBlogPostsFilters(query: Record<string, string> | null): BlogPostsFilters {
++  const category = query?.blog_category_id
++  return {
++    search: query?.search?.trim() ?? '',
++    categoryId:
++      category && /^[1-9]\d*$/.test(category) && Number.isSafeInteger(Number(category)) ? Number(category) : null,
++    isPublished: triState(query?.is_published),
++    isFeatured: triState(query?.is_featured),
++    publishedFrom: query?.published_from ?? '',
++    publishedTo: query?.published_to ?? '',
++    sortBy: blogPostSortValues.find((value) => value === query?.sort_by) ?? null,
++    sortDir: query?.sort_dir === 'asc' || query?.sort_dir === 'desc' ? query.sort_dir : null,
++  }
++}
++export function validBlogPublishedRange(filters: BlogPostsFilters) {
++  const validDate = (value: string) => {
++    if (!value) return true
++    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
++    const date = new Date(`${value}T00:00:00Z`)
++    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
++  }
++  return (
++    validDate(filters.publishedFrom) &&
++    validDate(filters.publishedTo) &&
++    (!filters.publishedFrom || !filters.publishedTo || filters.publishedFrom <= filters.publishedTo)
++  )
++}
++export function serializeBlogPostsFilters(filters: BlogPostsFilters) {
++  return {
++    ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
++    ...(filters.categoryId !== null ? { blog_category_id: filters.categoryId } : {}),
++    ...(filters.isPublished !== null ? { is_published: toApiBoolean(filters.isPublished) } : {}),
++    ...(filters.isFeatured !== null ? { is_featured: toApiBoolean(filters.isFeatured) } : {}),
++    ...(filters.publishedFrom ? { published_from: filters.publishedFrom } : {}),
++    ...(filters.publishedTo ? { published_to: filters.publishedTo } : {}),
++    ...(filters.sortBy ? { sort_by: filters.sortBy } : {}),
++    ...(filters.sortDir ? { sort_dir: filters.sortDir } : {}),
++  }
++}
+diff --git a/src/utils/slug.ts b/src/utils/slug.ts
+new file mode 100644
+index 0000000..e845bc9
+--- /dev/null
++++ b/src/utils/slug.ts
+@@ -0,0 +1,10 @@
++export function normalizeSlug(value: string): string {
++  return value
++    .normalize('NFKC')
++    .trim()
++    .toLowerCase()
++    .replace(/[\s_]+/gu, '-')
++    .replace(/[^\p{L}\p{N}-]+/gu, '-')
++    .replace(/-+/g, '-')
++    .replace(/^-+|-+$/g, '')
++}
