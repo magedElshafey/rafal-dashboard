@@ -90,4 +90,19 @@ describe('roles service serialization', () => {
       suppressForbiddenRedirect: true,
     })
   })
+
+  it('sends exact granular and retained legacy names in both Create and Update without IDs', async () => {
+    const permissions = ['products.view', 'products.manage-stock', 'warehouse-staff.assign', 'Legacy.Exact-Permission']
+    const payload = { name: 'Inventory', permissions }
+    const response = { success: true, message: 'ok', data: { id: 8, ...payload } }
+    httpMocks.post.mockResolvedValue({ data: response })
+    httpMocks.put.mockResolvedValue({ data: response })
+    await expect(rolesService.create(payload)).resolves.toEqual(response)
+    await expect(rolesService.update(8, payload)).resolves.toEqual(response)
+    for (const call of [httpMocks.post.mock.calls[0][0], httpMocks.put.mock.calls[0][0]]) {
+      expect([...call.data.keys()]).toEqual(['name', ...permissions.map(() => 'permissions[]')])
+      expect(call.data.getAll('permissions[]')).toEqual(permissions)
+      expect(call.isFormUrlEncoded).toBe(true)
+    }
+  })
 })

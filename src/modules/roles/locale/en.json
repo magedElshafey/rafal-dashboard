@@ -38,15 +38,17 @@
     },
     "form": {
       "namePlaceholder": "Enter role name",
-      "permissionsPlaceholder": "Select permissions",
       "permissionsLoading": "Loading permissions…",
-      "permissionsLoadMore": "Scroll to load more permissions…",
       "permissionsEmpty": "No permissions available.",
       "permissionsError": "Permissions could not be loaded.",
       "permissionsRetry": "Try again",
-      "permissionsClear": "Clear selected permissions",
       "createDescription": "Add a role and select its permissions.",
-      "editDescription": "Update the role name or permissions."
+      "editDescription": "Update the role name or permissions.",
+      "selectGroup": "Select all in {{group}}",
+      "deselectGroup": "Deselect all in {{group}}",
+      "selectedCount": "{{count}} of {{total}} selected",
+      "retainedPermissions": "Other assigned permissions",
+      "retainedDescription": "These assigned permissions are not in the loaded catalog. They are preserved when you save."
     },
     "validation": {
       "nameRequired": "Role name is required.",

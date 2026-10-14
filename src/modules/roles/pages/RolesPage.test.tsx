@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +9,8 @@ import i18n from '@/config/i18'
 import { permissionsService } from '@/modules/roles/api/permissions.service'
 import { rolesService } from '@/modules/roles/api/roles.service'
 import RolesPage from '@/modules/roles/pages/RolesPage'
-import type { Permission } from '@/modules/roles/types/permission.types'
+import { granularPermissionCatalog, syntheticPermissionCatalog } from '@/modules/roles/fixtures/permissions.fixture'
+import type { PermissionGroup } from '@/modules/roles/types/permission.types'
 import type { Role } from '@/modules/roles/types/role.types'
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -28,7 +29,7 @@ HTMLElement.prototype.setPointerCapture = vi.fn()
 HTMLElement.prototype.releasePointerCapture = vi.fn()
 
 let roles: Role[] = []
-let permissions: Permission[] = []
+let permissions: PermissionGroup[] = []
 
 function paginated<T>(items: T[], page: number) {
   const perPage = 15
@@ -82,7 +83,7 @@ function installServiceFixtures() {
     roles = roles.filter((item) => item.id !== id)
     return { success: true, message: 'deleted' }
   })
-  vi.spyOn(permissionsService, 'list').mockImplementation(async (page) => paginated(permissions, page))
+  vi.spyOn(permissionsService, 'list').mockImplementation(async () => permissions)
 }
 
 function renderRolesPage(initialEntry = '/dashboard/roles') {
@@ -104,10 +105,7 @@ async function openRoleAction(user: ReturnType<typeof userEvent.setup>, role: st
 }
 
 async function selectPermission(user: ReturnType<typeof userEvent.setup>, permission: string) {
-  if (!screen.queryByRole('listbox')) {
-    await user.click(screen.getByRole('button', { name: 'Permissions' }))
-  }
-  await user.click(await screen.findByRole('option', { name: permission }))
+  await user.click(await screen.findByRole('checkbox', { name: permission }))
 }
 
 describe('RolesPage', () => {
@@ -118,9 +116,25 @@ describe('RolesPage', () => {
       { id: 3, name: 'Marketing Manager', permissions: ['manage banners'] },
     ]
     permissions = [
-      { id: 2, name: 'manage admins' },
-      { id: 1, name: 'manage banners' },
-      { id: 3, name: 'manage roles' },
+      {
+        group: 'administration',
+        label: { en: 'Administration', ar: 'الإدارة' },
+        permissions: [
+          {
+            id: 2,
+            name: 'manage admins',
+            group: 'administration',
+            label: { en: 'manage admins', ar: 'إدارة المسؤولين' },
+          },
+          {
+            id: 1,
+            name: 'manage banners',
+            group: 'administration',
+            label: { en: 'manage banners', ar: 'إدارة اللافتات' },
+          },
+          { id: 3, name: 'manage roles', group: 'administration', label: { en: 'manage roles', ar: 'إدارة الأدوار' } },
+        ],
+      },
     ]
     installServiceFixtures()
     toastMocks.success.mockReset()
@@ -280,8 +294,7 @@ describe('RolesPage', () => {
 
     await waitFor(() => expect(name).toHaveValue(''))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    if (!screen.queryByRole('listbox')) await user.click(screen.getByRole('button', { name: 'Permissions' }))
-    expect(await screen.findByRole('option', { name: 'manage admins' })).toHaveAttribute('aria-checked', 'false')
+    expect(await screen.findByRole('checkbox', { name: 'manage admins' })).toHaveAttribute('aria-checked', 'false')
   })
 
   it('loads permissions in the field, supports selection and deselection, and submits permission names', async () => {
@@ -291,12 +304,11 @@ describe('RolesPage', () => {
     await screen.findAllByText('Content Manager')
     await user.click(screen.getByRole('button', { name: 'Create Role' }))
 
-    await user.click(screen.getByRole('button', { name: 'Permissions' }))
-    await user.click(await screen.findByRole('option', { name: 'manage roles' }))
-    expect(screen.getByRole('option', { name: 'manage roles' })).toHaveAttribute('aria-checked', 'true')
-    await user.click(screen.getByRole('option', { name: 'manage roles' }))
-    expect(screen.getByRole('option', { name: 'manage roles' })).toHaveAttribute('aria-checked', 'false')
-    await user.click(screen.getByRole('option', { name: 'manage admins' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'manage roles' }))
+    expect(screen.getByRole('checkbox', { name: 'manage roles' })).toHaveAttribute('aria-checked', 'true')
+    await user.click(screen.getByRole('checkbox', { name: 'manage roles' }))
+    expect(screen.getByRole('checkbox', { name: 'manage roles' })).toHaveAttribute('aria-checked', 'false')
+    await user.click(screen.getByRole('checkbox', { name: 'manage admins' }))
 
     await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Auditor')
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
@@ -304,7 +316,8 @@ describe('RolesPage', () => {
     await waitFor(() => expect(create).toHaveBeenCalledWith({ name: 'Auditor', permissions: ['manage admins'] }))
   })
 
-  it('blocks Create with an empty permission selection', async () => {
+  it('blocks Create with an empty permission selection and focuses the first nonempty group', async () => {
+    permissions.unshift({ group: 'empty', label: { en: 'Empty group' }, permissions: [] })
     const user = userEvent.setup()
     const create = vi.spyOn(rolesService, 'create')
     renderRolesPage()
@@ -314,48 +327,48 @@ describe('RolesPage', () => {
     await user.click(screen.getByRole('button', { name: /^Create$/ }))
 
     expect(await screen.findByText('Select at least one permission.')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Select all in Empty group' })).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'manage admins' })).toHaveFocus())
     expect(create).not.toHaveBeenCalled()
   })
 
-  it('keeps backend permission validation mapped to the field', async () => {
-    const error = Object.assign(new Error('unsafe client detail'), {
-      isAxiosError: true,
-      response: {
-        data: {
-          message: 'The role could not be saved.',
-          errors: { permissions: ['The selected permission is unavailable.'] },
+  it.each(['permissions', 'permissions.0', 'permissions[0]'])(
+    'keeps backend %s validation mapped to the field',
+    async (errorField) => {
+      const error = Object.assign(new Error('unsafe client detail'), {
+        isAxiosError: true,
+        response: {
+          data: {
+            message: 'The role could not be saved.',
+            errors: { [errorField]: ['The selected permission is unavailable.'] },
+          },
         },
-      },
-    })
-    vi.spyOn(rolesService, 'create').mockRejectedValueOnce(error)
-    const user = userEvent.setup()
-    renderRolesPage()
-    await screen.findAllByText('Content Manager')
-    await user.click(screen.getByRole('button', { name: 'Create Role' }))
-    await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Auditor')
-    await selectPermission(user, 'manage admins')
-    await user.keyboard('{Escape}')
-    await user.click(screen.getByRole('button', { name: /^Create$/ }))
+      })
+      vi.spyOn(rolesService, 'create').mockRejectedValueOnce(error)
+      const user = userEvent.setup()
+      renderRolesPage()
+      await screen.findAllByText('Content Manager')
+      await user.click(screen.getByRole('button', { name: 'Create Role' }))
+      await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Auditor')
+      await selectPermission(user, 'manage admins')
+      await user.click(screen.getByRole('button', { name: /^Create$/ }))
 
-    expect(await screen.findByText('The selected permission is unavailable.')).toBeInTheDocument()
-    expect(toastMocks.error).toHaveBeenCalledWith('The role could not be saved.')
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
-  })
+      expect(await screen.findByText('The selected permission is unavailable.')).toBeInTheDocument()
+      expect(toastMocks.error).toHaveBeenCalledWith('The role could not be saved.')
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    }
+  )
 
-  it('loads the next permissions page once the picker reaches its sentinel', async () => {
-    permissions = Array.from({ length: 16 }, (_, index) => ({ id: index + 1, name: `permission ${index + 1}` }))
+  it('loads every group and all 65 synthetic permissions in one request without a sentinel', async () => {
+    permissions = syntheticPermissionCatalog()
     const list = vi.mocked(permissionsService.list)
     const user = userEvent.setup()
     renderRolesPage()
     await screen.findAllByText('Content Manager')
     await user.click(screen.getByRole('button', { name: 'Create Role' }))
-    await user.click(screen.getByRole('button', { name: 'Permissions' }))
-    fireEvent.scroll(screen.getByRole('listbox'))
-
-    expect(await screen.findByRole('option', { name: 'permission 16' })).toBeInTheDocument()
-    expect(list).toHaveBeenCalledWith(1, expect.any(AbortSignal))
-    expect(list).toHaveBeenCalledWith(2, expect.any(AbortSignal))
-    expect(list).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole('checkbox', { name: 'Action 18.2' })).toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).getAllByRole('checkbox')).toHaveLength(65 + 19)
+    expect(list).toHaveBeenCalledExactlyOnceWith(expect.any(AbortSignal))
   })
 
   it('keeps the role form usable when permissions fail and retries within the field', async () => {
@@ -366,13 +379,14 @@ describe('RolesPage', () => {
     renderRolesPage()
     await screen.findAllByText('Content Manager')
     await user.click(screen.getByRole('button', { name: 'Create Role' }))
-    await user.click(screen.getByRole('button', { name: 'Permissions' }))
 
     expect(await screen.findByText('Permissions could not be loaded.')).toBeInTheDocument()
     expect(screen.queryByText('unsafe permissions error')).not.toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(1)
     list.mockImplementation(implementation!)
     await user.click(screen.getByRole('button', { name: 'Try again' }))
-    expect(await screen.findByRole('option', { name: 'manage roles' })).toBeInTheDocument()
+    expect(await screen.findByRole('checkbox', { name: 'manage roles' })).toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(2)
     expect(screen.getByRole('textbox', { name: /role name/i })).toBeEnabled()
   })
 
@@ -382,11 +396,13 @@ describe('RolesPage', () => {
     renderRolesPage()
     await screen.findAllByText('Content Manager')
     await user.click(screen.getByRole('button', { name: 'إضافة دور' }))
-    const trigger = screen.getByRole('button', { name: 'الصلاحيات' })
-    expect(trigger).toHaveAttribute('dir', 'rtl')
-    await user.click(trigger)
-    await user.click(await screen.findByRole('option', { name: 'manage roles' }))
-    expect(trigger).toHaveTextContent('manage roles')
+    expect(screen.getByRole('group', { name: 'الصلاحيات' })).toHaveAttribute('dir', 'rtl')
+    expect(await screen.findByRole('group', { name: 'الإدارة' })).toBeInTheDocument()
+    const checkbox = screen.getByRole('checkbox', { name: 'إدارة الأدوار' })
+    checkbox.focus()
+    await user.keyboard(' ')
+    expect(checkbox).toBeChecked()
+    expect(screen.getByText('تم تحديد 1 من 3')).toHaveClass('sr-only')
   })
 
   it('loads edit detail, guards pristine updates, and closes after a changed update', async () => {
@@ -398,9 +414,7 @@ describe('RolesPage', () => {
     const name = await screen.findByRole('textbox', { name: /role name/i })
     expect(show).toHaveBeenCalledWith(2, expect.any(AbortSignal))
     expect(name).toHaveValue('Content Manager')
-    await user.click(screen.getByRole('button', { name: 'Permissions' }))
-    expect(await screen.findByRole('option', { name: 'manage banners' })).toHaveAttribute('aria-checked', 'true')
-    await user.keyboard('{Escape}')
+    expect(await screen.findByRole('checkbox', { name: 'manage banners' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled()
 
     await user.clear(name)
@@ -418,9 +432,7 @@ describe('RolesPage', () => {
     await openRoleAction(user, 'Content Manager', 'Edit')
 
     await screen.findByRole('textbox', { name: /role name/i })
-    await user.click(screen.getByRole('button', { name: 'Permissions' }))
-    await user.click(await screen.findByRole('option', { name: 'manage banners' }))
-    await user.keyboard('{Escape}')
+    await user.click(await screen.findByRole('checkbox', { name: 'manage banners' }))
     await user.click(screen.getByRole('button', { name: 'Update' }))
 
     expect(await screen.findByText('Select at least one permission.')).toBeInTheDocument()
@@ -478,5 +490,186 @@ describe('RolesPage', () => {
     )
     expect(dialog).toBeInTheDocument()
     expect(window.location.pathname).not.toBe('/403')
+  })
+  it('keeps group actions isolated, exposes mixed state, and submits exact granular names', async () => {
+    permissions = granularPermissionCatalog()
+    const user = userEvent.setup()
+    renderRolesPage()
+    await screen.findAllByText('Content Manager')
+    await user.click(screen.getByRole('button', { name: 'Create Role' }))
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Inventory')
+    await user.click(await screen.findByRole('checkbox', { name: 'Reject returns' }))
+    await user.click(screen.getByRole('checkbox', { name: 'View products' }))
+    expect(screen.getByRole('checkbox', { name: 'Select all in Products' })).toBePartiallyChecked()
+    expect(within(screen.getByRole('group', { name: 'Products' })).getByText('1 of 2 selected')).toHaveClass('sr-only')
+    expect(screen.getByRole('checkbox', { name: 'Manage stock' })).not.toBeChecked()
+    await user.click(screen.getByRole('checkbox', { name: 'Select all in Products' }))
+    expect(screen.getByRole('checkbox', { name: 'Manage stock' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Deselect all in Products' })).toBeChecked()
+    await user.click(screen.getByRole('checkbox', { name: 'Deselect all in Products' }))
+    expect(screen.getByRole('checkbox', { name: 'View products' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Manage stock' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Reject returns' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Approve returns' })).not.toBeChecked()
+    await user.click(screen.getByRole('checkbox', { name: 'Assign staff' }))
+    await user.click(screen.getByRole('button', { name: /^Create$/ }))
+    await waitFor(() =>
+      expect(rolesService.create).toHaveBeenCalledWith({
+        name: 'Inventory',
+        permissions: ['returns.reject', 'warehouse-staff.assign'],
+      })
+    )
+    expect(permissionsService.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('hydrates exact assigned names and preserves unknown assignments through unrelated edits and group toggles', async () => {
+    permissions = granularPermissionCatalog()
+    roles[1].permissions = ['products.manage-stock', 'Legacy.Exact-Permission', 'returns.reject']
+    const user = userEvent.setup()
+    renderRolesPage()
+    await openRoleAction(user, 'Content Manager', 'Edit')
+    const stock = await screen.findByRole('checkbox', { name: 'Manage stock' })
+    expect(stock).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'View products' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Reject returns' })).toBeChecked()
+    expect(
+      within(screen.getByRole('region', { name: 'Other assigned permissions' })).getByText('Legacy.Exact-Permission')
+    ).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), ' revised')
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() =>
+      expect(rolesService.update).toHaveBeenLastCalledWith(2, {
+        name: 'Content Manager revised',
+        permissions: ['products.manage-stock', 'Legacy.Exact-Permission', 'returns.reject'],
+      })
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await openRoleAction(user, 'Content Manager revised', 'Edit')
+    await screen.findByRole('checkbox', { name: 'Manage stock' })
+    await user.click(screen.getByRole('checkbox', { name: 'Select all in Products' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Deselect all in Products' }))
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() =>
+      expect(rolesService.update).toHaveBeenLastCalledWith(2, {
+        name: 'Content Manager revised',
+        permissions: ['Legacy.Exact-Permission', 'returns.reject'],
+      })
+    )
+  })
+
+  it('shows empty catalog feedback and retains existing assignments when editing the name', async () => {
+    permissions = []
+    const user = userEvent.setup()
+    renderRolesPage()
+    await openRoleAction(user, 'Content Manager', 'Edit')
+    expect(await screen.findByText('No permissions available.')).toBeInTheDocument()
+    const retained = screen.getByRole('region', { name: 'Other assigned permissions' })
+    expect(within(retained).getByText('manage banners')).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), ' revised')
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() =>
+      expect(rolesService.update).toHaveBeenCalledWith(2, {
+        name: 'Content Manager revised',
+        permissions: ['manage banners'],
+      })
+    )
+  })
+
+  it('preserves assigned permissions when catalog loading fails during an unrelated name edit', async () => {
+    vi.mocked(permissionsService.list).mockRejectedValue(new Error('catalog unavailable'))
+    const user = userEvent.setup()
+    renderRolesPage()
+    await openRoleAction(user, 'Content Manager', 'Edit')
+    await screen.findByText('Permissions could not be loaded.')
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), ' revised')
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() =>
+      expect(rolesService.update).toHaveBeenCalledWith(2, {
+        name: 'Content Manager revised',
+        permissions: ['manage banners'],
+      })
+    )
+  })
+
+  it('announces pending catalog loading and preserves the role name when it finishes', async () => {
+    let resolve!: (value: PermissionGroup[]) => void
+    vi.mocked(permissionsService.list).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done
+        })
+    )
+    const user = userEvent.setup()
+    renderRolesPage()
+    await screen.findAllByText('Content Manager')
+    await user.click(screen.getByRole('button', { name: 'Create Role' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Loading permissions')
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Draft role')
+    await act(async () => resolve(granularPermissionCatalog()))
+    expect(await screen.findByRole('checkbox', { name: 'Manage stock' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /role name/i })).toHaveValue('Draft role')
+  })
+
+  it('uses preferred labels, translation fallback and exact identifiers when labels are absent', async () => {
+    permissions = [
+      {
+        group: 'custom',
+        label: { ar: 'مجموعة مخصصة' },
+        permissions: [
+          { id: 7, name: 'Exact.Mixed-Action', group: 'custom', label: { en: '', ar: 'إجراء مخصص' } },
+          { id: 8, name: 'exact-no-label', group: 'custom' },
+        ],
+      },
+    ]
+    const user = userEvent.setup()
+    renderRolesPage()
+    await screen.findAllByText('Content Manager')
+    await user.click(screen.getByRole('button', { name: 'Create Role' }))
+    expect(await screen.findByRole('group', { name: 'مجموعة مخصصة' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'إجراء مخصص' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'exact-no-label' })).toBeInTheDocument()
+  })
+
+  it('blocks duplicate creation and selection changes while saving', async () => {
+    let resolve!: (value: Awaited<ReturnType<typeof rolesService.create>>) => void
+    vi.mocked(rolesService.create).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done
+        })
+    )
+    const user = userEvent.setup()
+    renderRolesPage()
+    await screen.findAllByText('Content Manager')
+    await user.click(screen.getByRole('button', { name: 'Create Role' }))
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Draft')
+    await selectPermission(user, 'manage roles')
+    const submit = screen.getByRole('button', { name: /^Create$/ })
+    await user.dblClick(submit)
+    expect(rolesService.create).toHaveBeenCalledTimes(1)
+    expect(submit).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'manage roles' })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'Select all in Administration' })).toBeDisabled()
+    await act(async () =>
+      resolve({ success: true, message: 'ok', data: { id: 9, name: 'Draft', permissions: ['manage roles'] } })
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('retains the selected names and draft after a forbidden create response', async () => {
+    const error = { isAxiosError: true, response: { status: 403, data: { message: 'You cannot create roles.' } } }
+    vi.mocked(rolesService.create).mockRejectedValueOnce(error)
+    const user = userEvent.setup()
+    renderRolesPage()
+    await screen.findAllByText('Content Manager')
+    await user.click(screen.getByRole('button', { name: 'Create Role' }))
+    await user.type(screen.getByRole('textbox', { name: /role name/i }), 'Draft')
+    await selectPermission(user, 'manage roles')
+    await user.click(screen.getByRole('button', { name: /^Create$/ }))
+    await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('You cannot create roles.'))
+    expect(screen.getByRole('textbox', { name: /role name/i })).toHaveValue('Draft')
+    expect(screen.getByRole('checkbox', { name: 'manage roles' })).toBeChecked()
+    expect(toastMocks.success).not.toHaveBeenCalled()
   })
 })

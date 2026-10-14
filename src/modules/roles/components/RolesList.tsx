@@ -1,3 +1,6 @@
+import { useMemo } from 'react'
+import { usePermissions } from '@/modules/roles/hooks/usePermissions'
+import { permissionLabel } from '@/modules/roles/utils/permission-label'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -21,7 +24,20 @@ type RolesListProps = {
 }
 
 export function RolesList({ roles, onEdit, onDelete, actionsDisabled = false }: RolesListProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const catalog = usePermissions()
+  const labels = useMemo(
+    () =>
+      new Map(
+        catalog.data?.flatMap((group) =>
+          group.permissions.map(
+            (permission) =>
+              [permission.name, permissionLabel(permission.label, i18n.language, permission.name)] as const
+          )
+        ) ?? []
+      ),
+    [catalog.data, i18n.language]
+  )
   const columns = [
     { id: 'name', header: t('roles.roleName') },
     { id: 'permissions', header: t('roles.permissions') },
@@ -38,7 +54,7 @@ export function RolesList({ roles, onEdit, onDelete, actionsDisabled = false }: 
                 {role.name}
               </ResponsiveDataTableCell>
               <ResponsiveDataTableCell className="max-w-md whitespace-normal">
-                <RolePermissions permissions={role.permissions} />
+                <RolePermissions permissions={role.permissions} labels={labels} />
               </ResponsiveDataTableCell>
               <ResponsiveDataTableCell>
                 <RoleActions role={role} onEdit={onEdit} onDelete={onDelete} disabled={actionsDisabled} />
@@ -56,7 +72,7 @@ export function RolesList({ roles, onEdit, onDelete, actionsDisabled = false }: 
             actions={<RoleActions role={role} onEdit={onEdit} onDelete={onDelete} disabled={actionsDisabled} />}
             facts={
               <ResponsiveDataFact label={t('roles.permissions')}>
-                <RolePermissions permissions={role.permissions} />
+                <RolePermissions permissions={role.permissions} labels={labels} />
               </ResponsiveDataFact>
             }
           />

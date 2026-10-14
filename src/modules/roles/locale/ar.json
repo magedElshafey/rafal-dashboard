@@ -46,15 +46,17 @@
     },
     "form": {
       "namePlaceholder": "أدخل اسم الدور",
-      "permissionsPlaceholder": "اختر الصلاحيات",
       "permissionsLoading": "جارٍ تحميل الصلاحيات…",
-      "permissionsLoadMore": "مرّر لتحميل المزيد من الصلاحيات…",
       "permissionsEmpty": "لا توجد صلاحيات متاحة.",
       "permissionsError": "تعذر تحميل الصلاحيات.",
       "permissionsRetry": "حاول مرة أخرى",
-      "permissionsClear": "مسح الصلاحيات المحددة",
       "createDescription": "أضف دورًا وحدد صلاحياته.",
-      "editDescription": "حدّث اسم الدور أو صلاحياته."
+      "editDescription": "حدّث اسم الدور أو صلاحياته.",
+      "selectGroup": "تحديد كل صلاحيات {{group}}",
+      "deselectGroup": "إلغاء تحديد كل صلاحيات {{group}}",
+      "selectedCount": "تم تحديد {{count}} من {{total}}",
+      "retainedPermissions": "صلاحيات أخرى مسندة",
+      "retainedDescription": "هذه الصلاحيات المسندة غير موجودة في القائمة المحملة. سيتم الاحتفاظ بها عند الحفظ."
     },
     "validation": {
       "nameRequired": "اسم الدور مطلوب.",

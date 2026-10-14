@@ -27,9 +27,10 @@ export function RoleDrawer({ open, mode, roleId, onOpenChange }: RoleDrawerProps
   const createRole = useCreateRole()
   const updateRole = useUpdateRole(roleId)
   const isSubmitting = createRole.isPending || updateRole.isPending
-  const isDetailLoading = mode === 'edit' && detail.isFetching && !detail.isError
-  const isDetailError = mode === 'edit' && detail.isError
-  const isDetailReady = mode === 'create' || detail.isSuccess
+  const hasDetail = detail.data?.data !== undefined
+  const isDetailLoading = mode === 'edit' && !hasDetail && detail.isPending
+  const isDetailError = mode === 'edit' && !hasDetail && detail.isError
+  const isDetailReady = mode === 'create' || hasDetail
 
   const handleDirtyChange = useCallback((nextIsDirty: boolean) => setIsDirty(nextIsDirty), [])
 
@@ -78,7 +79,10 @@ export function RoleDrawer({ open, mode, roleId, onOpenChange }: RoleDrawerProps
       loadingContent={<RoleFormSkeleton />}
       errorContent={errorContent}
     >
-      {isDetailReady ? (
+      {mode === 'edit' && hasDetail && detail.isError ? (
+        <QueryStateNotice kind="refetch-error" isRetrying={detail.isFetching} onRetry={() => void detail.refetch()} />
+      ) : null}
+      {open && isDetailReady ? (
         <RoleForm
           key={`${mode}-${roleId ?? 'new'}-${open}`}
           formId={FORM_ID}

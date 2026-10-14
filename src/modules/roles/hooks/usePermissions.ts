@@ -1,11 +1,14 @@
-import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
+import { queryTimes } from '@/lib/react-query/query-times'
+import { useQuery } from '@tanstack/react-query'
 import { permissionsService } from '@/modules/roles/api/permissions.service'
 import { permissionsKeys } from '@/modules/roles/queries/permissions.keys'
 
 export function usePermissions() {
-  return useInfinitePaginatedQuery({
+  return useQuery({
     queryKey: permissionsKeys.list(),
-    queryFn: (page, signal) => permissionsService.list(page, signal),
+    queryFn: ({ signal }) => permissionsService.list(signal),
     retry: false,
+    retryOnMount: false,
+    staleTime: queryTimes.short,
   })
 }
