@@ -338,4 +338,23 @@ describe('Product details', () => {
     expect(Object.keys(ar.products.details.notFound).sort()).toEqual(Object.keys(en.products.details.notFound).sort())
     expect(Object.keys(ar.products.actions).sort()).toEqual(Object.keys(en.products.actions).sort())
   })
+
+  it('preserves the selected variant and warehouse context from warehouse inventory', async () => {
+    renderPage('7?variant=9&warehouse=4#variant-9')
+    await screen.findByRole('heading', { name: 'Gift', level: 1 })
+    expect(screen.getByText('Selected inventory variant').closest('article')).toHaveAttribute('id', 'variant-9')
+    expect(screen.getAllByText('Selected inventory stock')).toHaveLength(2)
+    expect(screen.getByRole('link', { name: 'Open inventory' })).toHaveAttribute(
+      'href',
+      '/dashboard/warehouses/4/inventory'
+    )
+    expect($http.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores inventory context that does not belong to the loaded product', async () => {
+    renderPage('7?variant=99&warehouse=4')
+    await screen.findByRole('heading', { name: 'Gift', level: 1 })
+    expect(screen.queryByText('Selected inventory variant')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Open inventory' })).not.toBeInTheDocument()
+  })
 })

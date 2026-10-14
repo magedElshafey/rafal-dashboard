@@ -103,6 +103,15 @@ describe('EntityFormDrawer lifecycle', () => {
 
     expect(screen.getByRole('button', { name: 'Create and create another' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+    for (const label of ['Create', 'Create and create another']) {
+      expect(screen.getByRole('button', { name: label }).querySelector('svg')).toHaveClass('motion-safe:animate-spin')
+    }
+    for (const element of [screen.getByRole('dialog'), document.querySelector('[data-slot="sheet-overlay"]')]) {
+      expect(element).toHaveClass(
+        'motion-reduce:data-[state=open]:animate-none',
+        'motion-reduce:data-[state=closed]:animate-none'
+      )
+    }
   })
 
   it('supports a pristine edit guard and a form-shaped default loading state', () => {

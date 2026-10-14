@@ -22,6 +22,8 @@ const BannersPage = lazy(() => import('@/modules/banners/pages/BannersPage'))
 const CategoriesPage = lazy(() => import('@/modules/categories/pages/CategoriesPage'))
 const CategoryDetailsPage = lazy(() => import('@/modules/categories/pages/CategoryDetailsPage'))
 const WarehousesPage = lazy(() => import('@/modules/warehouses/pages/WarehousesPage'))
+const InventoryPage = lazy(() => import('@/modules/inventory/pages/InventoryPage'))
+const WarehouseInventoryPage = lazy(() => import('@/modules/warehouses/pages/WarehouseInventoryPage'))
 const RegionsPage = lazy(() => import('@/modules/regions/pages/RegionsPage'))
 const CitiesPage = lazy(() => import('@/modules/cities/pages/CitiesPage'))
 const SettingsPage = lazy(() => import('@/modules/settings/pages/SettingsPage'))
@@ -75,6 +77,8 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.categoryEdit, element: <CategoriesPage routeMode="edit" /> },
       { path: Routes.categoryDetail, Component: CategoryDetailsPage },
       { path: Routes.warehouses, Component: WarehousesPage },
+      { path: Routes.inventory, Component: InventoryPage },
+      { path: Routes.warehouseInventory, Component: WarehouseInventoryPage },
       { path: Routes.regions, Component: RegionsPage },
       { path: Routes.cities, Component: CitiesPage },
       { path: Routes.settings, Component: SettingsPage },

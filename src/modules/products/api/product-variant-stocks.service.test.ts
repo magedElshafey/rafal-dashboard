@@ -17,9 +17,12 @@ describe('Product Variant stock service', () => {
     expect(serializeVariantWarehouseStock(0)).toEqual({ quantity: 0 })
   })
 
-  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid quantity %s', (quantity) => {
-    expect(() => serializeVariantWarehouseStock(quantity)).toThrow('quantity is invalid')
-  })
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid quantity %s',
+    (quantity) => {
+      expect(() => serializeVariantWarehouseStock(quantity)).toThrow('quantity is invalid')
+    }
+  )
 
   it('uses the exact PUT endpoint with quantity-only JSON and normalizes numeric strings', async () => {
     httpMocks.put.mockResolvedValueOnce({
@@ -59,6 +62,19 @@ describe('Product Variant stock service', () => {
       suppressSuccessNotification: true,
       suppressErrorNotification: true,
     })
+  })
+
+  it('opts into local forbidden handling for stocktaking without changing the SET body', async () => {
+    httpMocks.put.mockResolvedValueOnce({ data: { success: true, message: 'saved' } })
+    await productVariantStocksService.put(22, 45, 6, 93, { suppressForbiddenRedirect: true })
+    expect(httpMocks.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/dashboard/products/22/variants/45/stocks/6',
+        data: { quantity: 93 },
+        suppressForbiddenRedirect: true,
+      })
+    )
+    expect(httpMocks.delete).not.toHaveBeenCalled()
   })
 
   it.each([

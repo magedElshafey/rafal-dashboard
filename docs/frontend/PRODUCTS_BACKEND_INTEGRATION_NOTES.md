@@ -36,6 +36,8 @@ Attribute removal uses the complete replacement object described above; no per-k
 
 Variant Stock uses quantity-only JSON at `PUT /dashboard/products/:product/variants/:variant/stocks/:warehouse`; zero is valid. If success contains no Stock object, the submitted Warehouse ID and quantity update detail cache. DELETE uses the same resource URL without a body. Duplicate Warehouse assignment is prevented in the UI while the backend remains authoritative.
 
+BUG-020's revised contract confirms PUT as absolute SET, not a delta. Quick Stocktake reuses this service, schema and mutation, revalidates Product Show before review and confirmation, and submits the physical count itself. Quantity writes reject unsafe integers. Product Show and PUT can opt into the existing local-403 transport handling for this workflow so denial preserves the draft; default callers and 401 behavior are unchanged. Stock writes cancel stale inventory reads and invalidate inventory; Quick Stocktake also marks the exact Product Detail stale. Client checks are not atomic concurrency protection. See `INVENTORY_BACKEND_INTEGRATION_NOTES.md` for scope and remaining contracts.
+
 ## Canonical Web/Flutter option model
 
 The planned Product-level `variant_attributes` model contains dynamic stable keys, localized Arabic/English labels, presentation (`color_swatch`, `text_swatch`, `dropdown`, or `image_swatch`), and values with stable machine codes, localized labels, and optional color/image visuals. Variants store only selected codes in `attributes`. Applications never translate machine codes, and color visuals never replace accessible localized text labels.

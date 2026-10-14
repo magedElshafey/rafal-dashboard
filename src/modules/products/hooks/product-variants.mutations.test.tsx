@@ -14,6 +14,8 @@ import { useDeleteProductVariantStock } from '@/modules/products/hooks/useDelete
 import { usePutProductVariantStock } from '@/modules/products/hooks/usePutProductVariantStock'
 import { useUpdateProductVariant } from '@/modules/products/hooks/useUpdateProductVariant'
 import { productsKeys } from '@/modules/products/queries/products.keys'
+import { inventoryKeys } from '@/modules/inventory/queries/inventory.keys'
+import { inventoryPage } from '@/modules/inventory/__tests__/inventory.fixtures'
 import type { ProductVariant } from '@/modules/products/types/product-variant.types'
 import type { ProductDetail } from '@/modules/products/types/product.types'
 
@@ -231,6 +233,8 @@ describe('Product Variant mutation cache ownership', () => {
     }
     vi.spyOn(productVariantStocksService, 'put').mockResolvedValue({ warehouseId: 4, quantity: 0 })
     const { client, invalidate, wrapper } = setup(initial)
+    client.setQueryData(inventoryKeys.list(6, 1), inventoryPage())
+
     const { result } = renderHook(() => usePutProductVariantStock(7), { wrapper })
 
     await act(() => result.current.mutateAsync({ variantId: 1, warehouseId: 4, quantity: 0 }))
@@ -238,7 +242,8 @@ describe('Product Variant mutation cache ownership', () => {
     const cached = client.getQueryData<ProductDetail>(productsKeys.detail(7))
     expect(cached?.variants[0].warehouseStocks).toEqual([{ warehouseId: 4, quantity: 0 }])
     expect(cached?.variants[1]).toEqual(initial.variants[1])
-    expect(invalidate).not.toHaveBeenCalled()
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith({ queryKey: inventoryKeys.all })
+    expect(client.getQueryState(inventoryKeys.list(6, 1))?.isInvalidated).toBe(true)
   })
 
   it('appends a new warehouse stock without changing existing stocks or other Variants', async () => {
@@ -258,7 +263,7 @@ describe('Product Variant mutation cache ownership', () => {
       { warehouseId: 8, quantity: 3 },
     ])
     expect(cached?.variants[1]).toEqual(initial.variants[1])
-    expect(invalidate).not.toHaveBeenCalled()
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith({ queryKey: inventoryKeys.all })
   })
 
   it('removes only the targeted warehouse stock without invalidating Product lists', async () => {
@@ -284,6 +289,53 @@ describe('Product Variant mutation cache ownership', () => {
     const cached = client.getQueryData<ProductDetail>(productsKeys.detail(7))
     expect(cached?.variants[0].warehouseStocks).toEqual([{ warehouseId: 8, quantity: 3 }])
     expect(cached?.variants[1]).toEqual(initial.variants[1])
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith({ queryKey: inventoryKeys.all })
+  })
+
+  it('preserves inventory and product caches after a failed stock mutation and allows retry', async () => {
+    const put = vi
+      .spyOn(productVariantStocksService, 'put')
+      .mockRejectedValueOnce(new Error('failed'))
+      .mockResolvedValue({ warehouseId: 6, quantity: 0 })
+    const { client, invalidate, wrapper } = setup()
+    client.setQueryData(inventoryKeys.list(6, 1), inventoryPage())
+    const { result } = renderHook(() => usePutProductVariantStock(7), { wrapper })
+    const variables = { variantId: 1, warehouseId: 6, quantity: 0 }
+    await act(async () => {
+      await expect(result.current.mutateAsync(variables)).rejects.toThrow('failed')
+    })
+    expect(client.getQueryData(productsKeys.detail(7))).toEqual(product)
+    expect(client.getQueryData(inventoryKeys.list(6, 1))).toEqual(inventoryPage())
     expect(invalidate).not.toHaveBeenCalled()
+    await act(() => result.current.mutateAsync(variables))
+    expect(put).toHaveBeenCalledTimes(2)
+    expect(client.getQueryState(inventoryKeys.list(6, 1))?.isInvalidated).toBe(true)
+  })
+
+  it('cancels an older inventory read before invalidation so it cannot replace the cache after a stock write', async () => {
+    vi.spyOn(productVariantStocksService, 'put').mockResolvedValue({ warehouseId: 6, quantity: 0 })
+    const { client, wrapper } = setup()
+    const initial = inventoryPage()
+    client.setQueryData(inventoryKeys.list(6, 1), initial)
+    let signal: AbortSignal | undefined
+    let finish!: (value: typeof initial) => void
+    const oldRequest = client
+      .fetchQuery({
+        queryKey: inventoryKeys.list(6, 1),
+        queryFn: (context) => {
+          signal = context.signal
+          return new Promise<typeof initial>((resolve) => {
+            finish = resolve
+          })
+        },
+      })
+      .catch(() => undefined)
+    const { result } = renderHook(() => usePutProductVariantStock(7), { wrapper })
+    await act(() => result.current.mutateAsync({ variantId: 1, warehouseId: 6, quantity: 0 }))
+    expect(signal?.aborted).toBe(true)
+    finish({ ...initial, items: [] })
+    await oldRequest
+    expect(client.getQueryData(inventoryKeys.list(6, 1))).toEqual(initial)
+    expect(client.getQueryState(inventoryKeys.list(6, 1))?.isInvalidated).toBe(true)
   })
 })

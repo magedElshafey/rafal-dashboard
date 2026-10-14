@@ -14,6 +14,8 @@ import * as dashboardAr from '@/modules/dashboard/locale/ar.json'
 import * as dashboardEn from '@/modules/dashboard/locale/en.json'
 import * as queryStateAr from '@/components/shared/query-state/locale/ar.json'
 import * as queryStateEn from '@/components/shared/query-state/locale/en.json'
+import * as paginationAr from '@/components/shared/pagination/locale/ar.json'
+import * as paginationEn from '@/components/shared/pagination/locale/en.json'
 import * as rolesAr from '@/modules/roles/locale/ar.json'
 import * as rolesEn from '@/modules/roles/locale/en.json'
 import * as adminsAr from '@/modules/admins/locale/ar.json'
@@ -26,6 +28,8 @@ import * as categoriesAr from '@/modules/categories/locale/ar.json'
 import * as categoriesEn from '@/modules/categories/locale/en.json'
 import * as warehousesAr from '@/modules/warehouses/locale/ar.json'
 import * as warehousesEn from '@/modules/warehouses/locale/en.json'
+import * as inventoryAr from '@/modules/inventory/locale/ar.json'
+import * as inventoryEn from '@/modules/inventory/locale/en.json'
 import * as regionsAr from '@/modules/regions/locale/ar.json'
 import * as regionsEn from '@/modules/regions/locale/en.json'
 import * as citiesAr from '@/modules/cities/locale/ar.json'
@@ -63,11 +67,13 @@ export const resources = {
       ...authEn,
       ...dashboardEn,
       ...queryStateEn,
+      ...paginationEn,
       ...rolesEn,
       ...adminsEn,
       ...bannersEn,
       ...categoriesEn,
       ...warehousesEn,
+      ...inventoryEn,
       ...regionsEn,
       ...citiesEn,
       ...settingsEn,
@@ -93,11 +99,13 @@ export const resources = {
       ...authAr,
       ...dashboardAr,
       ...queryStateAr,
+      ...paginationAr,
       ...rolesAr,
       ...adminsAr,
       ...bannersAr,
       ...categoriesAr,
       ...warehousesAr,
+      ...inventoryAr,
       ...regionsAr,
       ...citiesAr,
       ...settingsAr,

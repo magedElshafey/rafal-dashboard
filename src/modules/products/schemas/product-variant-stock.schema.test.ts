@@ -22,6 +22,7 @@ describe('Product Variant stock validation', () => {
     [{ warehouseId: 1, quantity: 1.5 }, 'integer'],
     [{ warehouseId: 1, quantity: Number.NaN }, 'number'],
     [{ warehouseId: 1, quantity: Number.POSITIVE_INFINITY }, 'number'],
+    [{ warehouseId: 1, quantity: Number.MAX_SAFE_INTEGER + 1 }, 'number'],
   ])('rejects invalid stock values', async (value, message) => {
     await expect(schema.validate(value)).rejects.toThrow(message)
   })

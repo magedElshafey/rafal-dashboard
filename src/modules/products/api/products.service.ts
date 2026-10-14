@@ -301,12 +301,13 @@ export const productsHttpTransport = {
       })
     ).data
   },
-  async show(id: number, signal?: AbortSignal) {
+  async show(id: number, signal?: AbortSignal, options?: { suppressForbiddenRedirect?: boolean }) {
     return (
       await $http.get<RawProductDetailResponse>({
         url: `/dashboard/products/${id}`,
         signal,
         suppressErrorNotification: true,
+        ...(options?.suppressForbiddenRedirect ? { suppressForbiddenRedirect: true } : {}),
       })
     ).data
   },
@@ -357,8 +358,8 @@ export const productsService = {
     const response = await productsHttpTransport.create(serializeProductCreate(payload))
     return response.data
   },
-  async show(id: number, signal?: AbortSignal) {
-    return normalizeProductDetail((await productsHttpTransport.show(id, signal)).data)
+  async show(id: number, signal?: AbortSignal, options?: { suppressForbiddenRedirect?: boolean }) {
+    return normalizeProductDetail((await productsHttpTransport.show(id, signal, options)).data)
   },
   async update(id: number, payload: ProductUpdatePayload) {
     return normalizeProductDetail((await productsHttpTransport.update(id, serializeProductUpdate(payload))).data)

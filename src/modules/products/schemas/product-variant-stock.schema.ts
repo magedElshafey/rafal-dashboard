@@ -20,6 +20,10 @@ export function createProductVariantStockSchema(messages: ProductVariantStockVal
 
   return yup.object<VariantWarehouseStockFormValues>({
     warehouseId: nullableNumber.required(messages.required).integer(messages.integer),
-    quantity: nullableNumber.required(messages.required).integer(messages.integer).min(0, messages.nonNegative),
+    quantity: nullableNumber
+      .required(messages.required)
+      .integer(messages.integer)
+      .min(0, messages.nonNegative)
+      .max(Number.MAX_SAFE_INTEGER, messages.validNumber),
   })
 }

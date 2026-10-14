@@ -1,0 +1,8 @@
+{
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Go to previous page",
+    "next": "Go to next page",
+    "goTo": "Go to page {{page}}"
+  }
+}

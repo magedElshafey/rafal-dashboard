@@ -1,5 +1,6 @@
 import {
   Building2,
+  Boxes,
   FolderTree,
   Images,
   LayoutDashboard,
@@ -61,6 +62,7 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: Warehouse,
     match: 'prefix',
   },
+  { to: Routes.inventory, labelKey: 'inventory.title', icon: Boxes, match: 'prefix' },
   {
     to: Routes.regions,
     labelKey: 'dashboard.sidebar.regions',

@@ -528,6 +528,18 @@ describe('products service', () => {
     })
   })
 
+  it('allows a stocktake preflight to handle forbidden reads locally without changing the endpoint', async () => {
+    httpMocks.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: rawDetail() } })
+    const controller = new AbortController()
+    await productsService.show(7, controller.signal, { suppressForbiddenRedirect: true })
+    expect(httpMocks.get).toHaveBeenCalledWith({
+      url: '/dashboard/products/7',
+      signal: controller.signal,
+      suppressErrorNotification: true,
+      suppressForbiddenRedirect: true,
+    })
+  })
+
   it('normalizes [] descriptions to empty localized strings and rejects malformed numeric detail', async () => {
     httpMocks.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: rawDetail() } })
     await expect(productsService.show(1)).resolves.toMatchObject({ description: { ar: '', en: '' } })

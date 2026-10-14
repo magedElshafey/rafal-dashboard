@@ -2,11 +2,12 @@ import type { ReactNode } from 'react'
 import { useFormContext } from 'react-hook-form'
 
 import { Input } from '@/components/ui/input'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
 interface FormInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'prefix' | 'suffix'> {
   name: string
   label?: string
+  description?: ReactNode
   onChange?: (newValue: string) => void
   suffix?: ReactNode
   prefix?: ReactNode
@@ -21,6 +22,7 @@ interface FormInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
 export function FormInput({
   name,
   label,
+  description,
   onChange,
   suffix,
   prefix,
@@ -68,6 +70,7 @@ export function FormInput({
             />
           </FormControl>
 
+          {description && <FormDescription>{description}</FormDescription>}
           <FormMessage className={messageClassName} />
         </FormItem>
       )}

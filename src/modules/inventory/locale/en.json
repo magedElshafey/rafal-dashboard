@@ -1,0 +1,82 @@
+{
+  "inventory": {
+    "title": "Inventory",
+    "description": "Choose a warehouse to view its stock and carry out stocktaking.",
+    "directoryTitle": "Inventory warehouse directory",
+    "directoryEmpty": "No warehouses are available to select.",
+    "refreshDirectory": "Refresh warehouses",
+    "loadMoreWarehouses": "Load more warehouses",
+    "backToDirectory": "Back to inventory warehouses",
+    "manageWarehouses": "Manage warehouses",
+    "workspaceDescription": "Recorded variant stock in this warehouse.",
+    "listTitle": "Warehouse stock records",
+    "total": "{{total}} stock records",
+    "threshold": "Reported low-stock threshold: {{threshold}}. Status is supplied by the inventory system.",
+    "refresh": "Refresh inventory",
+    "overview": "Inventory overview",
+    "totalRecords": "Stock records · this warehouse",
+    "pageRecords": "Records on this page",
+    "lowStockThreshold": "Reported low-stock threshold",
+    "inactive": "Inactive product or variant",
+    "openProduct": "Open product",
+    "range": "Showing {{start}}–{{end}} of {{total}} records",
+    "stocktake": {
+      "title": "Quick Stocktake",
+      "named": "Quick Stocktake for {{sku}} in {{warehouse}}",
+      "description": "Count this variant in this warehouse, then review the replacement quantity.",
+      "close": "Close stocktake",
+      "physicalCount": "Physical Count",
+      "countHelp": "Enter the final counted quantity, including zero. This replaces recorded stock; it does not add or subtract a difference.",
+      "variance": "Stock Variance",
+      "enterCount": "Enter a count",
+      "shortage_one": "Shortage · {{quantity}} unit",
+      "shortage_other": "Shortage · {{quantity}} units",
+      "surplus_one": "Surplus · {{quantity}} unit",
+      "surplus_other": "Surplus · {{quantity}} units",
+      "unchanged": "No change",
+      "review": "Review stock update",
+      "checking": "Checking current stock…",
+      "confirmTitle": "Confirm Stock Update",
+      "replaceSummary": "Replace the recorded quantity of {{recorded}} with the physical count of {{counted}} for the variant and warehouse above.",
+      "recheckHelp": "The balance is checked again before saving. Other stock activity can still occur between this check and the update.",
+      "confirm": "Confirm replacement",
+      "editCount": "Edit count",
+      "saving": "Checking and saving…",
+      "notices": {
+        "changed": "Recorded stock changed while you were counting. The current balance is shown above. Your count is preserved; review the new variance before continuing.",
+        "missing": "This stock record is no longer available. No update was applied. Close this drawer and refresh inventory.",
+        "readError": "Current stock could not be verified. Your count is preserved. Check your connection and review again to retry.",
+        "forbidden": "You do not have permission for this stock operation. Your count has been preserved.",
+        "saveError": "The stock update could not be confirmed. Your count is preserved. Review again to verify the latest balance before retrying.",
+        "unchanged": "Your physical count matches the recorded quantity. No update is needed."
+      }
+    },
+    "fields": {
+      "product": "Product",
+      "productSku": "Product SKU",
+      "variantSku": "Variant SKU",
+      "attributes": "Variant attributes",
+      "warehouse": "Warehouse",
+      "quantity": "Recorded quantity",
+      "status": "Stock status",
+      "updatedAt": "Last updated"
+    },
+    "status": { "inStock": "In stock", "lowStock": "Low stock", "outOfStock": "Out of stock" },
+    "viewVariant": "View variant {{sku}} stocked in {{warehouse}}",
+    "empty": {
+      "title": "No stock records in this warehouse",
+      "description": "This warehouse has no recorded stock entries."
+    },
+    "emptyPage": {
+      "title": "No stock records on this page",
+      "description": "Refresh inventory or choose another page."
+    },
+    "page": "Page {{current}} of {{total}}",
+    "warehouseTitle": "Warehouse Inventory",
+    "warehouseNotFound": "Warehouse not found",
+    "warehouseAction": "Open inventory",
+    "warehouseActionNamed": "Open inventory for {{name}}",
+    "selectedVariant": "Selected inventory variant",
+    "selectedStock": "Selected inventory stock"
+  }
+}

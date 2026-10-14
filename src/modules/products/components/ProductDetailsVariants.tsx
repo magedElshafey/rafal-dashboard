@@ -1,4 +1,7 @@
 import { useTranslation } from 'react-i18next'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Routes } from '@/routes/routes'
+import { Button } from '@/components/ui/button'
 
 import {
   ResponsiveDataDesktop,
@@ -20,6 +23,11 @@ import { resolveAppLocale } from '@/utils/date/date.helpers'
 
 export function ProductDetailsVariants({ product }: { product?: ProductDetail }) {
   const { t, i18n } = useTranslation()
+  const [search] = useSearchParams()
+  const selectedVariant = product?.variants.find((variant) => String(variant.id) === search.get('variant'))
+  const selectedStock = selectedVariant?.warehouseStocks.find(
+    (stock) => String(stock.warehouseId) === search.get('warehouse')
+  )
   const numbers = new Intl.NumberFormat(resolveAppLocale(i18n.language), { maximumFractionDigits: 20 })
   const variants = product ? product.variants : [null, null]
   const stocks = product
@@ -39,6 +47,11 @@ export function ProductDetailsVariants({ product }: { product?: ProductDetail })
 
   return (
     <>
+      {selectedStock ? (
+        <Button asChild variant="outline">
+          <Link to={Routes.warehouseInventoryPath(selectedStock.warehouseId)}>{t('inventory.warehouseAction')}</Link>
+        </Button>
+      ) : null}
       <ProductDetailsSection title={t('products.variants.title')}>
         <div className="min-h-44">
           {variants.length === 0 ? (
@@ -46,7 +59,14 @@ export function ProductDetailsVariants({ product }: { product?: ProductDetail })
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {variants.map((variant, index) => (
-                <article key={variant?.id ?? index} className="min-w-0 space-y-4 rounded-lg border border-border p-4">
+                <article
+                  key={variant?.id ?? index}
+                  id={variant ? `variant-${variant.id}` : undefined}
+                  className="min-w-0 space-y-4 rounded-lg border border-border p-4"
+                >
+                  {variant && variant.id === selectedVariant?.id ? (
+                    <Badge variant="secondary">{t('inventory.selectedVariant')}</Badge>
+                  ) : null}
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <h3 className="min-w-0 break-all font-semibold">
                       {variant ? <bdi dir="ltr">{variant.sku || '—'}</bdi> : <Skeleton className="h-6 w-32" />}
@@ -137,6 +157,13 @@ export function ProductDetailsVariants({ product }: { product?: ProductDetail })
                       </ResponsiveDataTableCell>
                       <ResponsiveDataTableCell>
                         {stock ? numbers.format(stock.quantity) : <Skeleton className="h-5 w-16" />}
+                        {stock &&
+                        stock.variantId === selectedVariant?.id &&
+                        stock.warehouseId === selectedStock?.warehouseId ? (
+                          <Badge className="ms-2" variant="secondary">
+                            {t('inventory.selectedStock')}
+                          </Badge>
+                        ) : null}
                       </ResponsiveDataTableCell>
                     </ResponsiveDataTableRow>
                   ))}
@@ -166,6 +193,13 @@ export function ProductDetailsVariants({ product }: { product?: ProductDetail })
                         </ResponsiveDataFact>
                         <ResponsiveDataFact label={t('products.variants.stock.fields.quantity')}>
                           {stock ? numbers.format(stock.quantity) : <Skeleton className="h-5 w-16" />}
+                          {stock &&
+                          stock.variantId === selectedVariant?.id &&
+                          stock.warehouseId === selectedStock?.warehouseId ? (
+                            <Badge className="ms-2" variant="secondary">
+                              {t('inventory.selectedStock')}
+                            </Badge>
+                          ) : null}
                         </ResponsiveDataFact>
                       </>
                     }

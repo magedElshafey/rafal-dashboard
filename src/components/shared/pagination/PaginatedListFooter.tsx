@@ -1,17 +1,12 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 
 import { cn } from '@/lib/utils'
 import { useQuery } from '@/store/queryContext/useQueryContext'
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from '@/components/ui/pagination'
 
 type PaginationRange = {
   start: number
@@ -24,6 +19,9 @@ type PaginatedListFooterProps = {
   itemCount: number
   getRangeLabel: (range: PaginationRange) => string
   className?: string
+  navigationDisabled?: boolean
+  navigationDescription?: string
+  showSinglePage?: boolean
 }
 
 export default function PaginatedListFooter({
@@ -31,19 +29,25 @@ export default function PaginatedListFooter({
   itemCount,
   getRangeLabel,
   className,
+  navigationDisabled = false,
+  navigationDescription,
+  showSinglePage = false,
 }: PaginatedListFooterProps) {
+  const { t, i18n } = useTranslation()
+  const numbers = new Intl.NumberFormat(i18n.language)
+  const descriptionId = useId()
   const { forwardAddQuery } = useQuery()
   const currentPage = pagination?.current_page ?? 1
   const totalPages = pagination?.total_pages ?? 1
   const paginationItems = useMemo(() => getPaginationItems(currentPage, totalPages), [currentPage, totalPages])
 
-  if (!pagination || totalPages <= 1) return null
+  if (!pagination || (totalPages <= 1 && !showSinglePage)) return null
 
-  const start = pagination.total > 0 ? (currentPage - 1) * pagination.per_page + 1 : 0
-  const end = Math.min((currentPage - 1) * pagination.per_page + itemCount, pagination.total)
+  const start = itemCount > 0 ? (currentPage - 1) * pagination.per_page + 1 : 0
+  const end = itemCount > 0 ? Math.min((currentPage - 1) * pagination.per_page + itemCount, pagination.total) : 0
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages || page === currentPage) return
+    if (navigationDisabled || page < 1 || page > totalPages || page === currentPage) return
 
     forwardAddQuery({ page: String(page) })
   }
@@ -55,22 +59,47 @@ export default function PaginatedListFooter({
         className
       )}
     >
-      <p className="text-sm text-black-text">{getRangeLabel({ start, end, total: pagination.total })}</p>
-      <Pagination className="mx-0 w-auto justify-end">
-        <PaginationContent>
+      <div className="min-w-0 space-y-1">
+        <p className="text-sm text-foreground">{getRangeLabel({ start, end, total: pagination.total })}</p>
+        {navigationDescription ? (
+          <p id={descriptionId} className="text-xs text-muted-foreground">
+            {navigationDescription}
+          </p>
+        ) : null}
+      </div>
+      <Pagination
+        className="mx-0 w-auto max-w-full justify-end"
+        aria-label={t('pagination.label')}
+        aria-describedby={navigationDescription ? descriptionId : undefined}
+      >
+        <PaginationContent className="flex-wrap">
           <PaginationItem>
-            <PaginationPrevious
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={t('pagination.previous')}
+              disabled={navigationDisabled || currentPage <= 1}
               onClick={() => handlePageChange(currentPage - 1)}
-              className={cn(currentPage === 1 && 'pointer-events-none opacity-50')}
-            />
+            >
+              <ChevronLeft className="rtl:rotate-180" aria-hidden />
+            </Button>
           </PaginationItem>
 
           {paginationItems.map((item) =>
             typeof item === 'number' ? (
               <PaginationItem key={item}>
-                <PaginationLink onClick={() => handlePageChange(item)} isActive={item === currentPage}>
-                  {item}
-                </PaginationLink>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={item === currentPage ? 'outline' : 'ghost'}
+                  disabled={navigationDisabled}
+                  aria-current={item === currentPage ? 'page' : undefined}
+                  aria-label={t('pagination.goTo', { page: numbers.format(item) })}
+                  onClick={() => handlePageChange(item)}
+                >
+                  {numbers.format(item)}
+                </Button>
               </PaginationItem>
             ) : (
               <PaginationItem key={item}>
@@ -80,10 +109,16 @@ export default function PaginatedListFooter({
           )}
 
           <PaginationItem>
-            <PaginationNext
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={t('pagination.next')}
+              disabled={navigationDisabled || currentPage >= totalPages}
               onClick={() => handlePageChange(currentPage + 1)}
-              className={cn(currentPage === totalPages && 'pointer-events-none opacity-50')}
-            />
+            >
+              <ChevronRight className="rtl:rotate-180" aria-hidden />
+            </Button>
           </PaginationItem>
         </PaginationContent>
       </Pagination>

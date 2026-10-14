@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { productVariantStocksService } from '@/modules/products/api/product-variant-stocks.service'
 import { productsKeys } from '@/modules/products/queries/products.keys'
+import { inventoryKeys } from '@/modules/inventory/queries/inventory.keys'
 import type { ProductDetail } from '@/modules/products/types/product.types'
 import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 
@@ -15,7 +16,7 @@ export function useDeleteProductVariantStock(productId: number) {
   return useMutation({
     mutationFn: ({ variantId, warehouseId }: DeleteProductVariantStockVariables) =>
       productVariantStocksService.delete(productId, variantId, warehouseId),
-    onSuccess: (_response, variables) => {
+    onSuccess: async (_response, variables) => {
       queryClient.setQueryData<ProductDetail>(productsKeys.detail(productId), (product) =>
         product
           ? {
@@ -33,6 +34,8 @@ export function useDeleteProductVariantStock(productId: number) {
             }
           : product
       )
+      await queryClient.cancelQueries({ queryKey: inventoryKeys.all })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
       toast.success(t('products.variants.stock.feedback.deleted'))
     },
     onError: (error) => toastApiError(error, t('products.variants.stock.feedback.deleteError')),

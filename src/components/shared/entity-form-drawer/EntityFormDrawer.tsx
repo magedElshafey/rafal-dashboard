@@ -192,7 +192,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
                     onClick={handleCreateAnotherAction}
                     className="h-11 rounded-lg border-border text-foreground"
                   >
-                    {isSubmitting && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
+                    {isSubmitting && <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />}
                     {createAnotherLabel}
                   </Button>
                 ) : null}
@@ -206,7 +206,7 @@ function EntityFormDrawer<TMode extends EntityFormDrawerMode>({
                   onClick={handlePrimaryAction}
                   className="h-11 rounded-lg bg-brand-500"
                 >
-                  {isSubmitting && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
+                  {isSubmitting && <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />}
 
                   {submitLabels[mode]}
                 </Button>
