@@ -142,13 +142,16 @@ export function DashboardSidebar({
         </Button>
       </div>
 
-      <nav aria-label={t('dashboard.sidebar.navigation')} className="flex flex-1 flex-col gap-1 p-3">
+      <nav
+        aria-label={t('dashboard.sidebar.navigation')}
+        className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain p-3"
+      >
         {dashboardNavigation.map((item) => (
           <DashboardNavItem key={item.to} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
         ))}
       </nav>
 
-      <div className="hidden border-t border-border p-3 md:block">
+      <div className="hidden shrink-0 border-t border-border p-3 md:block">
         <Button
           type="button"
           variant="ghost"

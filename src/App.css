@@ -386,8 +386,11 @@ input[type='number'] {
 
   .dashboard-shell > .dashboard-sidebar {
     grid-area: sidebar;
-    position: relative;
+    position: sticky;
     inset: auto;
+    top: 0;
+    height: 100dvh;
+    align-self: start;
     transform: none;
   }
 

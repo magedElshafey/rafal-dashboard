@@ -37,9 +37,9 @@ export const AuthPanel = memo(function AuthPanel({
         )}
 
         <header className="mb-5 md:mb-6">
-          <h1 className="text-2xl font-semibold leading-tight text-neutral-900">{title}</h1>
+          <h1 className="text-2xl font-semibold leading-tight text-foreground">{title}</h1>
 
-          <p className="mt-2 max-w-2xl font-normal leading-7 text-neutral-700 md:leading-8">{description}</p>
+          <p className="mt-2 max-w-2xl font-normal leading-7 text-muted-foreground md:leading-8">{description}</p>
         </header>
 
         <div className="w-full">{children}</div>
