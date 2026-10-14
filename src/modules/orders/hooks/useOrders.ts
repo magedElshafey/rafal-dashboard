@@ -34,14 +34,14 @@ export function useOrder(id: number) {
 }
 export function useUpdateOrderStatus(id: number) {
   const client = useQueryClient()
-  const { t } = useTranslation()
+  const { i18n } = useTranslation()
   return useMutation({
     mutationFn: (status: string) => ordersService.updateStatus(id, status),
     retry: false,
     onSuccess: async (response) => {
       await client.cancelQueries({ queryKey: ordersKeys.detail(id), exact: true })
       if (response.detail) client.setQueryData(ordersKeys.detail(id), response.detail)
-      toast.success(response.message || t('orders.updated'))
+      toast.success(i18n.t('orders.updated'))
       await Promise.all([
         response.detail
           ? Promise.resolve()

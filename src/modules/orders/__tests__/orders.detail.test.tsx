@@ -63,6 +63,44 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Order Show', () => {
+  it.each([
+    ['en', 'en'],
+    ['ar', 'ar'],
+    ['en', 'ar'],
+    ['ar', 'en'],
+  ])('localizes status success using the active language: %s to %s', async (initial, active) => {
+    await i18n.changeLanguage(initial)
+    let resolve: (value: unknown) => void = () => {}
+    http.patch.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done
+        })
+    )
+    renderOrders(<OrderDetailPage />, '/dashboard/orders/21')
+    await screen.findByRole('heading', { name: '#RF-10021' })
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('orders.updateStatus') }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: i18n.t('orders.nextStatus') }), 'processing')
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('orders.confirmUpdate') }))
+    await waitFor(() => expect(http.patch).toHaveBeenCalledTimes(1))
+    await act(async () => {
+      await i18n.changeLanguage(active)
+    })
+    await act(async () =>
+      resolve({
+        data: {
+          success: true,
+          message: 'Order Status Updated Successfully',
+          data: updated,
+        },
+      })
+    )
+    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1))
+    expect(toast.success).toHaveBeenCalledWith(active === 'ar' ? ar.orders.updated : en.orders.updated)
+    expect(toast.success).not.toHaveBeenCalledWith('Order Status Updated Successfully')
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
   it('renders all real detail sections, money, attributes and semantic history', async () => {
     renderOrders(<OrderDetailPage />, '/dashboard/orders/21')
     await screen.findByRole('heading', { name: '#RF-10021', level: 1 })
@@ -418,7 +456,7 @@ describe('status transitions', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Next status' }), 'processing')
     await userEvent.click(screen.getByRole('button', { name: 'Confirm status update' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(toast.success).toHaveBeenCalledWith('Saved')
+    expect(toast.success).toHaveBeenCalledWith(en.orders.updated)
     expect(screen.getByText('Super Admin')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
