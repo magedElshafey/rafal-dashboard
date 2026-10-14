@@ -1,6 +1,7 @@
 ﻿import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/config/i18'
 import InventoryPage from '@/modules/inventory/pages/InventoryPage'
@@ -9,11 +10,15 @@ import { inventoryService } from '@/modules/inventory/api/inventory.service'
 import { warehouseListPage } from './inventory.fixtures'
 
 vi.mock('@/hooks/queries/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ current: null }) }))
+function Location() {
+  return <output data-testid="location">{useLocation().pathname}</output>
+}
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
+        <Location />
         <InventoryPage />
       </MemoryRouter>
     </QueryClientProvider>
@@ -60,6 +65,7 @@ describe('Inventory warehouse directory', () => {
     expect(screen.getByTestId('query-loading-state')).toHaveAttribute('aria-busy', 'true')
     expect(container.querySelectorAll('li')).toHaveLength(6)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('li .border-t')).toHaveLength(6)
     await act(async () => finish(warehouseListPage([])))
     expect(await screen.findByText('No warehouses yet')).toBeInTheDocument()
   })
@@ -97,12 +103,78 @@ describe('Inventory warehouse directory', () => {
   it('localizes Arabic directory actions and keeps long names readable', async () => {
     await i18n.changeLanguage('ar')
     const data = warehouseListPage()
-    data.items[0].name = 'مستودع الرياض طويل الاسم'
+    data.items[0].name = 'مستودع الرياض طويل الاسم Warehouse-' + 'LongName'.repeat(12)
     vi.mocked(warehousesService.list).mockResolvedValue(data)
     renderPage()
-    await screen.findByRole('link', { name: 'فتح مخزون مستودع الرياض طويل الاسم' })
+    await screen.findByRole('link', { name: `فتح مخزون ${data.items[0].name}` })
     expect(screen.getByRole('main')).toHaveAttribute('dir', 'rtl')
     expect(screen.getByRole('heading', { name: data.items[0].name })).toHaveClass('break-words')
+    expect(screen.getByText(data.items[0].name).tagName).toBe('BDI')
     await waitFor(() => expect(warehousesService.list).toHaveBeenCalledTimes(1))
+  })
+
+  it('provides one keyboard link per card with no nested controls and preserves the exact destination', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const first = await screen.findByRole('link', { name: 'Open inventory for Warehouse 6' })
+    const second = screen.getByRole('link', { name: 'Open inventory for Warehouse 8' })
+    expect(first).toHaveAccessibleDescription('Active')
+    expect(second).toHaveAccessibleDescription('Inactive')
+    expect(screen.getAllByRole('link')).toHaveLength(2)
+    expect(within(first).queryByRole('button')).not.toBeInTheDocument()
+    expect(first.querySelector('a')).toBeNull()
+    expect(first).toHaveClass('focus-visible:ring-2')
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Refresh warehouses' })).toHaveFocus()
+    await user.tab()
+    expect(first).toHaveFocus()
+    await user.tab()
+    expect(second).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/8/inventory')
+  })
+
+  it('keeps loaded cards and prevents duplicate load-more requests while the next page is pending', async () => {
+    let finish!: (value: ReturnType<typeof warehouseListPage>) => void
+    vi.mocked(warehousesService.list)
+      .mockResolvedValueOnce(warehouseListPage([6], 1, 2))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
+      )
+    renderPage()
+    const loadMore = await screen.findByRole('button', { name: 'Load more warehouses' })
+    fireEvent.click(loadMore)
+    const pending = await screen.findByRole('button', { name: i18n.t('warehouses.loadingMore') })
+    expect(pending).toBeDisabled()
+    fireEvent.click(pending)
+    expect(screen.getByRole('link', { name: 'Open inventory for Warehouse 6' })).toBeInTheDocument()
+    expect(warehousesService.list).toHaveBeenCalledTimes(2)
+    await act(async () => finish(warehouseListPage([8], 2, 2)))
+    expect(await screen.findByRole('link', { name: 'Open inventory for Warehouse 8' })).toBeInTheDocument()
+  })
+
+  it('labels directory refresh distinctly and retains cards through a failed pending refresh', async () => {
+    let fail!: (error: Error) => void
+    renderPage()
+    await screen.findByRole('heading', { name: 'Warehouse 6' })
+    vi.mocked(warehousesService.list).mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          fail = reject
+        })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh warehouses' }))
+    const pending = await screen.findByRole('button', { name: 'Refreshing warehouses…' })
+    expect(pending).toBeDisabled()
+    fireEvent.click(pending)
+    expect(warehousesService.list).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('heading', { name: 'Warehouse 6' })).toBeInTheDocument()
+    await act(async () => fail(new Error('offline')))
+    await screen.findByRole('button', { name: i18n.t('queryState.actions.retry') })
+    expect(screen.getByRole('button', { name: 'Refresh warehouses' })).toBeEnabled()
+    expect(screen.getByRole('heading', { name: 'Warehouse 8' })).toBeInTheDocument()
   })
 })

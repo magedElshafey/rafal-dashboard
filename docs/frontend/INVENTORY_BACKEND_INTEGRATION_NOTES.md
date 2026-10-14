@@ -113,7 +113,22 @@ Existing implementation work outside this phase is preserved, including shared p
 - Atomic conditional writes are not available. Existing preflight limitations remain.
 - Live staging validation of filtered totals, last-page behavior and permission responses remains outstanding. No staging access was supplied or used; no production mutations were performed.
 
-## Verification
+## Final directory review and UI polish
+
+The working tree was clean before this follow-up. Review of the actual directory, workspace, stock cards, services, keys, warehouse display components and shared primitives found no confirmed blocker/high-severity functional defect in the scoped inventory or SET flows.
+
+- **Medium UX:** `InventoryWorkspace` used the Arabic stock-update wording for a read-only `query.refetch()` and kept the idle label during fetching. It now says **Refresh data / تحديث البيانات**, changes to localized pending text, disables while fetching and shows the existing RefreshCw icon with motion-safe rotation. An accessible description explains that the current page's recorded values are reloaded without changing quantities. Scope, page, cached content and error/retry behavior remain unchanged.
+- **Low UX:** The inline directory cards repeated filled primary buttons under sparse identity/status content. A compact section introduction, grouped warehouse icon/name, subtle text-bearing status badge and restrained footer action now establish the hierarchy. One semantic link wraps each card, with a visible focus ring, hover emphasis and no nested controls. Names remain exact, bidirectionally isolated and able to wrap long unbroken strings.
+- **Optional composition improvement:** `WarehouseDirectoryCard` owns the repeated card and matching skeleton structure, keeping `InventoryPage` focused on query/loading states. It composes DashboardCard, DashboardIcon, Badge and Skeleton; no shared primitive or generic framework changed. The existing CRUD-oriented warehouse list still requires edit/delete actions and was not duplicated.
+- **Backend boundaries:** No service, query key, route, stocktaking logic or pagination contract changed. The directory still has one infinite warehouse query, manual keyboard load-more and no per-card requests, fake totals or location guesses. At the user's request there is no directory-end message.
+
+Changed files in this polish: `InventoryPage.tsx` (directory composition/refresh), new `WarehouseDirectoryCard.tsx` (semantic card/skeleton), `InventoryWorkspace.tsx` (read-only refresh feedback), inventory `locale/en.json` and `locale/ar.json`, `InventoryPage.test.tsx`, `WarehouseInventoryPage.test.tsx`, and this document.
+
+Polish verification results are recorded below after the final checks. Browser screenshot inspection was attempted with installed Chrome/Edge using an isolated synthetic-data preview and a fresh browser profile. Both automation connections closed before page execution (`Page.enable` timeout); no screenshots or visual pass are claimed. No dependency was installed. Temporary preview source files were removed and no live inventory requests or mutations were made.
+
+Manual visual QA: inspect 320px mobile, tablet and desktop in English/Arabic and light/dark themes; verify long mixed-language names, card density, status legibility, footer arrows, hover/focus, one tab stop per card and reduced motion. Check matching skeletons, initial/empty/background errors and load-more retry. In the workspace, confirm localized idle/pending refresh text, unchanged warehouse/page, retained cards on failure, retry and accessible explanation. Full browser/screen-reader/contrast measurements remain outstanding.
+
+## Verification of the preceding warehouse-first architecture phase
 
 Executed for the final implementation:
 

@@ -1,17 +1,13 @@
-import { Warehouse, ArrowRight } from 'lucide-react'
+import { Warehouse, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
-import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
 import { QueryStateBoundary } from '@/components/shared/query-state'
 import { QueryStateNotice } from '@/components/shared/query-state/components/QueryStateNotice'
 import { EmptyState } from '@/components/shared/empty-state'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useInfiniteScroll } from '@/hooks/queries/useInfiniteScroll'
 import { useWarehouses } from '@/modules/warehouses/hooks/useWarehouses'
-import { Routes } from '@/routes/routes'
+import { WarehouseDirectoryCard } from '@/modules/inventory/components/WarehouseDirectoryCard'
 
 export default function InventoryPage() {
   const { t, i18n } = useTranslation()
@@ -29,41 +25,8 @@ export default function InventoryPage() {
       className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
     >
       {(loading ? Array.from({ length: 6 }, () => null) : warehouses).map((warehouse, index) => (
-        <li key={warehouse?.id ?? index}>
-          <DashboardCard padding="lg" className="flex h-full min-w-0 flex-col gap-5">
-            <div className="flex items-start justify-between gap-3">
-              <Warehouse className="size-6 shrink-0 text-primary" aria-hidden />
-              {warehouse ? (
-                <Badge variant={warehouse.isActive ? 'success' : 'outline'}>
-                  {t(warehouse.isActive ? 'warehouses.status.active' : 'warehouses.status.inactive')}
-                </Badge>
-              ) : (
-                <Skeleton className="h-6 w-20" />
-              )}
-            </div>
-            {warehouse ? (
-              <h2 className="min-w-0 break-words text-lg font-semibold">
-                <bdi>{warehouse.name}</bdi>
-              </h2>
-            ) : (
-              <Skeleton className="h-7 w-48 max-w-full" />
-            )}
-            <div className="mt-auto">
-              {warehouse ? (
-                <Button asChild className="h-11 w-full">
-                  <Link
-                    to={Routes.warehouseInventoryPath(warehouse.id)}
-                    aria-label={t('inventory.warehouseActionNamed', { name: warehouse.name })}
-                  >
-                    {t('inventory.warehouseAction')}
-                    <ArrowRight className="rtl:rotate-180" aria-hidden />
-                  </Link>
-                </Button>
-              ) : (
-                <Skeleton className="h-11 w-full" />
-              )}
-            </div>
-          </DashboardCard>
+        <li key={warehouse?.id ?? index} className="min-w-0">
+          <WarehouseDirectoryCard warehouse={warehouse} />
         </li>
       ))}
     </ul>
@@ -72,13 +35,27 @@ export default function InventoryPage() {
     <main className="min-w-0 space-y-4" dir={i18n.dir()}>
       <DashboardPageHeader
         title={t('inventory.title')}
-        description={t('inventory.description')}
+        description={t('inventory.directoryPageDescription')}
         actions={
           <Button variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}>
-            {t('inventory.refreshDirectory')}
+            <RefreshCw
+              aria-hidden
+              className={query.isFetching && !query.isFetchingNextPage ? 'motion-safe:animate-spin' : undefined}
+            />
+            <span aria-live="polite">
+              {t(
+                query.isFetching && !query.isFetchingNextPage
+                  ? 'inventory.refreshingDirectory'
+                  : 'inventory.refreshDirectory'
+              )}
+            </span>
           </Button>
         }
       />
+      <div className="space-y-1 border-t border-border-subtle pt-5">
+        <h2 className="text-lg font-semibold">{t('inventory.directoryHeading')}</h2>
+        <p className="text-sm text-muted-foreground">{t('inventory.description')}</p>
+      </div>
       <QueryStateBoundary
         isLoading={query.isLoading}
         isLoadingError={query.isError && !query.data}

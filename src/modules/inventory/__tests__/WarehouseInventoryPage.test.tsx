@@ -1,4 +1,4 @@
-﻿import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -135,7 +135,7 @@ describe('Warehouse inventory workspace', () => {
     vi.mocked(inventoryService.list).mockImplementation(async (_id, page) =>
       parseInventoryResponse({ ...rawResponse([], page, 1), meta: { ...rawResponse([], page, 1).meta, total: 0 } })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await screen.findByText('No stock records in this warehouse')
     expect(screen.getByTestId('location')).toHaveTextContent('page=1')
     expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal))
@@ -191,7 +191,7 @@ describe('Warehouse inventory workspace', () => {
     fireEvent.click(retry)
     await screen.findByRole('article')
     vi.mocked(inventoryService.list).mockRejectedValue(new Error('background'))
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await screen.findByRole('button', { name: i18n.t('queryState.actions.retry') })
     expect(screen.getByRole('article')).toBeInTheDocument()
   })
@@ -204,6 +204,52 @@ describe('Warehouse inventory workspace', () => {
     expect(inventoryService.list).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['en', 'Refresh data', 'Refreshing data…'],
+    ['ar', 'تحديث البيانات', 'جارٍ تحديث البيانات…'],
+  ])(
+    'refreshes only the current warehouse/page with localized pending feedback in %s',
+    async (language, label, pendingLabel) => {
+      await i18n.changeLanguage(language)
+      const put = vi.spyOn($http, 'put').mockRejectedValue(new Error('Unexpected mutation'))
+      const remove = vi.spyOn($http, 'delete').mockRejectedValue(new Error('Unexpected mutation'))
+      renderWorkspace('/dashboard/warehouses/8/inventory?page=2')
+      await screen.findByRole('article')
+      let fail!: (error: Error) => void
+      vi.mocked(inventoryService.list).mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            fail = reject
+          })
+      )
+      const refresh = screen.getByRole('button', { name: label })
+      expect(refresh).toHaveAccessibleDescription(i18n.t('inventory.refreshDescription'))
+      fireEvent.click(refresh)
+      const pending = await screen.findByRole('button', { name: pendingLabel })
+      expect(pending).toBeDisabled()
+      expect(pending.querySelector('svg')).toHaveClass('motion-safe:animate-spin')
+      fireEvent.click(pending)
+      expect(inventoryService.list).toHaveBeenCalledTimes(2)
+      expect(inventoryService.list).toHaveBeenLastCalledWith(8, 2, expect.any(AbortSignal))
+      expect(warehousesService.show).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('article')).toHaveAttribute('data-stock-id', '173')
+      expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/8/inventory?page=2')
+      await act(async () => fail(new Error('offline')))
+      const retry = await screen.findByRole('button', { name: i18n.t('queryState.actions.retry') })
+      expect(screen.getByRole('article')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: label })).toBeEnabled()
+      fireEvent.click(retry)
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: i18n.t('queryState.actions.retry') })).not.toBeInTheDocument()
+      )
+      expect(inventoryService.list).toHaveBeenCalledTimes(3)
+      expect(inventoryService.list).toHaveBeenLastCalledWith(8, 2, expect.any(AbortSignal))
+      expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/8/inventory?page=2')
+      expect(put).not.toHaveBeenCalled()
+      expect(remove).not.toHaveBeenCalled()
+    }
+  )
+
   it('distinguishes empty warehouse from empty page and retains background errors for an empty cache', async () => {
     vi.mocked(inventoryService.list).mockResolvedValue(parseInventoryResponse(rawResponse([])))
     renderWorkspace()
@@ -211,10 +257,10 @@ describe('Warehouse inventory workspace', () => {
     vi.mocked(inventoryService.list).mockResolvedValue(
       parseInventoryResponse({ ...rawResponse([]), meta: { ...rawResponse().meta, total: 0 } })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await screen.findByText('No stock records in this warehouse')
     vi.mocked(inventoryService.list).mockRejectedValue(new Error('offline'))
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await screen.findByRole('button', { name: i18n.t('queryState.actions.retry') })
     expect(screen.getByText('No stock records in this warehouse')).toBeInTheDocument()
   })

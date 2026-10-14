@@ -3,8 +3,12 @@
     "title": "Inventory",
     "description": "Choose a warehouse to view its stock and carry out stocktaking.",
     "directoryTitle": "Inventory warehouse directory",
+    "directoryHeading": "Warehouses",
+    "directoryPageDescription": "View recorded stock and manage warehouse stocktaking.",
+    "directoryCategory": "Inventory workspace",
     "directoryEmpty": "No warehouses are available to select.",
     "refreshDirectory": "Refresh warehouses",
+    "refreshingDirectory": "Refreshing warehouses…",
     "loadMoreWarehouses": "Load more warehouses",
     "backToDirectory": "Back to inventory warehouses",
     "manageWarehouses": "Manage warehouses",
@@ -12,7 +16,9 @@
     "listTitle": "Warehouse stock records",
     "total": "{{total}} stock records",
     "threshold": "Reported low-stock threshold: {{threshold}}. Status is supplied by the inventory system.",
-    "refresh": "Refresh inventory",
+    "refresh": "Refresh data",
+    "refreshing": "Refreshing data…",
+    "refreshDescription": "Reload recorded inventory values for this page without changing stock quantities.",
     "overview": "Inventory overview",
     "totalRecords": "Stock records · this warehouse",
     "pageRecords": "Records on this page",
@@ -69,7 +75,7 @@
     },
     "emptyPage": {
       "title": "No stock records on this page",
-      "description": "Refresh inventory or choose another page."
+      "description": "Refresh data or choose another page."
     },
     "page": "Page {{current}} of {{total}}",
     "warehouseTitle": "Warehouse Inventory",

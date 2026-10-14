@@ -1,5 +1,5 @@
-import { Package } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Package, RefreshCw } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
@@ -32,6 +32,7 @@ export function InventoryWorkspace({ warehouseId, page }: { warehouseId: number;
   const [stocktake, setStocktake] = useState<InventoryStock | null>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const refresh = useRef<HTMLButtonElement>(null)
+  const refreshDescriptionId = useId()
   useEffect(() => {
     if (!stocktake && trigger.current) {
       if (trigger.current.isConnected) trigger.current.focus()
@@ -45,9 +46,20 @@ export function InventoryWorkspace({ warehouseId, page }: { warehouseId: number;
     <section className="min-w-0 space-y-4" aria-label={t('inventory.listTitle')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{t('inventory.workspaceDescription')}</p>
-        <Button ref={refresh} variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}>
-          {t('inventory.refresh')}
+        <Button
+          ref={refresh}
+          variant="outline"
+          className="min-w-44"
+          disabled={query.isFetching}
+          aria-describedby={refreshDescriptionId}
+          onClick={() => void query.refetch()}
+        >
+          <RefreshCw aria-hidden className={query.isFetching ? 'motion-safe:animate-spin' : undefined} />
+          <span aria-live="polite">{t(query.isFetching ? 'inventory.refreshing' : 'inventory.refresh')}</span>
         </Button>
+        <span id={refreshDescriptionId} className="sr-only">
+          {t('inventory.refreshDescription')}
+        </span>
       </div>
       <QueryStateBoundary
         isLoading={query.isLoading || correctedPage !== page}
