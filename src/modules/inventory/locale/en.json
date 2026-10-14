@@ -1,5 +1,34 @@
 {
   "inventory": {
+    "filters": {
+      "title": "Inventory filters",
+      "search": "Search product name, product SKU or variant SKU",
+      "active": "Filters ({{count}})",
+      "allProducts": "All products",
+      "selectedProduct": "Product #{{id}}",
+      "productHelp": "Search applies only to loaded products. Clear the search and scroll the dropdown to browse more.",
+      "loadingProducts": "Loading products…",
+      "productsError": "Could not load products. Retry to restore product labels and options.",
+      "retry": "Try again",
+      "scrollProducts": "Scroll down for more products. If search hides the options, clear it to continue browsing.",
+      "clearProduct": "Clear product",
+      "allStatuses": "All statuses",
+      "sortBy": "Sort by",
+      "sortDir": "Sort direction",
+      "defaultSort": "Backend default",
+      "sort": {
+        "quantity": "Quantity",
+        "product": "Product",
+        "updated_at": "Last updated"
+      },
+      "direction": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      },
+      "emptyTitle": "No matching stock records",
+      "emptyDescription": "Change or reset filters to view other stock in this warehouse.",
+      "totalRecords": "Matching stock records · this warehouse"
+    },
     "title": "Inventory",
     "description": "Choose a warehouse to view its stock and carry out stocktaking.",
     "directoryTitle": "Inventory warehouse directory",

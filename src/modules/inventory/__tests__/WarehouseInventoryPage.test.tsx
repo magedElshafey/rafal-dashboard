@@ -1,8 +1,9 @@
+import { normalizeInventoryFilters } from '../utils/inventory-filters'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AxiosHeaders } from 'axios'
 import i18n from '@/config/i18'
 import WarehouseInventoryPage from '@/modules/warehouses/pages/WarehouseInventoryPage'
@@ -11,6 +12,10 @@ import { inventoryService, parseInventoryResponse } from '@/modules/inventory/ap
 import { inventoryKeys } from '@/modules/inventory/queries/inventory.keys'
 import { inventoryPage, rawResponse, rawStock, warehouseFixture } from './inventory.fixtures'
 import { $http } from '@/utils/http'
+
+const productQueries = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn() }))
+vi.mock('@/modules/products/hooks/useProducts', () => ({ useProducts: () => productQueries.list() }))
+vi.mock('@/modules/products/hooks/useProduct', () => ({ useProduct: (id: number | null) => productQueries.detail(id) }))
 
 function Navigation() {
   const location = useLocation()
@@ -45,6 +50,18 @@ function renderWorkspace(entry = '/dashboard/warehouses/6/inventory') {
 describe('Warehouse inventory workspace', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
+    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
+    Element.prototype.scrollIntoView = vi.fn()
+    HTMLElement.prototype.hasPointerCapture = vi.fn(() => false)
+    HTMLElement.prototype.setPointerCapture = vi.fn()
+    HTMLElement.prototype.releasePointerCapture = vi.fn()
+    productQueries.list.mockReturnValue({
+      data: { pages: [{ items: [rawStock().product] }] }, isLoading: false, isFetching: false,
+      isError: false, hasNextPage: false,
+    })
+    productQueries.detail.mockImplementation((id: number | null) => ({
+      data: id ? { ...rawStock().product, id } : undefined, isLoading: false, isFetching: false, isError: false,
+    }))
     await i18n.changeLanguage('en')
     vi.spyOn(warehousesService, 'show').mockImplementation(async (id) => ({
       success: true,
@@ -54,6 +71,127 @@ describe('Warehouse inventory workspace', () => {
     vi.spyOn(inventoryService, 'list').mockImplementation(async (id, page) => inventoryPage(page, 2, id))
   })
 
+  afterEach(() => vi.unstubAllGlobals())
+
+  it.each(['en', 'ar'])('restores localized filter controls and an off-page product label in %s', async language => {
+    await i18n.changeLanguage(language)
+    const user = userEvent.setup()
+    renderWorkspace('/dashboard/warehouses/6/inventory?page=2&product_id=44&stock_status=low_stock&sort_by=updated_at&sort_dir=desc&search=Musk')
+    await screen.findByRole('article')
+    expect(inventoryService.list).toHaveBeenLastCalledWith(6, 2, expect.any(AbortSignal), normalizeInventoryFilters({
+      productId: 44, stockStatus: 'low_stock', sortBy: 'updated_at', sortDir: 'desc', search: 'Musk',
+    }))
+    expect(screen.getByRole('textbox', { name: i18n.t('inventory.filters.search') })).toHaveValue('Musk')
+    await user.click(screen.getByRole('button', { name: i18n.t('inventory.filters.active', { count: 5 }) }))
+    const product = screen.getByRole('combobox', { name: i18n.t('inventory.fields.product') })
+    expect(product).toHaveTextContent(language === 'ar' ? rawStock().product.name.ar : rawStock().product.name.en)
+    expect(productQueries.detail).toHaveBeenCalledWith(44)
+    expect(screen.getByRole('combobox', { name: i18n.t('inventory.fields.status') })).toHaveTextContent(i18n.t('inventory.status.lowStock'))
+    await user.click(screen.getByRole('combobox', { name: i18n.t('inventory.filters.sortBy') }))
+    expect(screen.getByRole('option', { name: i18n.t('inventory.filters.sort.quantity') })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: i18n.t('inventory.fields.warehouse') })).not.toBeInTheDocument()
+  })
+
+  it('applies drafts atomically at page one, preserves filters on paging/history, and resets only owned parameters', async () => {
+    const user = userEvent.setup()
+    renderWorkspace('/dashboard/warehouses/6/inventory?page=2&search=Musk&product_id=22&keep=yes')
+    await screen.findByText('Page 2 of 2')
+    await user.click(screen.getByRole('button', { name: 'Filters (2)' }))
+    await user.click(screen.getByRole('combobox', { name: 'Stock status' }))
+    await user.click(screen.getByRole('option', { name: 'Low stock' }))
+    await user.click(screen.getByRole('combobox', { name: 'Sort by' }))
+    await user.click(screen.getByRole('option', { name: 'Quantity' }))
+    await user.click(screen.getByRole('combobox', { name: 'Sort direction' }))
+    await user.click(screen.getByRole('option', { name: 'Descending' }))
+    expect(inventoryService.list).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await screen.findByText('Page 1 of 2')
+    const filters = normalizeInventoryFilters({ search: 'Musk', productId: 22, stockStatus: 'low_stock', sortBy: 'quantity', sortDir: 'desc' })
+    expect(inventoryService.list).toHaveBeenCalledTimes(2)
+    expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal), filters)
+    await user.click(screen.getByRole('button', { name: 'Go to next page' }))
+    await screen.findByText('Page 2 of 2')
+    expect(inventoryService.list).toHaveBeenLastCalledWith(6, 2, expect.any(AbortSignal), filters)
+    await user.click(screen.getByRole('button', { name: 'Browser back' }))
+    await screen.findByText('Page 1 of 2')
+    expect(screen.getByTestId('location')).toHaveTextContent('stock_status=low_stock')
+    await user.click(screen.getByRole('button', { name: 'Filters (5)' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() => expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters()))
+    expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/6/inventory?keep=yes')
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Browser back' }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: i18n.t('inventory.filters.search') })).toHaveValue('Musk'))
+    await user.click(screen.getByRole('link', { name: 'Warehouse B' }))
+    await screen.findByRole('heading', { name: 'Warehouse 8' })
+    await waitFor(() => expect(inventoryService.list).toHaveBeenLastCalledWith(8, 1, expect.any(AbortSignal), normalizeInventoryFilters()))
+  })
+
+  it('debounces backend search and resets page while preserving an applied product', async () => {
+    const user = userEvent.setup()
+    renderWorkspace('/dashboard/warehouses/6/inventory?page=2&product_id=22')
+    await screen.findByText('Page 2 of 2')
+    await user.type(screen.getByRole('textbox', { name: i18n.t('inventory.filters.search') }), 'VAR-45')
+    expect(inventoryService.list).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters({ search: 'VAR-45', productId: 22 })))
+    expect(inventoryService.list).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads product pages inside the dropdown and clears product selection in the draft', async () => {
+    const more = vi.fn()
+    productQueries.list.mockReturnValue({ data: { pages: [{ items: [rawStock().product] }] }, hasNextPage: true,
+      isLoading: false, isFetching: false, isError: false, fetchNextPage: more })
+    const user = userEvent.setup()
+    renderWorkspace('/dashboard/warehouses/6/inventory?product_id=22')
+    await screen.findByRole('article')
+    await user.click(screen.getByRole('button', { name: 'Filters (1)' }))
+    expect(more).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Load more products' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('combobox', { name: 'Product' }))
+    const viewport = screen.getByRole('listbox')
+    Object.defineProperties(viewport, {
+      scrollHeight: { configurable: true, value: 600 },
+      clientHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 270 },
+    })
+    fireEvent.scroll(viewport)
+    await waitFor(() => expect(more).toHaveBeenCalledTimes(1))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Clear product' }))
+    expect(inventoryService.list).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await waitFor(() => expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters()))
+  })
+
+  it.each(['en', 'ar'])('does not describe sorting-only results as filtered in %s', async language => {
+    await i18n.changeLanguage(language)
+    vi.mocked(inventoryService.list).mockResolvedValue(parseInventoryResponse({
+      ...rawResponse([]), meta: { ...rawResponse([]).meta, total: 0 },
+    }))
+    renderWorkspace('/dashboard/warehouses/6/inventory?sort_by=quantity&sort_dir=desc')
+    await screen.findByText(i18n.t('inventory.empty.title'))
+    expect(screen.getByText(i18n.t('inventory.totalRecords'))).toBeInTheDocument()
+    expect(screen.queryByText(i18n.t('inventory.filters.totalRecords'))).not.toBeInTheDocument()
+    expect(screen.queryByText(i18n.t('inventory.filters.emptyTitle'))).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: i18n.t('inventory.filters.active', { count: 2 }) })).toBeInTheDocument()
+  })
+
+  it('deduplicates product identities from overlapping pages without clearing the selected product', async () => {
+    productQueries.list.mockReturnValue({
+      data: { pages: [{ items: [rawStock().product] }, { items: [rawStock().product] }] },
+      hasNextPage: false, isLoading: false, isFetching: false, isError: false,
+    })
+    const user = userEvent.setup()
+    renderWorkspace('/dashboard/warehouses/6/inventory?product_id=22')
+    await screen.findByRole('article')
+    await user.click(screen.getByRole('button', { name: 'Filters (1)' }))
+    await user.click(screen.getByRole('combobox', { name: 'Product' }))
+    expect(screen.getAllByRole('option', { name: /White Musk Perfume/ })).toHaveLength(1)
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('combobox', { name: 'Product' })).toHaveTextContent('White Musk Perfume')
+    expect(inventoryService.list).toHaveBeenCalledTimes(1)
+  })
+
   it('loads identity and stock separately and preserves exact record/variant attributes and navigation', async () => {
     vi.mocked(inventoryService.list).mockResolvedValue(
       parseInventoryResponse(rawResponse([rawStock(), rawStock(174, 6, 46)]))
@@ -61,7 +199,7 @@ describe('Warehouse inventory workspace', () => {
     renderWorkspace()
     const cards = await screen.findAllByRole('article')
     expect(warehousesService.show).toHaveBeenCalledExactlyOnceWith(6, expect.any(AbortSignal))
-    expect(inventoryService.list).toHaveBeenCalledExactlyOnceWith(6, 1, expect.any(AbortSignal))
+    expect(inventoryService.list).toHaveBeenCalledExactlyOnceWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters())
     expect(screen.getByRole('heading', { name: 'Warehouse 6' })).toBeInTheDocument()
     expect(screen.getByText('Riyadh')).toBeInTheDocument()
     expect(screen.getByText('Stock records · this warehouse')).toBeInTheDocument()
@@ -101,7 +239,7 @@ describe('Warehouse inventory workspace', () => {
     await user.click(screen.getByRole('link', { name: 'Warehouse B' }))
     await screen.findByRole('heading', { name: 'Warehouse 8' })
     await screen.findByText('Page 1 of 2')
-    expect(inventoryService.list).toHaveBeenLastCalledWith(8, 1, expect.any(AbortSignal))
+    expect(inventoryService.list).toHaveBeenLastCalledWith(8, 1, expect.any(AbortSignal), normalizeInventoryFilters())
     expect(client.getQueryData(inventoryKeys.list(8, 1))).toEqual(inventoryPage(1, 2, 8))
     expect(screen.getByTestId('location')).not.toHaveTextContent('?page=2')
     expect(screen.getByRole('button', { name: 'Quick Stocktake for VAR-45 in Warehouse 8' })).toBeEnabled()
@@ -110,9 +248,9 @@ describe('Warehouse inventory workspace', () => {
   it.each(['0', '-1', '1.5', 'abc', '9007199254740992', 'Infinity', ''])(
     'normalizes invalid page %s without making an invalid request',
     async (page) => {
-      renderWorkspace(`/dashboard/warehouses/6/inventory?page=${page}&warehouse_id=8&search=ignored`)
+      renderWorkspace(`/dashboard/warehouses/6/inventory?page=${page}&warehouse_id=8&search=VAR`)
       await screen.findByRole('article')
-      expect(inventoryService.list).toHaveBeenCalledExactlyOnceWith(6, 1, expect.any(AbortSignal))
+      expect(inventoryService.list).toHaveBeenCalledExactlyOnceWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters({ search: 'VAR' }))
       expect(screen.getByTestId('location')).toHaveTextContent('page=1')
     }
   )
@@ -138,7 +276,7 @@ describe('Warehouse inventory workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await screen.findByText('No stock records in this warehouse')
     expect(screen.getByTestId('location')).toHaveTextContent('page=1')
-    expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal))
+    expect(inventoryService.list).toHaveBeenLastCalledWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters())
   })
 
   it('cancels a departed scope and never renders its late response under another warehouse', async () => {
@@ -230,7 +368,7 @@ describe('Warehouse inventory workspace', () => {
       expect(pending.querySelector('svg')).toHaveClass('motion-safe:animate-spin')
       fireEvent.click(pending)
       expect(inventoryService.list).toHaveBeenCalledTimes(2)
-      expect(inventoryService.list).toHaveBeenLastCalledWith(8, 2, expect.any(AbortSignal))
+      expect(inventoryService.list).toHaveBeenLastCalledWith(8, 2, expect.any(AbortSignal), normalizeInventoryFilters())
       expect(warehousesService.show).toHaveBeenCalledTimes(1)
       expect(screen.getByRole('article')).toHaveAttribute('data-stock-id', '173')
       expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/8/inventory?page=2')
@@ -243,7 +381,7 @@ describe('Warehouse inventory workspace', () => {
         expect(screen.queryByRole('button', { name: i18n.t('queryState.actions.retry') })).not.toBeInTheDocument()
       )
       expect(inventoryService.list).toHaveBeenCalledTimes(3)
-      expect(inventoryService.list).toHaveBeenLastCalledWith(8, 2, expect.any(AbortSignal))
+      expect(inventoryService.list).toHaveBeenLastCalledWith(8, 2, expect.any(AbortSignal), normalizeInventoryFilters())
       expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/8/inventory?page=2')
       expect(put).not.toHaveBeenCalled()
       expect(remove).not.toHaveBeenCalled()

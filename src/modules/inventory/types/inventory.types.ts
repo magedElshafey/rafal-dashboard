@@ -17,3 +17,11 @@ export type InventoryPage = {
   items: InventoryStock[]
   meta: DashboardPaginationMeta & { low_stock_threshold: number }
 }
+
+export type InventoryFilters = {
+  search: string
+  productId: number | null
+  stockStatus: 'in_stock' | 'low_stock' | 'out_of_stock' | null
+  sortBy: 'quantity' | 'product' | 'warehouse' | 'updated_at' | null
+  sortDir: 'asc' | 'desc' | null
+}

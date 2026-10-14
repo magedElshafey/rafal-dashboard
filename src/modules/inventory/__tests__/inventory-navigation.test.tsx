@@ -1,3 +1,4 @@
+import { normalizeInventoryFilters } from '../utils/inventory-filters'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -63,7 +64,7 @@ describe('inventory navigation and capability boundary', () => {
     await screen.findByRole('heading', { name: 'Warehouse 6' })
     await screen.findByRole('article')
     expect(screen.getByRole('link', { name: 'Manage warehouses' })).toHaveAttribute('href', '/dashboard/warehouses')
-    expect(inventoryService.list).toHaveBeenCalledWith(6, 1, expect.any(AbortSignal))
+    expect(inventoryService.list).toHaveBeenCalledWith(6, 1, expect.any(AbortSignal), normalizeInventoryFilters())
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('link', { name: 'Back to inventory warehouses' }))
     await screen.findByText('All inventory destination')

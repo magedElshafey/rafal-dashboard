@@ -1,3 +1,4 @@
+import { normalizeInventoryFilters } from '../utils/inventory-filters'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -378,7 +379,7 @@ describe('Quick Stocktake', () => {
       const user = userEvent.setup()
       render(
         <QueryClientProvider client={client}>
-          <MemoryRouter initialEntries={['/dashboard/warehouses/6/inventory?page=2']}>
+          <MemoryRouter initialEntries={['/dashboard/warehouses/6/inventory?page=2&product_id=22&stock_status=in_stock&sort_by=quantity&sort_dir=asc']}>
             <Routes>
               <Route path="/dashboard/warehouses/:id/inventory" element={<WarehouseInventoryPage />} />
             </Routes>
@@ -398,7 +399,7 @@ describe('Quick Stocktake', () => {
       if (refreshFails)
         expect(screen.getByRole('button', { name: i18n.t('queryState.actions.retry') })).toBeInTheDocument()
       expect(inventoryService.list).toHaveBeenCalledTimes(2)
-      expect(inventoryService.list).toHaveBeenLastCalledWith(6, 2, expect.any(AbortSignal))
+      expect(inventoryService.list).toHaveBeenLastCalledWith(6, 2, expect.any(AbortSignal), normalizeInventoryFilters({ productId: 22, stockStatus: 'in_stock', sortBy: 'quantity', sortDir: 'asc' }))
       expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/warehouses/6/inventory?page=2')
       expect(trigger).toHaveFocus()
     }

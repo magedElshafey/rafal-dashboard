@@ -1,5 +1,5 @@
 // hooks
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 // icons
@@ -9,7 +9,7 @@ import { Check, ChevronDownIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // types
-import type { ComponentProps } from 'react'
+import type { ComponentProps, ReactNode, UIEvent } from 'react'
 
 // ui imports
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,18 @@ export interface ComboboxProps<T> extends Omit<
   value?: T | null
   onChange?: (value: T | null) => void
   onSearch?: (value: string) => void
+  pagination?: {
+    hasNextPage: boolean
+    isFetching: boolean
+    isLoading: boolean
+    isError: boolean
+    onLoadMore: () => void | Promise<unknown>
+    onRetry: () => void | Promise<unknown>
+    loadingMessage: ReactNode
+    moreMessage: ReactNode
+    errorMessage: ReactNode
+    retryLabel: string
+  }
   hasError?: boolean
   /** Callback when the popover opens/closes */
   onToggle?: (isOpen: boolean) => void
@@ -42,6 +54,7 @@ function Combobox<T>({
   onChange,
   onSearch,
   hasError,
+  pagination,
   className,
   onToggle,
   onClear,
@@ -51,6 +64,33 @@ function Combobox<T>({
 }: ComboboxProps<T>) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const paginationLock = useRef(false)
+  const requestedHeight = useRef<number | null>(null)
+  const lastScrollTop = useRef(0)
+
+  const requestPage = (retry = false) => {
+    if (!open || disabled || !pagination || pagination.isFetching || paginationLock.current) return
+    if (!retry && (!pagination.hasNextPage || pagination.isLoading || pagination.isError)) return
+    paginationLock.current = true
+    const request = retry ? pagination.onRetry : pagination.onLoadMore
+    void Promise.resolve().then(request).catch(() => undefined).finally(() => {
+      paginationLock.current = false
+    })
+  }
+
+  const handleOptionsScroll = (event: UIEvent<HTMLDivElement>) => {
+    const viewport = event.currentTarget
+    const movingDown = viewport.scrollTop > lastScrollTop.current
+    lastScrollTop.current = viewport.scrollTop
+    if (!open || disabled || !pagination || !pagination.hasNextPage || pagination.isFetching ||
+      pagination.isLoading || pagination.isError || paginationLock.current || !movingDown) return
+    if (viewport.scrollHeight <= viewport.clientHeight ||
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight > 48 ||
+      requestedHeight.current === viewport.scrollHeight) return
+    // One request per content extent; appending or opening alone never requests a page.
+    requestedHeight.current = viewport.scrollHeight
+    requestPage()
+  }
   const [internalValue, setInternalValue] = useState<T | null>(controlledValue ?? null)
   const isControlled = controlledValue !== undefined
   const value = isControlled ? controlledValue : internalValue
@@ -69,6 +109,8 @@ function Combobox<T>({
       setOpen(false)
       return
     }
+    requestedHeight.current = null
+    lastScrollTop.current = 0
     setOpen(next)
     onToggle?.(next)
   }
@@ -110,8 +152,15 @@ function Combobox<T>({
           })}
         >
           <CommandInput surface="field" placeholder={t('label.search')} />
-          <CommandList>
-            <CommandEmpty>{t('label.no_data')}</CommandEmpty>
+          <CommandList
+            onScroll={pagination ? handleOptionsScroll : undefined}
+            className={pagination ? 'overscroll-contain' : undefined}
+            aria-busy={pagination ? pagination.isFetching : undefined}
+          >
+            <CommandEmpty>
+              {pagination?.isLoading || pagination?.isFetching ? pagination.loadingMessage
+                : pagination?.hasNextPage || pagination?.isError ? null : t('label.no_data')}
+            </CommandEmpty>
             <CommandGroup>
               {data.map((item) => {
                 const itemValue = String(item[valueKey])
@@ -136,6 +185,18 @@ function Combobox<T>({
                 )
               })}
             </CommandGroup>
+            {pagination && (
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                {pagination.isFetching && <p role="status">{pagination.loadingMessage}</p>}
+                {pagination.isError ? (
+                  <div role="alert" className="space-y-2">
+                    <p>{pagination.errorMessage}</p>
+                    <Button type="button" variant="outline" disabled={pagination.isFetching}
+                      onClick={() => requestPage(true)}>{pagination.retryLabel}</Button>
+                  </div>
+                ) : pagination.hasNextPage && !pagination.isFetching ? <p>{pagination.moreMessage}</p> : null}
+              </div>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

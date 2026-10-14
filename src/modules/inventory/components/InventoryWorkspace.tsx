@@ -1,3 +1,6 @@
+import FiltersWrapper from '@/components/filters/FiltersWrapper'
+import { InventoryFilters } from './InventoryFilters'
+import { inventoryFilterNames, readInventoryFilters, serializeInventoryFilters } from '../utils/inventory-filters'
 import { Package, RefreshCw } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,8 +22,11 @@ import { resolveAppLocale } from '@/utils/date/date.helpers'
 
 export function InventoryWorkspace({ warehouseId, page }: { warehouseId: number; page: number }) {
   const { t, i18n } = useTranslation()
-  const query = useInventory(warehouseId, page)
-  const { forwardAddQuery } = useQuery()
+  const { forwardAddQuery, forwardQuery } = useQuery()
+  const filters = readInventoryFilters(forwardQuery)
+  const hasRestrictiveFilters = Boolean(filters.search || filters.productId !== null || filters.stockStatus)
+  const activeCount = Object.keys(serializeInventoryFilters(filters)).length
+  const query = useInventory(warehouseId, page, filters)
   const correctedPage =
     query.data && page > query.data.meta.last_page
       ? Math.min(query.data.meta.current_page, query.data.meta.last_page)
@@ -61,6 +67,17 @@ export function InventoryWorkspace({ warehouseId, page }: { warehouseId: number;
           {t('inventory.refreshDescription')}
         </span>
       </div>
+      <FiltersWrapper
+        searchLabel={t('inventory.filters.search')}
+        searchPlaceholder={t('inventory.filters.search')}
+        filterLabel={activeCount ? t('inventory.filters.active', { count: activeCount }) : t('button.filter')}
+        filterNames={inventoryFilterNames}
+        resetQueryNamesOnChange={['page']}
+        dialogTitle={t('inventory.filters.title')}
+        onApply={draft => Object.fromEntries(Object.entries(serializeInventoryFilters(readInventoryFilters(draft))).map(([key, value]) => [key, String(value)]))}
+      >
+        <InventoryFilters />
+      </FiltersWrapper>
       <QueryStateBoundary
         isLoading={query.isLoading || correctedPage !== page}
         isLoadingError={query.isError && !query.data}
@@ -73,7 +90,7 @@ export function InventoryWorkspace({ warehouseId, page }: { warehouseId: number;
       >
         {query.data ? (
           <>
-            <InventoryOverview data={query.data} />
+            <InventoryOverview data={query.data} filtered={hasRestrictiveFilters} />
             <ResponsiveDataLayout
               header={
                 <div>
@@ -90,9 +107,9 @@ export function InventoryWorkspace({ warehouseId, page }: { warehouseId: number;
               empty={
                 <EmptyState
                   icon={<Package />}
-                  title={t(query.data.meta.total === 0 ? 'inventory.empty.title' : 'inventory.emptyPage.title')}
+                  title={t(hasRestrictiveFilters ? 'inventory.filters.emptyTitle' : query.data.meta.total === 0 ? 'inventory.empty.title' : 'inventory.emptyPage.title')}
                   description={t(
-                    query.data.meta.total === 0 ? 'inventory.empty.description' : 'inventory.emptyPage.description'
+                    hasRestrictiveFilters ? 'inventory.filters.emptyDescription' : query.data.meta.total === 0 ? 'inventory.empty.description' : 'inventory.emptyPage.description'
                   )}
                 />
               }

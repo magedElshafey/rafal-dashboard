@@ -118,3 +118,39 @@ describe('warehouse stock contract', () => {
     expect((await inventoryService.list(6, 9)).meta.last_page).toBe(2)
   })
 })
+
+
+describe('inventory filters transport', () => {
+  beforeEach(() => vi.resetAllMocks())
+  it('serializes active filters, preserving the route warehouse and cancellation', async () => {
+    vi.mocked($http.get).mockResolvedValue(reply(rawResponse([rawStock()], 2, 3)))
+    const signal = new AbortController().signal
+    const filters = { search: '  White Musk VAR-45  ', productId: 22, stockStatus: 'low_stock' as const,
+      sortBy: 'quantity' as const, sortDir: 'desc' as const, warehouse_id: 8, per_page: 999 }
+    await inventoryService.list(6, 2, signal, filters)
+    expect($http.get).toHaveBeenCalledWith(expect.objectContaining({ signal, query: {
+      warehouse_id: 6, page: 2, search: 'White Musk VAR-45', product_id: 22,
+      stock_status: 'low_stock', sort_by: 'quantity', sort_dir: 'desc',
+    } }))
+  })
+  it.each(['quantity', 'product', 'warehouse', 'updated_at'] as const)('supports server sort %s', async sortBy => {
+    vi.mocked($http.get).mockResolvedValue(reply(rawResponse([rawStock()])))
+    await inventoryService.list(6, 1, undefined, { sortBy, sortDir: 'asc' })
+    expect($http.get).toHaveBeenCalledWith(expect.objectContaining({ query: {
+      warehouse_id: 6, page: 1, sort_by: sortBy, sort_dir: 'asc',
+    } }))
+  })
+  it('omits inactive filters and per_page', async () => {
+    vi.mocked($http.get).mockResolvedValue(reply(rawResponse([rawStock()])))
+    await inventoryService.list(6, 1, undefined, { search: '   ', productId: null, stockStatus: null, sortBy: null, sortDir: null })
+    expect($http.get).toHaveBeenCalledWith(expect.objectContaining({ query: { warehouse_id: 6, page: 1 } }))
+  })
+  it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])('rejects product ID %s before transport', async productId => {
+    await expect(inventoryService.list(6, 1, undefined, { productId })).rejects.toThrow()
+    expect($http.get).not.toHaveBeenCalled()
+  })
+  it('still rejects another warehouse under active filters', async () => {
+    vi.mocked($http.get).mockResolvedValue(reply(rawResponse([rawStock(173, 8)])))
+    await expect(inventoryService.list(6, 1, undefined, { search: 'Musk' })).rejects.toThrow('Inventory warehouse scope mismatch')
+  })
+})

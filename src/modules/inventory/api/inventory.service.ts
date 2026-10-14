@@ -1,8 +1,10 @@
 import { z } from 'zod'
 
 import { normalizeVariantAttributes } from '@/modules/products/api/product-variants.service'
-import type { InventoryPage } from '@/modules/inventory/types/inventory.types'
+import type { InventoryFilters, InventoryPage } from '@/modules/inventory/types/inventory.types'
 import { $http } from '@/utils/http'
+
+import { serializeInventoryFilters } from '../utils/inventory-filters'
 
 const id = z.number().int().positive().safe()
 const responseSchema = z.object({
@@ -70,12 +72,12 @@ export function parseInventoryResponse(value: unknown): InventoryPage {
 }
 
 export const inventoryService = {
-  async list(warehouseId: number, page: number, signal?: AbortSignal): Promise<InventoryPage> {
+  async list(warehouseId: number, page: number, signal?: AbortSignal, filters: Partial<InventoryFilters> = {}): Promise<InventoryPage> {
     id.parse(warehouseId)
     id.parse(page)
     const response = await $http.get<unknown>({
       url: '/dashboard/warehouse-stocks',
-      query: { warehouse_id: warehouseId, page },
+      query: { ...serializeInventoryFilters(filters), warehouse_id: warehouseId, page },
       signal,
       suppressErrorNotification: true,
       suppressForbiddenRedirect: true,
