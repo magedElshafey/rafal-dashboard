@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -84,6 +84,78 @@ function renderPage(initialEntry = '/dashboard/products') {
 
 describe('ProductsPage', () => {
   it.each(['en', 'ar'])(
+    'exposes full long values on keyboard focus in %s without removing columns',
+    async (language) => {
+      await i18n.changeLanguage(language)
+      const name = (language === 'ar' ? 'منتج طويل للاختبار ' : 'Long product for testing ').repeat(20).trim()
+      const sku = 'RFL-'.repeat(100)
+      seedProducts([rawProduct(1, { name: { en: name, ar: name }, sku })])
+      const user = userEvent.setup()
+      renderPage()
+      const table = await screen.findByRole('table', { name: i18n.t('products.listTitle') })
+      expect(within(table).getAllByRole('columnheader')).toHaveLength(9)
+      expect(table).toHaveAttribute('tabindex', '0')
+      expect(table).toHaveClass('table-fixed', 'min-w-[85rem]')
+      expect(table.parentElement).toHaveAttribute('data-slot', 'table-container')
+      expect(table.parentElement).toHaveClass('overflow-x-auto')
+      const nameTrigger = within(table).getByText(name)
+      const skuTrigger = within(table).getByText(sku)
+      expect(nameTrigger).toHaveClass('line-clamp-2')
+      expect(skuTrigger).toHaveClass('truncate')
+      expect(skuTrigger).toHaveAttribute('dir', 'ltr')
+      act(() => nameTrigger.focus())
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(name)
+      await user.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
+      await user.tab()
+      expect(skuTrigger).toHaveFocus()
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(sku)
+      await user.keyboard('{Escape}')
+      await user.tab()
+      expect(within(table).getByRole('button', { name: i18n.t('products.actions.forProduct', { name }) })).toHaveFocus()
+    }
+  )
+
+  it('keeps the existing table and column sizing contract when a long later page arrives', async () => {
+    seedProducts(
+      Array.from({ length: 16 }, (_, index) =>
+        rawProduct(
+          index + 1,
+          index === 15
+            ? {
+                name: { en: 'Long later product '.repeat(30), ar: 'منتج طويل '.repeat(30) },
+                sku: 'SKU'.repeat(200),
+              }
+            : {}
+        )
+      )
+    )
+    let releasePage: (() => void) | undefined
+    const pendingPage = new Promise<void>((resolve) => {
+      releasePage = resolve
+    })
+    vi.mocked(productsService.list).mockImplementation(async (filters, page) => {
+      if (page === 2) await pendingPage
+      return listFixture(filters, page)
+    })
+    renderPage()
+    const table = await screen.findByRole('table')
+    const headers = within(table).getAllByRole('columnheader')
+    const sizing = headers.map((header) => header.className)
+    await act(async () => {
+      releasePage?.()
+    })
+    await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(17))
+    expect(screen.getByRole('table')).toBe(table)
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((header) => header.className)
+    ).toEqual(sizing)
+    expect(within(table).getByText('SKU'.repeat(200))).toHaveAttribute('tabindex', '0')
+  })
+
+  it.each(['en', 'ar'])(
     'opens View from the accessible %s actions menu and preserves Edit/Delete',
     async (language) => {
       await i18n.changeLanguage(language)
@@ -103,13 +175,24 @@ describe('ProductsPage', () => {
     }
   )
   beforeEach(async () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    )
     vi.restoreAllMocks()
     seedProducts([])
     installServiceFixtures()
     await i18n.changeLanguage('en')
   })
 
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
 
   it('renders the complete localized Index in desktop and mobile representations', async () => {
     seedProducts([
