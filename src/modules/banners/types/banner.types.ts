@@ -2,6 +2,9 @@ import type { ImageUploadValue } from '@/components/form/image-upload'
 import type { PaginatedDashboardResponse } from '@/types/dashboard-api.types'
 
 export type LocalizedTitle = { ar: string; en: string }
+export const bannerPositions = ['hero', 'men', 'gifts', 'loyalty'] as const
+export type BannerPosition = (typeof bannerPositions)[number]
+export type BannerDestinationType = 'product' | 'category'
 export type BannerPlacement = 'home' | 'splash'
 export type BannerPlatform = 'web' | 'mobile' | 'both'
 export type BannerSortBy = 'sort_order' | 'created_at' | 'starts_at'
@@ -20,6 +23,9 @@ export type Banner = {
   placement: BannerPlacement
   title: LocalizedTitle
   link_url: string | null
+  position: BannerPosition | null
+  product_id: number | null
+  category_id: number | null
   platform: BannerPlatform
   starts_at: string | null
   ends_at: string | null
@@ -31,9 +37,10 @@ export type Banner = {
 }
 
 export type BannerPayload = {
-  placement: BannerPlacement
   title: LocalizedTitle
-  link_url: string | null
+  position: BannerPosition
+  product_id: number | null
+  category_id: number | null
   platform: BannerPlatform
   starts_at: string | null
   ends_at: string | null
@@ -42,8 +49,9 @@ export type BannerPayload = {
   image?: File
 }
 
-export type BannerFormValues = Omit<BannerPayload, 'link_url' | 'starts_at' | 'ends_at' | 'image'> & {
-  link_url: string
+export type BannerFormValues = Omit<BannerPayload, 'position' | 'starts_at' | 'ends_at' | 'image'> & {
+  destination_type: BannerDestinationType | ''
+  position: BannerPosition | ''
   starts_at: string
   ends_at: string
   image: ImageUploadValue

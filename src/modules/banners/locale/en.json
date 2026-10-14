@@ -22,7 +22,10 @@
         "created_at": "Created at",
         "starts_at": "Starts at"
       },
-      "direction": { "asc": "Ascending", "desc": "Descending" }
+      "direction": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      }
     },
     "fields": {
       "image": "Image",
@@ -31,15 +34,25 @@
       "titleEn": "English Title",
       "placement": "Placement",
       "platform": "Platform",
-      "link": "Link URL",
       "startsAt": "Start Date/Time",
       "endsAt": "End Date/Time",
       "active": "Active",
       "sortOrder": "Sort Order",
-      "schedule": "Schedule / Status"
+      "schedule": "Schedule / Status",
+      "position": "Position",
+      "destinationType": "Destination type",
+      "product": "Product",
+      "category": "Category"
     },
-    "placements": { "home": "Home", "splash": "Splash" },
-    "platforms": { "web": "Web", "mobile": "Mobile", "both": "Both" },
+    "placements": {
+      "home": "Home",
+      "splash": "Splash"
+    },
+    "platforms": {
+      "web": "Web",
+      "mobile": "Mobile",
+      "both": "Both"
+    },
     "schedule": {
       "inactive": "Inactive",
       "upcoming": "Scheduled",
@@ -86,13 +99,29 @@
       "titleEnRequired": "English title is required.",
       "placementRequired": "Placement is required.",
       "platformRequired": "Platform is required.",
-      "linkInvalid": "Enter a valid absolute URL or an application path beginning with /.",
       "dateInvalid": "Enter a valid date and time.",
       "endBeforeStart": "End date cannot be earlier than start date.",
       "sortRequired": "Sort order is required.",
       "sortInteger": "Sort order must be an integer.",
       "sortNonNegative": "Sort order cannot be negative.",
-      "imageRequired": "An image is required. Choose a replacement before removing the current image."
+      "imageRequired": "An image is required. Choose a replacement before removing the current image.",
+      "positionRequired": "Select a valid position.",
+      "destinationRequired": "Select exactly one valid product or category destination."
+    },
+    "positions": {
+      "hero": "Hero",
+      "men": "Men",
+      "gifts": "Gifts",
+      "loyalty": "Loyalty"
+    },
+    "destination": {
+      "placeholder": "Select a destination",
+      "choose": "Choose one destination type and select a product or category. The existing destination is missing or inconsistent.",
+      "loading": "Loading destinations…",
+      "empty": "No destinations found.",
+      "error": "Could not load destinations. Try again.",
+      "retry": "Retry",
+      "loadMore": "Load more"
     }
   }
 }

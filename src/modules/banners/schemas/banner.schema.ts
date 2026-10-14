@@ -1,30 +1,20 @@
 import * as yup from 'yup'
 
 import type { ImageUploadValue } from '@/components/form/image-upload'
-import type { BannerFormValues, BannerPlacement, BannerPlatform } from '@/modules/banners/types/banner.types'
+import { bannerPositions, type BannerDestinationType, type BannerFormValues, type BannerPlatform, type BannerPosition } from '@/modules/banners/types/banner.types'
 
 type Messages = {
   titleArRequired: string
   titleEnRequired: string
-  placementRequired: string
   platformRequired: string
-  linkInvalid: string
+  positionRequired: string
+  destinationRequired: string
   dateInvalid: string
   endBeforeStart: string
   sortRequired: string
   sortInteger: string
   sortNonNegative: string
   imageRequired: string
-}
-
-const isApplicationUrl = (value: string) => {
-  if (value.startsWith('/') && !value.startsWith('//')) return true
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
 }
 
 const optionalDate = (message: string) =>
@@ -39,13 +29,15 @@ export function createBannerSchema(mode: 'create' | 'edit', hasExistingImage: bo
       ar: yup.string().trim().required(messages.titleArRequired),
       en: yup.string().trim().required(messages.titleEnRequired),
     }),
-    placement: yup.mixed<BannerPlacement>().oneOf(['home', 'splash']).required(messages.placementRequired),
     platform: yup.mixed<BannerPlatform>().oneOf(['web', 'mobile', 'both']).required(messages.platformRequired),
-    link_url: yup
-      .string()
-      .trim()
-      .defined()
-      .test('application-url', messages.linkInvalid, (value) => !value || isApplicationUrl(value)),
+    position: yup.mixed<BannerPosition>().oneOf([...bannerPositions], messages.positionRequired).required(messages.positionRequired),
+    destination_type: yup.mixed<BannerDestinationType>().oneOf(['product', 'category'], messages.destinationRequired).required(messages.destinationRequired),
+    product_id: yup.number().nullable().defined().typeError(messages.destinationRequired).test('product-destination', messages.destinationRequired, function (value) {
+      return this.parent.destination_type === 'product' ? Number.isSafeInteger(value) && Number(value) > 0 && this.parent.category_id === null : value === null
+    }),
+    category_id: yup.number().nullable().defined().typeError(messages.destinationRequired).test('category-destination', messages.destinationRequired, function (value) {
+      return this.parent.destination_type === 'category' ? Number.isSafeInteger(value) && Number(value) > 0 && this.parent.product_id === null : value === null
+    }),
     starts_at: optionalDate(messages.dateInvalid),
     ends_at: optionalDate(messages.dateInvalid).test('after-start', messages.endBeforeStart, function (value) {
       const start = this.parent.starts_at as string

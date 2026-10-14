@@ -13,6 +13,17 @@ import type { Banner, BannerPayload } from '@/modules/banners/types/banner.types
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
 
+vi.mock('@/modules/products/hooks/useProducts', () => ({ useProducts: () => ({
+  data: { pages: [{ items: [{ id: 37, name: { en: 'Selected product', ar: 'المنتج المحدد' } }] }] },
+  isLoading: false, isFetching: false, hasNextPage: false, isError: false,
+}) }))
+vi.mock('@/modules/products/hooks/useProduct', () => ({ useProduct: () => ({ isLoading: false, isFetching: false, isError: false }) }))
+vi.mock('@/modules/categories/hooks/useCategories', () => ({ useCategories: () => ({
+  data: { pages: [{ items: [{ id: 12, name: { en: 'Selected category', ar: 'التصنيف المحدد' } }] }] },
+  isLoading: false, isFetching: false, hasNextPage: false, isError: false,
+}) }))
+vi.mock('@/modules/categories/hooks/useCategory', () => ({ useCategory: () => ({ isLoading: false, isFetching: false, isError: false }) }))
+
 class ResizeObserverMock {
   observe() {}
   unobserve() {}
@@ -29,6 +40,9 @@ const banner = (id: number, title = `Banner ${id}`): Banner => ({
   placement: 'home',
   title: { ar: `لافتة ${id}`, en: title },
   link_url: null,
+  position: 'hero',
+  product_id: 37,
+  category_id: null,
   platform: 'both',
   starts_at: null,
   ends_at: null,
@@ -70,6 +84,8 @@ function installServiceFixtures() {
     const id = Math.max(0, ...banners.map((item) => item.id)) + 1
     const created: Banner = {
       ...payload,
+      placement: 'home',
+      link_url: null,
       id,
       image_url: `https://example.test/banner-${id}.jpg`,
       created_at: '2026-09-28T00:00:00+00:00',
@@ -84,6 +100,7 @@ function installServiceFixtures() {
     const updated: Banner = {
       ...banners[index],
       ...payload,
+      placement: 'home',
       image_url: payload.image ? `https://example.test/banner-${id}-replacement.jpg` : banners[index].image_url,
     }
     banners[index] = updated
@@ -117,6 +134,10 @@ async function openAction(user: ReturnType<typeof userEvent.setup>, title: strin
 }
 
 async function fillRequiredCreate(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('combobox', { name: /^Position/ }))
+  await user.click(await screen.findByRole('option', { name: 'Hero' }))
+  await user.click(screen.getByRole('combobox', { name: /^Product/ }))
+  await user.click(await screen.findByRole('option', { name: 'Selected product' }))
   await user.type(screen.getByRole('textbox', { name: /^Arabic Title/ }), 'عنوان جديد')
   await user.type(screen.getByRole('textbox', { name: /^English Title/ }), 'New banner')
   await user.upload(screen.getByLabelText('Browse images'), new File(['image'], 'banner.png', { type: 'image/png' }))
@@ -251,18 +272,16 @@ describe('BannersPage', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
-  it('creates with selected placement/platform, optional link/schedule, normalized order, and image', async () => {
+  it('creates without a placement selector and with selected platform, required destination/position and optional schedule, normalized order, and image', async () => {
     const create = vi.spyOn(bannersService, 'create')
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('New collection arrived')
     await user.click(screen.getByRole('button', { name: 'Create Banner' }))
     await fillRequiredCreate(user)
-    await user.click(screen.getByRole('combobox', { name: /^Placement/ }))
-    await user.click(screen.getByRole('option', { name: 'Splash' }))
+    expect(screen.queryByRole('combobox', { name: /^Placement/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('combobox', { name: /^Platform/ }))
     await user.click(screen.getByRole('option', { name: 'Web' }))
-    await user.type(screen.getByRole('textbox', { name: 'Link URL' }), '/products/example')
     const order = screen.getByRole('spinbutton', { name: /^Sort Order/ })
     await user.clear(order)
     await user.type(order, '3')
@@ -272,9 +291,8 @@ describe('BannersPage', () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         title: { ar: 'عنوان جديد', en: 'New banner' },
-        placement: 'splash',
         platform: 'web',
-        link_url: '/products/example',
+        position: 'hero', product_id: 37, category_id: null,
         sort_order: 3,
         image: expect.objectContaining({ name: 'banner.png' }),
       })
@@ -310,7 +328,10 @@ describe('BannersPage', () => {
       'src',
       expect.stringMatching(/^https:/)
     )
-    expect(screen.getByRole('combobox', { name: /^Placement/ })).toHaveTextContent('Home')
+    expect(screen.queryByRole('combobox', { name: /^Placement/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /^Position/ })).toHaveTextContent('Hero')
+    expect(screen.getByRole('combobox', { name: /^Destination Type/i })).toHaveTextContent('Product')
+    expect(screen.getByRole('combobox', { name: /^Product/ })).toHaveTextContent('Selected product')
     expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled()
     expect(update).not.toHaveBeenCalled()
   })

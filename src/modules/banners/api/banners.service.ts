@@ -9,12 +9,26 @@ import type {
 import { emptyBannersFilters, serializeBannersFilters } from '@/modules/banners/utils/banner-filters'
 import { $http } from '@/utils/http'
 
-type RawBanner = Omit<Banner, 'sort_order'> & { sort_order: number | string }
+import { bannerPositions } from '../types/banner.types'
+import { normalizeBannerDestinationId } from '../utils/banner.utils'
+
+type RawBanner = Omit<Banner, 'sort_order' | 'product_id' | 'category_id' | 'position'> & {
+  sort_order: number | string
+  product_id?: number | string | null
+  category_id?: number | string | null
+  position?: string | null
+}
 type RawBannerResponse = Omit<BannerResponse, 'data'> & { data: RawBanner }
 type RawBannersIndexResponse = Omit<BannersIndexResponse, 'data'> & { data: RawBanner[] }
 
 export function normalizeBanner(banner: RawBanner): Banner {
-  return { ...banner, sort_order: Number(banner.sort_order) }
+  return {
+    ...banner,
+    sort_order: Number(banner.sort_order),
+    product_id: normalizeBannerDestinationId(banner.product_id),
+    category_id: normalizeBannerDestinationId(banner.category_id),
+    position: bannerPositions.find(position => position === banner.position) ?? null,
+  }
 }
 
 function normalizeResponse(response: RawBannerResponse): BannerResponse {
@@ -26,14 +40,24 @@ function appendOptional(body: FormData, key: string, value: string | null) {
 }
 
 export function serializeBanner(payload: BannerPayload) {
+  const product = normalizeBannerDestinationId(payload.product_id)
+  const category = normalizeBannerDestinationId(payload.category_id)
+  if (!bannerPositions.includes(payload.position) ||
+    !((product !== null && Number.isSafeInteger(product) && category === null) ||
+      (category !== null && Number.isSafeInteger(category) && product === null))) {
+    throw new Error('Invalid banner destination or position')
+  }
   const body = new FormData()
-  body.set('placement', payload.placement)
+  body.set('position', payload.position)
+  // Existing Laravel multipart convention: an empty field clears a nullable ID.
+  body.set('product_id', product === null ? '' : String(product))
+  body.set('category_id', category === null ? '' : String(category))
+  body.set('placement', 'home')
   body.set('title[ar]', payload.title.ar)
   body.set('title[en]', payload.title.en)
   body.set('platform', payload.platform)
   body.set('is_active', payload.is_active ? '1' : '0')
   body.set('sort_order', String(payload.sort_order))
-  appendOptional(body, 'link_url', payload.link_url)
   appendOptional(body, 'starts_at', payload.starts_at)
   appendOptional(body, 'ends_at', payload.ends_at)
   if (payload.image) body.set('image', payload.image)

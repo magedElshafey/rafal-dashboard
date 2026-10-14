@@ -10,7 +10,7 @@ import { useBanner } from '@/modules/banners/hooks/useBanner'
 import { useCreateBanner } from '@/modules/banners/hooks/useCreateBanner'
 import { useUpdateBanner } from '@/modules/banners/hooks/useUpdateBanner'
 import type { BannerFormValues, BannerPayload } from '@/modules/banners/types/banner.types'
-import { toDateTimeLocal } from '@/modules/banners/utils/banner.utils'
+import { getBannerDestinationType, toDateTimeLocal } from '@/modules/banners/utils/banner.utils'
 
 type BannerDrawerProps = {
   open: boolean
@@ -19,15 +19,20 @@ type BannerDrawerProps = {
   onOpenChange: (open: boolean) => void
 }
 
+import { bannerPositions } from '../types/banner.types'
+
 const FORM_ID = 'banner-form'
 
 function toPayload(values: BannerFormValues): BannerPayload {
+  const position = bannerPositions.find(position => position === values.position)
+  if (!position || !getBannerDestinationType(values)) throw new Error('Invalid banner destination or position')
   const replacementImage = values.image.files[0]
   return {
     title: values.title,
-    placement: values.placement,
     platform: values.platform,
-    link_url: values.link_url || null,
+    position,
+    product_id: values.destination_type === 'product' ? values.product_id : null,
+    category_id: values.destination_type === 'category' ? values.category_id : null,
     starts_at: values.starts_at || null,
     ends_at: values.ends_at || null,
     is_active: values.is_active,
@@ -71,9 +76,11 @@ export function BannerDrawer({ open, mode, bannerId, onOpenChange }: BannerDrawe
       const response = await updateBanner.mutateAsync(toPayload(values))
       methods.reset({
         title: { ...response.data.title },
-        placement: response.data.placement,
         platform: response.data.platform,
-        link_url: response.data.link_url ?? '',
+        position: response.data.position ?? '',
+        destination_type: getBannerDestinationType(response.data),
+        product_id: response.data.product_id,
+        category_id: response.data.category_id,
         starts_at: toDateTimeLocal(response.data.starts_at),
         ends_at: toDateTimeLocal(response.data.ends_at),
         is_active: response.data.is_active,

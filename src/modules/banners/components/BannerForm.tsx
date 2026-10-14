@@ -8,8 +8,11 @@ import { FormCheckbox, FormImageUploader, FormInput, FormSelect, FormSortOrder }
 import { EMPTY_IMAGE_UPLOAD_VALUE } from '@/components/form/image-upload'
 import { createBannerSchema } from '@/modules/banners/schemas/banner.schema'
 import type { Banner, BannerFormValues } from '@/modules/banners/types/banner.types'
-import { toDateTimeLocal } from '@/modules/banners/utils/banner.utils'
+import { getBannerDestinationType, toDateTimeLocal } from '@/modules/banners/utils/banner.utils'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
+
+import { BannerDestinationFields } from './BannerDestinationFields'
+import { bannerPositions } from '../types/banner.types'
 
 export type BannerSubmitIntent = 'create' | 'create-another' | 'edit'
 
@@ -28,9 +31,11 @@ type BannerFormProps = {
 
 export const EMPTY_BANNER_FORM_VALUES: BannerFormValues = {
   title: { ar: '', en: '' },
-  placement: 'home',
   platform: 'both',
-  link_url: '',
+  position: '',
+  destination_type: 'product',
+  product_id: null,
+  category_id: null,
   starts_at: '',
   ends_at: '',
   is_active: true,
@@ -38,10 +43,6 @@ export const EMPTY_BANNER_FORM_VALUES: BannerFormValues = {
   image: EMPTY_IMAGE_UPLOAD_VALUE,
 }
 
-const placementOptions = [
-  { value: 'home', labelKey: 'banners.placements.home' },
-  { value: 'splash', labelKey: 'banners.placements.splash' },
-]
 const platformOptions = [
   { value: 'web', labelKey: 'banners.platforms.web' },
   { value: 'mobile', labelKey: 'banners.platforms.mobile' },
@@ -55,9 +56,9 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
       createBannerSchema(mode, Boolean(banner?.image_url), {
         titleArRequired: t('banners.validation.titleArRequired'),
         titleEnRequired: t('banners.validation.titleEnRequired'),
-        placementRequired: t('banners.validation.placementRequired'),
         platformRequired: t('banners.validation.platformRequired'),
-        linkInvalid: t('banners.validation.linkInvalid'),
+        positionRequired: t('banners.validation.positionRequired'),
+        destinationRequired: t('banners.validation.destinationRequired'),
         dateInvalid: t('banners.validation.dateInvalid'),
         endBeforeStart: t('banners.validation.endBeforeStart'),
         sortRequired: t('banners.validation.sortRequired'),
@@ -72,9 +73,11 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
       banner
         ? {
             title: { ...banner.title },
-            placement: banner.placement,
             platform: banner.platform,
-            link_url: banner.link_url ?? '',
+            position: banner.position ?? '',
+            destination_type: getBannerDestinationType(banner),
+            product_id: banner.product_id,
+            category_id: banner.category_id,
             starts_at: toDateTimeLocal(banner.starts_at),
             ends_at: toDateTimeLocal(banner.ends_at),
             is_active: banner.is_active,
@@ -84,7 +87,6 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
         : EMPTY_BANNER_FORM_VALUES,
     [banner]
   )
-  const localizedPlacements = placementOptions.map((option) => ({ ...option, label: t(option.labelKey) }))
   const localizedPlatforms = platformOptions.map((option) => ({ ...option, label: t(option.labelKey) }))
   const primaryTitle = banner?.title[i18n.language.startsWith('ar') ? 'ar' : 'en']
 
@@ -98,7 +100,6 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
     const normalized: BannerFormValues = {
       ...values,
       title: { ar: values.title.ar.trim(), en: values.title.en.trim() },
-      link_url: values.link_url.trim(),
       starts_at: values.starts_at.trim(),
       ends_at: values.ends_at.trim(),
     }
@@ -119,7 +120,7 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
   return (
     <FormWrapper<BannerFormValues>
       schema={schema}
-      defaultValues={EMPTY_BANNER_FORM_VALUES}
+      defaultValues={resetValues}
       resetValues={resetValues}
       resetValuesKey={banner?.id ?? 'create'}
       formId={formId}
@@ -134,15 +135,6 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <FormSelect
-          name="placement"
-          label={t('banners.fields.placement')}
-          data={localizedPlacements}
-          valueKey="value"
-          labelKey="label"
-          disabled={isSubmitting}
-          required
-        />
-        <FormSelect
           name="platform"
           label={t('banners.fields.platform')}
           data={localizedPlatforms}
@@ -152,13 +144,10 @@ export function BannerForm({ formId, mode, banner, isSubmitting, onDirtyChange, 
           required
         />
       </div>
-      <FormInput
-        name="link_url"
-        label={t('banners.fields.link')}
-        placeholder="/products/example-slug"
-        dir="ltr"
-        disabled={isSubmitting}
-      />
+      <FormSelect name="position" label={t('banners.fields.position')}
+        data={bannerPositions.map(value => ({ value, label: t(`banners.positions.${value}`) }))}
+        valueKey="value" labelKey="label" disabled={isSubmitting} required />
+      <BannerDestinationFields disabled={isSubmitting} />
       <div className="grid gap-5 grid-cols-1">
         <FormInput name="starts_at" label={t('banners.fields.startsAt')} type="datetime-local" dir="ltr" />
         <FormInput name="ends_at" label={t('banners.fields.endsAt')} type="datetime-local" dir="ltr" />
