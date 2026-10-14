@@ -1,4 +1,37 @@
 {
+  "routeRecovery": {
+    "title": "This page could not load",
+    "description": "A new version may be available, or your connection may have interrupted loading. Check your connection, then refresh to try again.",
+    "unsaved": "This confirmation cannot detect unsaved changes or preserve drafts. Refreshing may discard work. Save or copy any work still available before continuing.",
+    "refresh": "Refresh application",
+    "confirm": "Refresh now? Unsaved changes may be lost.",
+    "status": "Request failed ({{status}}).",
+    "signIn": "Sign in",
+    "unauthorized": {
+      "title": "Sign-in required",
+      "description": "This request requires authentication. Sign in to continue. If you are already signed in, your session may need to be renewed."
+    },
+    "forbidden": {
+      "title": "Access denied",
+      "description": "You do not have permission to access this page. Return home or contact an administrator."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "This page or resource could not be found. Check the address or return home."
+    },
+    "server": {
+      "title": "Service unavailable",
+      "description": "The server could not complete the request. Try again later or return home."
+    },
+    "request": {
+      "title": "Request could not be completed",
+      "description": "The request was unsuccessful. Check the address or return home."
+    },
+    "unexpected": {
+      "title": "Something went wrong on this page",
+      "description": "An unexpected application error occurred. Return home, or refresh to try again. If it continues, contact support."
+    }
+  },
   "routeLoading": {
     "label": "Loading page…"
   },
