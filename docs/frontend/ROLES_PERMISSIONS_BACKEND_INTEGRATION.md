@@ -22,11 +22,42 @@ Role Create/Update still submit permission **names**, never catalog IDs. Indexed
 
 An assignment absent from the loaded catalog stays in the form and is shown in “Other assigned permissions”. It is not silently removed, automatically mapped to a new name or offered as a new assignable option. Group deselection leaves it untouched. Name-only edits preserve all original assignments even if the catalog is empty or cannot load. The existing name-array write contract supports resubmitting those strings; whether the migrated backend still accepts each retired identifier is unresolved. Backend rejections retain the draft. Explicit removal/migration of unknown permissions needs backend policy.
 
+## Focused localization and draft-preservation follow-up
+
+Confirmed defects and minimal fixes:
+
+- RolePermissions previously rendered raw assigned names without consulting the catalog. RolesList now owns one shared catalog query and a derived exact-name label lookup for both desktop/mobile summaries. It reuses permissionLabel, keeps assignment order and the two-badge summary, and never translates the user-generated role name or modifies payload identifiers. Case-mismatched/legacy identifiers remain exact fallbacks; no lowercase or title-case normalization is performed.
+- Catalog data is optional display metadata. Loading, empty and failed catalogs leave the list usable. Only the permissions catalog request opts out of the shared 403 redirect, while still rejecting the request; the form exposes its existing error/retry state. Role list/detail/write authorization and 401/session behavior remain unchanged. This does not grant any permissions.
+- The same canonical query/cache serves list and form. Explicit freshness uses the existing five-minute short interval; failed requests do not retry merely because another observer mounts. The form's Retry remains available. No per-row/per-badge requests or duplicated catalog state were added.
+- The +N indicator is now a keyboard-accessible button using the existing Badge and Popover. It shows only the remaining labels on demand, with a bounded scrollable region, focus visibility, Escape/focus restoration and bidi isolation. Long badge labels remain available in their DOM text/title. Existing semantic theme tokens are retained; no browser contrast or viewport measurements were performed.
+- The old Edit drawer treated every isFetching as initial loading, replacing and unmounting the form. A focused test reproduced the edited input disappearing during a pending background refetch. Loading/blocking errors now apply only without cached detail data. Pending/successful/failed background refetches preserve the same form instance and unsaved name/permission values; failures show an inline retry notice. No duplicate draft state was added.
+- Group selected counts use real visually hidden localized text alongside aria-hidden compact numbers instead of relying on aria-label on a generic span. No live region was added for counts. Existing keyboard, mixed-state and validation behavior remains covered.
+
+### Empty-permission policy
+
+The repository permits reading roles with an empty permission array, but its existing form schema requires at least one permission on Create/Edit. The supplied contract does not confirm whether creating an empty role or removing all assignments is allowed, nor how an empty array must be encoded by the backend. The rule and serializer are unchanged. Product/backend decision required: should zero-permission roles be writable? Under the preserved rule, an existing empty role cannot be saved after a name-only edit until a permission is selected.
+
+### Backend copy feedback
+
+Only the earlier illustrative response supplies label copy; the complete 19-group/65-permission response was not attached.
+
+| Exact identifier      | Supplied label         | Suggested backend copy |
+| --------------------- | ---------------------- | ---------------------- |
+| products.manage-stock | إدارة المخزون المنتجات | إدارة مخزون المنتجات   |
+| products.manage-stock | Manage stock products  | Manage product stock   |
+
+No identifier-specific frontend translation overrides were added. Other backend labels cannot be audited without the complete response.
+
+### Follow-up files
+
+Production: components/RolePermissions.tsx, components/RolesList.tsx, components/RoleDrawer.tsx, components/RolePermissionSelector.tsx, hooks/usePermissions.ts, api/permissions.service.ts.
+Tests: new components/RolesList.test.tsx, new components/RoleDrawer.test.tsx, pages/RolesPage.test.tsx and api/permissions.service.test.ts. All paths are under src/modules/roles. This integration note was updated; permissionLabel and role validation/payload serialization were reused unchanged.
+
 ## Authorization boundary and remaining dependencies
 
 No auth state, token storage, route guard, sidebar, shared HTTP behavior or super-admin exception was changed. The permission catalog describes assignable permissions; it is **not** the current administrator's effective access.
 
-Existing shared Axios behavior rejects 403 and redirects to /403 without clearing the session. The documented own-role Delete 403 remains handled locally. The backend remains authoritative. Dashboard-wide client authorization is **not complete**.
+Existing shared Axios behavior rejects 403 and redirects to /403 without clearing the session, except for feature-owned errors. The optional catalog read now handles its denial locally so label lookup cannot displace the Roles list. The documented own-role Delete 403 remains handled locally. The backend remains authoritative. Dashboard-wide client authorization is **not complete**.
 
 Backend evidence still needed:
 
@@ -45,9 +76,9 @@ All source paths below are under `src/modules/roles/`:
 
 ## Verification
 
-- Final Roles + authentication/routes/shared-form regressions: **77 passed, 0 failed, 0 skipped across 12 files** (54 Roles tests and 23 directly related regressions).
+- Final Roles + authentication/routes/shared-form regressions: **89 passed, 0 failed, 0 skipped across 14 files** (66 Roles tests and 23 directly related regressions).
 - Command: `yarn vitest run src/modules/roles src/store/auth.test.ts src/config/axios.auth-boundary.test.ts src/routes/routes.test.tsx src/modules/auth/service/login.service.test.ts src/components/core/FormWrapper.test.tsx --maxWorkers=2 --minWorkers=1`.
-- TypeScript: `yarn typecheck` passed; the final `yarn build` also passed its TypeScript compilation and Vite production build.
+- TypeScript: `yarn tsc -p tsconfig.app.json --noEmit --pretty false` passed; the final `yarn build` also passed its TypeScript compilation and Vite production build.
 - Repository-wide `yarn lint` passed. Changed-file Prettier and `git diff --check` passed, including separate whitespace checks for new files.
 - Build reported chunks above 500 kB (main bundle and location-map chunks); no bundling changes were made. Tests emitted React Router future-flag warnings and the existing jsdom navigation limitation during the 401 redirect test; those tests passed.
 - Two failing race regressions were fixed before the final successful run: duplicate submit and a catalog refetch on drawer close.
@@ -55,9 +86,9 @@ All source paths below are under `src/modules/roles/`:
 
 ## Manual smoke test for QA
 
-1. Open Create Role in EN and AR. Verify all returned groups, labels and non-CRUD actions, keyboard selection, RTL layout and mobile wrapping.
+1. Check localized desktop/mobile badges and keyboard operation of +N in EN/AR. Open Create Role in EN and AR. Verify all returned groups, labels and non-CRUD actions, keyboard selection, RTL layout and mobile wrapping.
 2. Select one permission: its group becomes mixed. Select/deselect the group: other groups remain unchanged. Save and inspect exact `permissions[]` names.
-3. Open Edit: compare selected names with Role Show. Rename only and confirm all assignments remain. Check an unknown assignment remains visible and is not removed by group actions.
+3. Open Edit: compare selected names with Role Show; verify an unsaved draft survives pending, successful and failed background refetches. Rename only and confirm all assignments remain. Check an unknown assignment remains visible and is not removed by group actions.
 4. Exercise loading, empty catalog, retry, 422 and 403 responses. Failed submissions retain the draft; repeated clicks while pending send one mutation.
 5. Verify Create Another resets selections; Edit refreshes list/detail; Delete requires confirmation and handles the own-role 403.
 6. With backend-authorized test accounts, verify direct API and deep-link denials. Client action hiding remains dependent on the missing effective-permissions contract.
