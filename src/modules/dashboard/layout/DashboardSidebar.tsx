@@ -144,7 +144,7 @@ export function DashboardSidebar({
 
       <nav
         aria-label={t('dashboard.sidebar.navigation')}
-        className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain p-3"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-2 py-4"
       >
         {dashboardNavigation.map((item) => (
           <DashboardNavItem key={item.to} item={item} collapsed={collapsed} onNavigate={onMobileClose} />
