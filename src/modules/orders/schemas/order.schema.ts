@@ -49,6 +49,7 @@ const rawOrderItemPersonalizationSchema = z.object({
 export const rawOrderStatusSchema = z.object({ value: text, label: text, customer_status: text })
 export const rawOrderListItemSchema = z.object({
   ...identity,
+  customer: customer.extend({ email: z.string().nullable() }),
   items_count: count,
   total: decimal,
   currency: text,

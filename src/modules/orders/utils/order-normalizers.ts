@@ -40,6 +40,7 @@ export function normalizeOrderDetail(value: unknown): OrderDetail {
   const gift = raw.gift
   return {
     ...identity(raw),
+    customer: raw.customer,
     shippingAddress: address
       ? {
           recipientName: address.recipient_name,

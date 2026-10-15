@@ -67,7 +67,8 @@ export type OrderGift = {
     streetDetails: string
   }
 }
-export type OrderDetail = OrderIdentity & {
+export type OrderDetail = Omit<OrderIdentity, 'customer'> & {
+  customer: RawOrderDetail['customer']
   shippingAddress: {
     recipientName: string
     recipientPhone: string

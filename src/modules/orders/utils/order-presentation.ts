@@ -23,7 +23,7 @@ export function paymentLabel(value: string, t: TFunction) {
   return value === 'paid' || value === 'pending' ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
 }
 export function customerLabel(customer: OrderListItem['customer'], unavailable: string) {
-  return [customer.name, customer.email, customer.phone].find((value) => value.trim()) || unavailable
+  return [customer.name, customer.email, customer.phone].find((value) => value?.trim()) || unavailable
 }
 // No shared currency formatter exists. Keep backend decimal precision; never recalculate amounts.
 export function orderMoneyLabel(value: string, currency: string, language: string) {

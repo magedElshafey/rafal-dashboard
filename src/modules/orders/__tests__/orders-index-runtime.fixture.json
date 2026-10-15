@@ -1,0 +1,56 @@
+{
+  "success": true,
+  "message": "Orders retrieved successfully",
+  "data": [
+    {
+      "id": 38,
+      "order_number": "RF-10038",
+      "display_number": "#RF-10038",
+      "status": "confirmed",
+      "customer": {
+        "type": "registered",
+        "name": "",
+        "email": null,
+        "phone": "+966512332112"
+      },
+      "items_count": 1,
+      "total": "404.80",
+      "currency": "SAR",
+      "payment_status": "paid",
+      "is_gift": false,
+      "warehouse": {
+        "id": 6,
+        "name": "مخزن الرياض"
+      },
+      "placed_at": "2026-10-15T21:26:48+00:00"
+    },
+    {
+      "id": 36,
+      "order_number": "RF-10036",
+      "display_number": "#RF-10036",
+      "status": "confirmed",
+      "customer": {
+        "type": "guest",
+        "name": "محمود العادل",
+        "email": "mjm@gmail.com",
+        "phone": "0511112222"
+      },
+      "items_count": 1,
+      "total": "138017.25",
+      "currency": "SAR",
+      "payment_status": "paid",
+      "is_gift": true,
+      "warehouse": {
+        "id": 6,
+        "name": "مخزن الرياض"
+      },
+      "placed_at": "2026-10-15T20:50:39+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 3,
+    "per_page": 15,
+    "total": 38
+  }
+}
