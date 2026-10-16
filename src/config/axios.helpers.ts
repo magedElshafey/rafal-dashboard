@@ -25,7 +25,7 @@ export function notifySuccessResponse(response: AxiosResponse) {
   if (typeof response.data?.data === 'string') {
     observer.fire('notify', {
       type: 'success',
-      message: response.data.data,
+      message: getI18n().t('apiFeedback.success'),
     })
   }
 
@@ -36,26 +36,19 @@ export function notifyErrorResponse(error: AxiosError) {
     return
   }
 
-  const data = error.response?.data as {
-    data?: unknown
-    errors?: unknown
-    code?: number
-    message?: string
-  }
+  const status = error.response?.status
+  const key = !error.response
+    ? 'apiFeedback.networkError'
+    : status === 403
+      ? 'apiFeedback.forbidden'
+      : status === 409
+        ? 'apiFeedback.conflict'
+        : status === 422
+          ? 'apiFeedback.validationError'
+          : 'apiFeedback.error'
 
-  if (typeof data?.data === 'string') {
-    observer.fire('notify', {
-      type: 'error',
-      message: data.data,
-    })
-
-    return
-  }
-
-  if (data?.message) {
-    observer.fire('notify', {
-      type: 'error',
-      message: data.message,
-    })
-  }
+  observer.fire('notify', {
+    type: 'error',
+    message: getI18n().t(key),
+  })
 }

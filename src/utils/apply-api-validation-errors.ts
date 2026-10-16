@@ -1,6 +1,8 @@
 import { isAxiosError } from 'axios'
 import type { FieldValues, Path, UseFormSetError } from 'react-hook-form'
 
+import i18n from '@/config/i18'
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -23,9 +25,12 @@ export function applyApiValidationErrors<TValues extends FieldValues>(
 
   let applied = false
   Object.entries(errors).forEach(([field, messages]) => {
-    const message = Array.isArray(messages) ? messages.find((item) => typeof item === 'string') : undefined
-    if (!message) return
-    setError(resolveAlias(field, fieldAliases) ?? (field as Path<TValues>), { type: 'server', message })
+    const hasValidationError = Array.isArray(messages) && messages.some((item) => typeof item === 'string')
+    if (!hasValidationError) return
+    setError(resolveAlias(field, fieldAliases) ?? (field as Path<TValues>), {
+      type: 'server',
+      message: i18n.t('validations.server'),
+    })
     applied = true
   })
   return applied

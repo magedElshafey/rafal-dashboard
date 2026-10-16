@@ -41,8 +41,7 @@ export function useDecideReturnRequest(id: number) {
       const approvedDetail = variables.action === 'approve' ? response.detail : null
       if (approvedDetail) client.setQueryData(returnRequestsKeys.detail(id), approvedDetail)
       toast.success(
-        response.message ||
-          t(variables.action === 'approve' ? 'returnRequests.feedback.approved' : 'returnRequests.feedback.rejected')
+        t(variables.action === 'approve' ? 'returnRequests.feedback.approved' : 'returnRequests.feedback.rejected')
       )
       if (approvedDetail) {
         await Promise.all([

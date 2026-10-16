@@ -27,10 +27,10 @@ export default i18n
 
 Yup.setLocale({
   mixed: {
-    required: i18n.t('validations.required'),
+    required: () => i18n.t('validations.required'),
   },
   string: {
-    email: i18n.t('validations.email'),
+    email: () => i18n.t('validations.email'),
     min: (props) => {
       return i18n.t('validations.min', {
         name: i18n.t(`label.${props.path}`),
@@ -80,7 +80,7 @@ Yup.setLocale({
 })
 
 Yup.addMethod(Yup.MixedSchema, 'oneOfSchemas', function (schemas: Yup.AnySchema[]) {
-  return this.test('one-of-schemas', i18n.t('validations.one_of_email_or_phone'), (item) =>
+  return this.test('one-of-schemas', () => i18n.t('validations.one_of_email_or_phone'), (item) =>
     schemas.some((schema) => schema.isValidSync(item, { strict: true }))
   )
 })

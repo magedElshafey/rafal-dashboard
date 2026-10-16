@@ -4,12 +4,26 @@ import { AxiosHeaders, type AxiosError, type AxiosResponse, type InternalAxiosRe
 const mocks = vi.hoisted(() => ({
   fire: vi.fn(),
   getAuthState: vi.fn(),
+  language: 'en',
 }))
 
 vi.mock('@/utils/observer', () => ({
   observer: { fire: mocks.fire },
 }))
-vi.mock('react-i18next', () => ({ getI18n: () => ({ language: 'en' }) }))
+vi.mock('react-i18next', () => ({
+  getI18n: () => ({
+    language: mocks.language,
+    t: (key: string) =>
+      ({
+        'apiFeedback.success': mocks.language === 'ar' ? 'تم إكمال العملية بنجاح.' : 'Operation completed successfully.',
+        'apiFeedback.networkError': 'Unable to connect to the server. Check your connection and try again.',
+        'apiFeedback.forbidden': "You don't have permission to perform this action.",
+        'apiFeedback.conflict': 'The request conflicts with existing information. Review your changes and try again.',
+        'apiFeedback.validationError': 'Review the highlighted fields and try again.',
+        'apiFeedback.error': "The request couldn't be completed. Please try again.",
+      })[key] ?? key,
+  }),
+}))
 vi.mock('@/store/auth', () => ({ useAuth: { getState: mocks.getAuthState } }))
 
 import { applyCommonHeaders, notifyErrorResponse, notifySuccessResponse } from './axios.helpers'
@@ -30,6 +44,7 @@ function createResponse(suppressSuccessNotification = false): AxiosResponse {
 beforeEach(() => {
   mocks.fire.mockReset()
   mocks.getAuthState.mockReset()
+  mocks.language = 'en'
 })
 
 describe('applyCommonHeaders', () => {
@@ -60,12 +75,23 @@ describe('notifySuccessResponse', () => {
     expect(mocks.fire).not.toHaveBeenCalled()
   })
 
-  it('preserves existing success notifications for other requests', () => {
+  it('localizes automatic success notifications instead of exposing backend prose', () => {
     notifySuccessResponse(createResponse())
 
     expect(mocks.fire).toHaveBeenCalledWith('notify', {
       type: 'success',
-      message: 'Device token saved successfully.',
+      message: 'Operation completed successfully.',
+    })
+  })
+
+  it('resolves the active language when the notification is displayed', () => {
+    mocks.language = 'ar'
+
+    notifySuccessResponse(createResponse())
+
+    expect(mocks.fire).toHaveBeenCalledWith('notify', {
+      type: 'success',
+      message: 'تم إكمال العملية بنجاح.',
     })
   })
 })
@@ -81,5 +107,20 @@ describe('notifyErrorResponse', () => {
     } as AxiosError)
 
     expect(mocks.fire).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [undefined, 'Unable to connect to the server. Check your connection and try again.'],
+    [403, "You don't have permission to perform this action."],
+    [409, 'The request conflicts with existing information. Review your changes and try again.'],
+    [422, 'Review the highlighted fields and try again.'],
+    [500, "The request couldn't be completed. Please try again."],
+  ])('uses a localized semantic fallback for status %s', (status, message) => {
+    notifyErrorResponse({
+      config: { headers: {} } as InternalAxiosRequestConfig,
+      response: status ? ({ status, data: { message: 'Raw backend error' } } as AxiosResponse) : undefined,
+    } as AxiosError)
+
+    expect(mocks.fire).toHaveBeenCalledWith('notify', { type: 'error', message })
   })
 })

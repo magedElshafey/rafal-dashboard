@@ -236,7 +236,7 @@ describe('Reject Return Request', () => {
         data: { decision_note: 'Return does not meet policy.' },
       })
     )
-    expect(toast.success).toHaveBeenCalledWith('Decision saved')
+    expect(toast.success).toHaveBeenCalledWith('Return request rejected successfully')
     expect(http.get).toHaveBeenCalledTimes(2)
     expect(screen.getByRole('region', { name: 'Decision summary' })).toHaveTextContent('Rejected')
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()

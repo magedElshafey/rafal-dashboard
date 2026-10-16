@@ -33,7 +33,7 @@ export function useUpdateContactMessageStatus(id: number) {
     onSuccess: async (response) => {
       await client.cancelQueries({ queryKey: contactMessagesKeys.detail(id), exact: true })
       client.setQueryData(contactMessagesKeys.detail(id), response.detail)
-      toast.success(response.message || t('contactMessages.feedback.updated'))
+      toast.success(t('contactMessages.feedback.updated'))
       await client.invalidateQueries({ queryKey: contactMessagesKeys.lists() })
     },
   })
@@ -45,10 +45,10 @@ export function useDeleteContactMessage(id: number) {
     mutationKey: contactMessagesKeys.mutation(id),
     mutationFn: () => contactMessagesService.delete(id),
     retry: false,
-    onSuccess: async (response) => {
+    onSuccess: async () => {
       await client.cancelQueries({ queryKey: contactMessagesKeys.detail(id), exact: true })
       client.removeQueries({ queryKey: contactMessagesKeys.detail(id), exact: true })
-      toast.success(response.message?.trim() || t('contactMessages.feedback.deleted'))
+      toast.success(t('contactMessages.feedback.deleted'))
       await client.invalidateQueries({ queryKey: contactMessagesKeys.lists() })
     },
   })

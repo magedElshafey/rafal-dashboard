@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { getApiErrorMessage } from './api-error.helpers'
 
 describe('getApiErrorMessage', () => {
-  it('prioritizes a usable backend message', () => {
+  it('does not expose backend prose when it may use a different language', () => {
     expect(
       getApiErrorMessage(
         { isAxiosError: true, response: { data: { message: '  Backend rejected the submission.  ' } } },
         'Fallback'
       )
-    ).toBe('Backend rejected the submission.')
+    ).toBe('Fallback')
   })
 
   it('does not read a message from an unexpected nested shape', () => {

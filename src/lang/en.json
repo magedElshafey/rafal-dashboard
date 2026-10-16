@@ -35,6 +35,14 @@
   "routeLoading": {
     "label": "Loading page…"
   },
+  "apiFeedback": {
+    "success": "Operation completed successfully.",
+    "error": "The request couldn't be completed. Please try again.",
+    "networkError": "Unable to connect to the server. Check your connection and try again.",
+    "forbidden": "You don't have permission to perform this action.",
+    "conflict": "The request conflicts with existing information. Review your changes and try again.",
+    "validationError": "Review the highlighted fields and try again."
+  },
   "remaining_time": {
     "day_one": "{{count}} day",
     "day_other": "{{count}} days",
@@ -69,8 +77,9 @@
     "please_enter_full_code": "Please Enter Full otp code",
     "equals": "The two passwords must be identical",
     "one_of_email_or_phone": "This field must have a valid email or phone number",
-    "required": "This field is required",
-    "email": "Invalid email",
+    "required": "This field is required.",
+    "email": "Enter a valid email address.",
+    "server": "Review this field and try again.",
     "positive": "{{name}} must be a positive number",
     "Phone number must contain only digits": "Phone number must contain only digits",
     "country_code_required": "country code is required",

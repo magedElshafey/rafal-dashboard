@@ -169,9 +169,8 @@ describe('Contact Message status updates', () => {
       await screen.findByRole('heading', { name: 'Contact Message #49' })
       await chooseStatus('Resolved')
       await userEvent.click(screen.getByRole('button', { name: 'Save Status' }))
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        backendMessage ? 'Status change denied' : 'Could not update the status'
-      )
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not update the status')
+      expect(screen.queryByText('Status change denied')).not.toBeInTheDocument()
       expect(screen.queryByText('raw operational stack')).not.toBeInTheDocument()
       expect(screen.getByRole('combobox', { name: 'Change Status' })).toHaveTextContent('Resolved')
       expect(client.getQueryData(contactMessagesKeys.detail(49))).toMatchObject({ status: 'new' })
