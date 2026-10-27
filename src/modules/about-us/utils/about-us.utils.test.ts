@@ -66,20 +66,24 @@ describe('About Us utilities', () => {
     expect(values.features[0].subtitle).toEqual({ ar: '', en: 'First subtitle' })
   })
 
-  it('maps only one dirty localized value and omits every unchanged top-level section', () => {
+  it('includes all text sections from current values when only one locale changes', () => {
     const values = formValues()
     values.mission.en = ' Updated mission '
     expect(buildAboutUsUpdatePayload(values, { mission: { en: true } })).toEqual({
-      mission: { en: 'Updated mission' },
+      heroTitle: aboutUs.heroTitle,
+      heroSubtitle: aboutUs.heroSubtitle,
+      story: aboutUs.story,
+      vision: aboutUs.vision,
+      mission: { ...aboutUs.mission, en: 'Updated mission' },
     })
   })
 
   it('uploads a hero only when a new local File was selected', () => {
     const values = formValues()
-    expect(buildAboutUsUpdatePayload(values, { hero: { files: [] } })).toEqual({})
+    expect(buildAboutUsUpdatePayload(values, { hero: { files: [] } })).not.toHaveProperty('hero')
     const hero = new File(['hero'], 'hero.png', { type: 'image/png' })
     values.hero.files = [hero]
-    expect(buildAboutUsUpdatePayload(values, { hero: { files: [true] } })).toEqual({ hero })
+    expect(buildAboutUsUpdatePayload(values, { hero: { files: [true] } }).hero).toBe(hero)
   })
 
   it('omits unchanged Features entirely', () => {
@@ -89,7 +93,15 @@ describe('About Us utilities', () => {
   it('serializes the complete ordered collection when one Feature changes or order changes', () => {
     const values = formValues()
     values.features[0].title.en = 'Updated first'
-    expect(buildAboutUsUpdatePayload(values, { features: [{ title: { en: true } }] }).features).toEqual([
+    const payload = buildAboutUsUpdatePayload(values, { features: [{ title: { en: true } }] })
+    expect(payload).toMatchObject({
+      heroTitle: aboutUs.heroTitle,
+      heroSubtitle: aboutUs.heroSubtitle,
+      story: aboutUs.story,
+      vision: aboutUs.vision,
+      mission: aboutUs.mission,
+    })
+    expect(payload.features).toEqual([
       {
         key: 'feature-a',
         title: { ar: 'الأولى', en: 'Updated first' },

@@ -5,6 +5,7 @@ vi.mock('@/utils/http', () => ({ $http: httpMocks }))
 
 import { aboutUsService, normalizeAboutUs, serializeAboutUsUpdate } from '@/modules/about-us/api/about-us.service'
 import type { RawAboutUs } from '@/modules/about-us/types/about-us.types'
+import { buildAboutUsUpdatePayload, toAboutUsFormValues } from '@/modules/about-us/utils/about-us.utils'
 
 const rawAboutUs: RawAboutUs = {
   id: 1,
@@ -120,9 +121,16 @@ describe('aboutUsService', () => {
     await expect(aboutUsService.get()).rejects.toThrow('About Us data is unavailable')
   })
 
-  it('always POSTs multipart with _method=PUT and never calls native PUT', async () => {
+  it.each(['feature', 'mission'] as const)('POSTs all required text sections for a %s-only edit', async (edit) => {
     httpMocks.post.mockResolvedValue({ data: { success: true, message: 'updated', data: rawAboutUs } })
-    await aboutUsService.update({ mission: { en: ' Updated mission ' } })
+    const values = toAboutUsFormValues(normalizeAboutUs(rawAboutUs))
+    if (edit === 'feature') values.features[0].title.en = 'Updated feature'
+    else values.mission.en = ' Updated mission '
+    const payload = buildAboutUsUpdatePayload(
+      values,
+      edit === 'feature' ? { features: [{ title: { en: true } }] } : { mission: { en: true } }
+    )
+    await aboutUsService.update(payload)
     const request = httpMocks.post.mock.calls[0][0]
     expect(request).toMatchObject({
       url: '/dashboard/about-us',
@@ -131,10 +139,22 @@ describe('aboutUsService', () => {
       suppressErrorNotification: true,
     })
     expect(request.data).toBeInstanceOf(FormData)
-    expect([...request.data.entries()]).toEqual([
+    const entries = [...request.data.entries()] as [string, FormDataEntryValue][]
+    expect(entries.filter(([key]) => !key.startsWith('features['))).toEqual([
       ['_method', 'PUT'],
-      ['mission[en]', 'Updated mission'],
+      ['hero_title[ar]', 'من نحن'],
+      ['hero_title[en]', 'About Us'],
+      ['hero_subtitle[ar]', 'العنوان الفرعي'],
+      ['hero_subtitle[en]', 'Subtitle'],
+      ['story[ar]', 'قصتنا'],
+      ['story[en]', 'Our story'],
+      ['vision[ar]', 'رؤيتنا'],
+      ['vision[en]', 'Our vision'],
+      ['mission[ar]', 'رسالتنا'],
+      ['mission[en]', edit === 'mission' ? 'Updated mission' : 'Our mission'],
     ])
+    expect(request.data.get('features[0][key]')).toBe(edit === 'feature' ? 'feature-a' : null)
+    expect(request.data.get('features[0][title][en]')).toBe(edit === 'feature' ? 'Updated feature' : null)
     expect(httpMocks.put).not.toHaveBeenCalled()
   })
 
