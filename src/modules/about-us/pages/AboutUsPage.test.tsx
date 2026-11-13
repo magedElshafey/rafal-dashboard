@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '@/config/i18'
@@ -163,11 +164,11 @@ describe('AboutUsPage', () => {
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1))
     expect(update).toHaveBeenCalledWith({
-      heroTitle: { en: 'About Us' },
-      heroSubtitle: { en: 'Subtitle' },
-      story: { en: 'Our story' },
-      vision: { en: 'Our vision' },
-      mission: { en: 'Our mission' },
+      heroTitle: { ar: 'تعديل', en: 'About Us' },
+      heroSubtitle: { ar: 'تعديل النص', en: 'Subtitle' },
+      story: { ar: 'تعديل القصة', en: 'Our story' },
+      vision: { ar: 'تعديل الرؤية', en: 'Our vision' },
+      mission: { ar: 'الهدف', en: 'Our mission' },
       features: [
         {
           key: 'e55bac8d-5ad6-4f05-80a9-6132b4d4b3bd',
@@ -209,7 +210,34 @@ describe('AboutUsPage', () => {
     expect(screen.queryByText('database secret')).not.toBeInTheDocument()
   })
 
-  it('submits one localized change once and resets against the authoritative response', async () => {
+  it('preserves current text and feature edits after a 422 validation response', async () => {
+    const update = vi.spyOn(aboutUsService, 'update').mockRejectedValueOnce(
+      new AxiosError('Request failed with status code 422', 'ERR_BAD_REQUEST', undefined, undefined, {
+        status: 422,
+        statusText: 'Unprocessable Content',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+        data: { errors: { 'mission.en': ['Server validation detail'] } },
+      })
+    )
+    const user = userEvent.setup()
+    renderPage()
+    const mission = await screen.findByRole('textbox', { name: 'Mission — English' })
+    const feature = screen.getAllByRole('textbox', { name: 'Feature Title — English' })[0]
+    await user.clear(mission)
+    await user.type(mission, 'Unsaved mission')
+    await user.clear(feature)
+    await user.type(feature, 'Unsaved feature')
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(mission).toHaveAttribute('aria-invalid', 'true'))
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(mission).toHaveValue('Unsaved mission')
+    expect(feature).toHaveValue('Unsaved feature')
+    expect(toastMocks.error).toHaveBeenCalledWith('About Us could not be updated. Your changes have been preserved.')
+    expect(toastMocks.success).not.toHaveBeenCalled()
+  })
+
+  it('submits all text sections for one localized change and resets against the authoritative response', async () => {
     let finishUpdate: (value: AboutUs) => void = () => undefined
     const update = vi.spyOn(aboutUsService, 'update').mockImplementationOnce(
       () =>
@@ -223,7 +251,15 @@ describe('AboutUsPage', () => {
     await user.clear(mission)
     await user.type(mission, 'Updated mission')
     await user.dblClick(screen.getByRole('button', { name: 'Save Changes' }))
-    await waitFor(() => expect(update).toHaveBeenCalledWith({ mission: { en: 'Updated mission' } }))
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith({
+        heroTitle: initialAboutUs.heroTitle,
+        heroSubtitle: initialAboutUs.heroSubtitle,
+        story: initialAboutUs.story,
+        vision: initialAboutUs.vision,
+        mission: { ...initialAboutUs.mission, en: 'Updated mission' },
+      })
+    )
     expect(update).toHaveBeenCalledTimes(1)
     finishUpdate(applyUpdate({ mission: { en: 'Updated mission' } }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled())
@@ -249,6 +285,29 @@ describe('AboutUsPage', () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2))
     expect(update.mock.calls[1][0].features?.map((feature) => feature.key)).toEqual(['feature-a'])
     expect(screen.getByRole('button', { name: 'Remove feature 1' })).toBeDisabled()
+  })
+
+  it('includes unchanged top-level text when only a feature is edited', async () => {
+    const update = vi.spyOn(aboutUsService, 'update')
+    const user = userEvent.setup()
+    renderPage()
+    const [feature] = await screen.findAllByRole('textbox', { name: 'Feature Title — English' })
+    await user.clear(feature)
+    await user.type(feature, 'Updated feature')
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1))
+    expect(update.mock.calls[0][0]).toEqual({
+      heroTitle: initialAboutUs.heroTitle,
+      heroSubtitle: initialAboutUs.heroSubtitle,
+      story: initialAboutUs.story,
+      vision: initialAboutUs.vision,
+      mission: initialAboutUs.mission,
+      features: initialAboutUs.features.map((current, index) => ({
+        key: current.key,
+        title: index === 0 ? { ...current.title, en: 'Updated feature' } : current.title,
+        subtitle: current.subtitle,
+      })),
+    })
   })
 
   it('keeps the final Feature visible and disables its removal with an explanation', async () => {

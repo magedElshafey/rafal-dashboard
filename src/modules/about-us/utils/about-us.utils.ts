@@ -47,31 +47,22 @@ export function toAboutUsFormValues(aboutUs: AboutUs): AboutUsFormValues {
   }
 }
 
-function buildDirtyLocalized(
-  values: LocalizedName,
-  dirty: { ar?: boolean; en?: boolean } | undefined
-): Partial<LocalizedName> | undefined {
-  const result: Partial<LocalizedName> = {}
-  if (dirty?.ar) result.ar = values.ar.trim()
-  if (dirty?.en) result.en = values.en.trim()
-  return result.ar !== undefined || result.en !== undefined ? result : undefined
+function trimLocalized(values: LocalizedName): LocalizedName {
+  return { ar: values.ar.trim(), en: values.en.trim() }
 }
 
 export function buildAboutUsUpdatePayload(
   values: AboutUsFormValues,
   dirty: Partial<Readonly<FieldNamesMarkedBoolean<AboutUsFormValues>>>
 ): AboutUsUpdatePayload {
-  const payload: AboutUsUpdatePayload = {}
-  const heroTitle = buildDirtyLocalized(values.heroTitle, dirty.heroTitle)
-  const heroSubtitle = buildDirtyLocalized(values.heroSubtitle, dirty.heroSubtitle)
-  const story = buildDirtyLocalized(values.story, dirty.story)
-  const vision = buildDirtyLocalized(values.vision, dirty.vision)
-  const mission = buildDirtyLocalized(values.mission, dirty.mission)
-  if (heroTitle) payload.heroTitle = heroTitle
-  if (heroSubtitle) payload.heroSubtitle = heroSubtitle
-  if (story) payload.story = story
-  if (vision) payload.vision = vision
-  if (mission) payload.mission = mission
+  // The update endpoint requires every text section, even when only a feature or image changes.
+  const payload: AboutUsUpdatePayload = {
+    heroTitle: trimLocalized(values.heroTitle),
+    heroSubtitle: trimLocalized(values.heroSubtitle),
+    story: trimLocalized(values.story),
+    vision: trimLocalized(values.vision),
+    mission: trimLocalized(values.mission),
+  }
   if (dirty.hero && values.hero.files[0]) payload.hero = values.hero.files[0]
   if (dirty.features !== undefined) {
     payload.features = values.features.map((feature) => ({
