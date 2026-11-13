@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Mail,
   Star,
+  Gift,
 } from 'lucide-react'
 
 import { Routes } from '@/routes/routes'
@@ -140,6 +141,12 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     to: Routes.settings,
     labelKey: 'dashboard.sidebar.settings',
     icon: Settings,
+    match: 'prefix',
+  },
+  {
+    to: Routes.loyaltySettings,
+    labelKey: 'dashboard.sidebar.loyaltySettings',
+    icon: Gift,
     match: 'prefix',
   },
 ]

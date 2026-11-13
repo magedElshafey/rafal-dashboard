@@ -100,6 +100,17 @@ describe('core routes', () => {
     expect(privatePaths).toContain('/dashboard/about-us')
   })
 
+  it('defines the lazy Loyalty Settings route and navigation entry', () => {
+    const children = PrivateRoutes.flatMap((route) => route.children ?? [])
+
+    expect(AppRoutes.loyaltySettings).toBe('/dashboard/loyalty/settings')
+    expect(children.find((route) => route.path === AppRoutes.loyaltySettings)?.Component).toBeDefined()
+    expect(dashboardNavigation.find((item) => item.to === AppRoutes.loyaltySettings)).toMatchObject({
+      labelKey: 'dashboard.sidebar.loyaltySettings',
+      match: 'prefix',
+    })
+  })
+
   it('defines the Customer Index and Detail routes', () => {
     const privatePaths = PrivateRoutes.flatMap((route) => route.children?.map((child) => child.path) ?? [])
 

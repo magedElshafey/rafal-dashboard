@@ -54,6 +54,8 @@ import * as testimonialsAr from '@/modules/testimonials/locale/ar.json'
 import * as testimonialsEn from '@/modules/testimonials/locale/en.json'
 import * as staticPagesAr from '@/modules/static-pages/locale/ar.json'
 import * as staticPagesEn from '@/modules/static-pages/locale/en.json'
+import * as loyaltyAr from '@/modules/loyalty/locale/ar.json'
+import * as loyaltyEn from '@/modules/loyalty/locale/en.json'
 
 export const resources = {
   en: {
@@ -86,6 +88,7 @@ export const resources = {
       ...storeRatingsEn,
       ...testimonialsEn,
       ...staticPagesEn,
+      ...loyaltyEn,
     },
   },
   ar: {
@@ -118,6 +121,7 @@ export const resources = {
       ...storeRatingsAr,
       ...testimonialsAr,
       ...staticPagesAr,
+      ...loyaltyAr,
     },
   },
 } as const

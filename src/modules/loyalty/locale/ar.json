@@ -1,0 +1,143 @@
+{
+  "loyalty": {
+    "title": "إعدادات برنامج الولاء",
+    "description": "إدارة قواعد الكسب والاستبدال والصلاحية وحالة البرنامج.",
+    "tabs": {
+      "label": "أقسام إعدادات الولاء",
+      "settings": "الإعدادات",
+      "history": "سجل التغييرات"
+    },
+    "sections": {
+      "status": {
+        "title": "حالة البرنامج",
+        "description": "تفعيل أو إيقاف عمليات الكسب والاستبدال الجديدة."
+      },
+      "earning": {
+        "title": "قواعد الكسب",
+        "description": "حدد مبلغ الشراء المطلوب لكسب نقطة واحدة."
+      },
+      "redemption": {
+        "title": "قواعد الاستبدال",
+        "description": "حدد قيمة النقاط وحدود الاستبدال."
+      },
+      "expiry": {
+        "title": "صلاحية النقاط",
+        "description": "حدد مدة الصلاحية المحدودة والتنبيه قبل الانتهاء.",
+        "contractHint": "خيار النقاط التي لا تنتهي غير متاح حتى يوثق الخادم طريقة تمثيله."
+      }
+    },
+    "fields": {
+      "isEnabled": "تفعيل برنامج الولاء",
+      "launchDate": "تاريخ بدء البرنامج",
+      "amountPerPoint": "مبلغ الشراء لكل نقطة (ر.س)",
+      "redeemPoints": "قيمة الاستبدال — عدد النقاط",
+      "redeemAmount": "قيمة الاستبدال — المبلغ (ر.س)",
+      "maxRedeemPercent": "الحد الأقصى للاستبدال (% من المبلغ المستحق)",
+      "minRedeemPoints": "الحد الأدنى للاستبدال (نقطة)",
+      "validityMonths": "صلاحية النقاط (بالأشهر)",
+      "expiryWarningDays": "التنبيه قبل انتهاء الصلاحية (بالأيام)"
+    },
+    "preview": {
+      "title": "معاينة اسمية مباشرة",
+      "example": "طلب بقيمة {{order}} ر.س يكسب {{points}} نقطة تعادل {{value}} ر.س (عائد {{percent}}%).",
+      "unavailable": "أدخل قيماً صحيحة للكسب والاستبدال لعرض المعاينة.",
+      "nominalHint": "تُحسب هذه المعاينة محلياً. يظل تقريب النقاط المكتسبة الفعلي من مسؤولية الخادم."
+    },
+    "actions": {
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…",
+      "cancel": "إلغاء"
+    },
+    "disable": {
+      "title": "هل تريد إيقاف برنامج الولاء؟",
+      "description": "يؤثر الإيقاف في نشاط الولاء الجديد، ولا يحذف الأرصدة الحالية.",
+      "noEarning": "لن يكسب العملاء نقاطاً جديدة.",
+      "noRedemption": "لن يتمكن العملاء من استبدال النقاط.",
+      "balancesRetained": "تُحفظ أرصدة النقاط الحالية.",
+      "expiryContinues": "يستمر الاستحقاق وانتهاء الصلاحية.",
+      "confirm": "إيقاف البرنامج"
+    },
+    "conflict": {
+      "message": "عدّل مشرف آخر هذه الإعدادات. احتفظنا بتعديلاتك. أعد التحميل فقط عندما تكون مستعداً لاستبدالها بأحدث نسخة.",
+      "reload": "تحميل أحدث الإعدادات"
+    },
+    "history": {
+      "title": "سجل التغييرات",
+      "total_zero": "لا توجد نسخ",
+      "total_one": "نسخة واحدة",
+      "total_two": "نسختان",
+      "total_few": "{{count}} نسخ",
+      "total_many": "{{count}} نسخة",
+      "total_other": "{{count}} نسخة",
+      "savedAt": "تاريخ الحفظ",
+      "admin": "المشرف",
+      "changes": "التغييرات",
+      "field": "الحقل",
+      "previous": "القيمة السابقة",
+      "updated": "القيمة المحدّثة",
+      "configuredValue": "القيمة المضبوطة",
+      "comparison": "مقارنة قيم الإعدادات",
+      "initialConfiguration": "الإعداد الأولي",
+      "unavailable": "غير متاح",
+      "noChanges": "حُفظت دون تغييرات",
+      "emptyTitle": "لا يوجد سجل للإعدادات",
+      "emptyDescription": "ستظهر النسخ المحفوظة هنا.",
+      "values": {
+        "enabled": "مفعّل",
+        "disabled": "معطّل",
+        "points_zero": "{{formattedCount}} نقطة",
+        "points_one": "نقطة واحدة",
+        "points_two": "نقطتان",
+        "points_few": "{{formattedCount}} نقاط",
+        "points_many": "{{formattedCount}} نقطة",
+        "points_other": "{{formattedCount}} نقطة",
+        "months_zero": "{{formattedCount}} شهر",
+        "months_one": "شهر واحد",
+        "months_two": "شهران",
+        "months_few": "{{formattedCount}} أشهر",
+        "months_many": "{{formattedCount}} شهرًا",
+        "months_other": "{{formattedCount}} شهر",
+        "days_zero": "{{formattedCount}} يوم",
+        "days_one": "يوم واحد",
+        "days_two": "يومان",
+        "days_few": "{{formattedCount}} أيام",
+        "days_many": "{{formattedCount}} يومًا",
+        "days_other": "{{formattedCount}} يوم"
+      },
+      "fields": {
+        "isEnabled": "تفعيل البرنامج",
+        "amountPerPoint": "المبلغ لكل نقطة",
+        "redeemPoints": "نقاط الاستبدال",
+        "redeemAmount": "مبلغ الاستبدال",
+        "maxRedeemPercent": "الحد الأقصى لنسبة الاستبدال",
+        "minRedeemPoints": "الحد الأدنى لنقاط الاستبدال",
+        "validityMonths": "أشهر الصلاحية",
+        "expiryWarningDays": "أيام التنبيه قبل الانتهاء",
+        "effectiveReturnPercent": "نسبة العائد الفعلية"
+      }
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "validNumber": "أدخل رقماً صحيحاً.",
+      "integer": "أدخل عدداً صحيحاً دون كسور.",
+      "amountPerPointRange": "يجب أن يكون المبلغ لكل نقطة بين 0.01 و1,000.",
+      "redeemPointsRange": "يجب أن تكون نقاط الاستبدال بين 1 و100,000.",
+      "redeemAmountRange": "يجب أن يكون مبلغ الاستبدال بين 0.01 و10,000.",
+      "percentRange": "يجب أن تكون النسبة بين 1 و100.",
+      "minimumPointsRange": "يجب أن يكون الحد الأدنى بين 0 و100,000.",
+      "validityRange": "يجب أن تكون الصلاحية بين شهر واحد و60 شهراً.",
+      "warningRange": "يجب أن يكون التنبيه بين يوم واحد و90 يوماً.",
+      "warningBeforeValidity": "يجب أن تكون مدة التنبيه أقصر من مدة الصلاحية.",
+      "twoDecimals": "استخدم منزلتين عشريتين كحد أقصى."
+    },
+    "values": {
+      "yes": "نعم",
+      "no": "لا",
+      "notLaunched": "لم يبدأ البرنامج بعد"
+    },
+    "feedback": {
+      "updated": "تم تحديث إعدادات الولاء.",
+      "updateError": "تعذر تحديث إعدادات الولاء."
+    }
+  }
+}

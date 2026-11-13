@@ -1,0 +1,127 @@
+{
+  "loyalty": {
+    "title": "Loyalty programme settings",
+    "description": "Configure earning, redemption, validity, and programme availability.",
+    "tabs": {
+      "label": "Loyalty settings sections",
+      "settings": "Settings",
+      "history": "Change history"
+    },
+    "sections": {
+      "status": {
+        "title": "Programme status",
+        "description": "Enable or disable new earning and redemption activity."
+      },
+      "earning": {
+        "title": "Earning rules",
+        "description": "Set the purchase amount required to earn one point."
+      },
+      "redemption": {
+        "title": "Redemption rules",
+        "description": "Define point value and redemption limits."
+      },
+      "expiry": {
+        "title": "Point validity",
+        "description": "Configure the supported finite validity period and expiry warning.",
+        "contractHint": "Never-expiring points are not available until the backend representation is documented."
+      }
+    },
+    "fields": {
+      "isEnabled": "Enable loyalty programme",
+      "launchDate": "Programme launch date",
+      "amountPerPoint": "Purchase amount per point (SAR)",
+      "redeemPoints": "Redemption value — points",
+      "redeemAmount": "Redemption value — amount (SAR)",
+      "maxRedeemPercent": "Maximum redemption (% of amount due)",
+      "minRedeemPoints": "Minimum redemption (points)",
+      "validityMonths": "Point validity (months)",
+      "expiryWarningDays": "Expiry warning (days)"
+    },
+    "preview": {
+      "title": "Live nominal preview",
+      "example": "An order of {{order}} SAR earns {{points}} points worth {{value}} SAR ({{percent}}% return).",
+      "unavailable": "Enter valid earning and redemption values to see the preview.",
+      "nominalHint": "This preview is calculated locally. Actual earned-point rounding remains backend-defined."
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "disable": {
+      "title": "Disable the loyalty programme?",
+      "description": "Disabling changes new loyalty activity but does not remove existing balances.",
+      "noEarning": "Customers will not earn new points.",
+      "noRedemption": "Customers will not redeem points.",
+      "balancesRetained": "Existing point balances are retained.",
+      "expiryContinues": "Maturity and expiry continue.",
+      "confirm": "Disable programme"
+    },
+    "conflict": {
+      "message": "Another administrator changed these settings. Your edits are preserved. Reload only when you are ready to replace them with the latest version.",
+      "reload": "Reload latest settings"
+    },
+    "history": {
+      "title": "Change history",
+      "total_one": "{{count}} version",
+      "total_other": "{{count}} versions",
+      "savedAt": "Saved at",
+      "admin": "Administrator",
+      "changes": "Changes",
+      "field": "Field",
+      "previous": "Previous",
+      "updated": "Updated",
+      "configuredValue": "Configured value",
+      "comparison": "Settings value comparison",
+      "initialConfiguration": "Initial configuration",
+      "unavailable": "Unavailable",
+      "noChanges": "Saved without changes",
+      "emptyTitle": "No settings history",
+      "emptyDescription": "Saved versions will appear here.",
+      "values": {
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "points_one": "{{formattedCount}} point",
+        "points_other": "{{formattedCount}} points",
+        "months_one": "{{formattedCount}} month",
+        "months_other": "{{formattedCount}} months",
+        "days_one": "{{formattedCount}} day",
+        "days_other": "{{formattedCount}} days"
+      },
+      "fields": {
+        "isEnabled": "Programme enabled",
+        "amountPerPoint": "Amount per point",
+        "redeemPoints": "Redemption points",
+        "redeemAmount": "Redemption amount",
+        "maxRedeemPercent": "Maximum redemption percent",
+        "minRedeemPoints": "Minimum redemption points",
+        "validityMonths": "Validity months",
+        "expiryWarningDays": "Expiry warning days",
+        "effectiveReturnPercent": "Effective return percent"
+      }
+    },
+    "validation": {
+      "required": "This field is required.",
+      "validNumber": "Enter a valid number.",
+      "integer": "Enter a whole number.",
+      "amountPerPointRange": "Amount per point must be between 0.01 and 1,000.",
+      "redeemPointsRange": "Redemption points must be between 1 and 100,000.",
+      "redeemAmountRange": "Redemption amount must be between 0.01 and 10,000.",
+      "percentRange": "Percentage must be between 1 and 100.",
+      "minimumPointsRange": "Minimum redemption must be between 0 and 100,000.",
+      "validityRange": "Validity must be between 1 and 60 months.",
+      "warningRange": "Expiry warning must be between 1 and 90 days.",
+      "warningBeforeValidity": "The warning period must be shorter than the validity period.",
+      "twoDecimals": "Use no more than two decimal places."
+    },
+    "values": {
+      "yes": "Yes",
+      "no": "No",
+      "notLaunched": "Not launched yet"
+    },
+    "feedback": {
+      "updated": "Loyalty settings updated.",
+      "updateError": "Loyalty settings could not be updated."
+    }
+  }
+}

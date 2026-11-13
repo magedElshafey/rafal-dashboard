@@ -27,6 +27,7 @@ const WarehouseInventoryPage = lazy(() => import('@/modules/warehouses/pages/War
 const RegionsPage = lazy(() => import('@/modules/regions/pages/RegionsPage'))
 const CitiesPage = lazy(() => import('@/modules/cities/pages/CitiesPage'))
 const SettingsPage = lazy(() => import('@/modules/settings/pages/SettingsPage'))
+const LoyaltySettingsPage = lazy(() => import('@/modules/loyalty/pages/LoyaltySettingsPage'))
 const ShippingMethodsPage = lazy(() => import('@/modules/shipping-methods/pages/ShippingMethodsPage'))
 const ProductsPage = lazy(() => import('@/modules/products/pages/ProductsPage'))
 const ProductCreatePage = lazy(() => import('@/modules/products/pages/ProductCreatePage'))
@@ -82,6 +83,7 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.regions, Component: RegionsPage },
       { path: Routes.cities, Component: CitiesPage },
       { path: Routes.settings, Component: SettingsPage },
+      { path: Routes.loyaltySettings, Component: LoyaltySettingsPage },
       { path: Routes.shippingMethods, Component: ShippingMethodsPage },
       { path: Routes.products, Component: ProductsPage },
       { path: Routes.productNew, Component: ProductCreatePage },

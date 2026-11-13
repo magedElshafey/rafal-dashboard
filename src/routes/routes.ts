@@ -33,6 +33,7 @@ export const Routes = {
   regions: '/dashboard/regions',
   cities: '/dashboard/cities',
   settings: '/dashboard/settings',
+  loyaltySettings: '/dashboard/loyalty/settings',
   shippingMethods: '/dashboard/shipping-methods',
   products: '/dashboard/products',
   coupons: '/dashboard/coupons',
