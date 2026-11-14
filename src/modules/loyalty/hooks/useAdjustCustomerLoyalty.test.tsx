@@ -101,8 +101,8 @@ describe('customer loyalty adjustment cache lifecycle', () => {
       .mockImplementation(async (customerId) => ledgerPage(customerId === 12 ? 12 : 13))
     const client = createClient()
     const wrapper = createWrapper(client)
-    const customer12 = renderHook(() => useCustomerLoyaltyLedger(12, filters, true), { wrapper })
-    const customer13 = renderHook(() => useCustomerLoyaltyLedger(13, filters, true), { wrapper })
+    const customer12 = renderHook(() => useCustomerLoyaltyLedger(12, filters, 2, true), { wrapper })
+    const customer13 = renderHook(() => useCustomerLoyaltyLedger(13, filters, 1, true), { wrapper })
     const mutation = renderHook(() => useAdjustCustomerLoyalty(12), { wrapper })
 
     await waitFor(() => {
@@ -111,6 +111,7 @@ describe('customer loyalty adjustment cache lifecycle', () => {
     })
     await act(() => mutation.result.current.mutateAsync(payload))
 
+    expect(getLedger).toHaveBeenCalledWith(12, filters, 2, 50, expect.any(AbortSignal))
     expect(getLedger.mock.calls.filter(([customerId]) => customerId === 12)).toHaveLength(2)
     expect(getLedger.mock.calls.filter(([customerId]) => customerId === 13)).toHaveLength(1)
     expect(customer12.result.current.data).toEqual(ledgerPage(12))
@@ -128,7 +129,7 @@ describe('customer loyalty adjustment cache lifecycle', () => {
       .mockResolvedValueOnce(ledgerPage(2))
     const client = createClient()
     const wrapper = createWrapper(client)
-    const ledger = renderHook(() => useCustomerLoyaltyLedger(12, filters, true), { wrapper })
+    const ledger = renderHook(() => useCustomerLoyaltyLedger(12, filters, 1, true), { wrapper })
     const mutation = renderHook(() => useAdjustCustomerLoyalty(12), { wrapper })
 
     await waitFor(() => expect(ledger.result.current.data).toEqual(ledgerPage(1)))
@@ -142,12 +143,12 @@ describe('customer loyalty adjustment cache lifecycle', () => {
     await act(() => adjustment)
 
     expect(getLedger).toHaveBeenCalledTimes(1)
-    expect(client.getQueryState(loyaltyKeys.customerLedger(12, filters))?.isInvalidated).toBe(true)
+    expect(client.getQueryState(loyaltyKeys.customerLedger(12, filters, 1, 50))?.isInvalidated).toBe(true)
 
-    const reopened = renderHook(() => useCustomerLoyaltyLedger(12, filters, true), { wrapper })
+    const reopened = renderHook(() => useCustomerLoyaltyLedger(12, filters, 1, true), { wrapper })
     await waitFor(() => expect(reopened.result.current.data).toEqual(ledgerPage(2)))
     expect(getLedger).toHaveBeenCalledTimes(2)
-    expect(client.getQueryState(loyaltyKeys.customerLedger(12, filters))?.isInvalidated).toBe(false)
+    expect(client.getQueryState(loyaltyKeys.customerLedger(12, filters, 1, 50))?.isInvalidated).toBe(false)
   })
 
   it('does not change cached financial data on failure', async () => {

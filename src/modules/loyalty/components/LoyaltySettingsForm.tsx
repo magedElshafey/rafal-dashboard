@@ -73,6 +73,15 @@ function LoyaltyPreviewCard() {
         <p className="text-sm text-muted-foreground">{t('loyalty.preview.unavailable')}</p>
       )}
       <p className="text-xs text-muted-foreground">{t('loyalty.preview.nominalHint')}</p>
+      {preview && preview.returnPercent > 10 ? (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-lg border border-warning bg-warning/10 p-4 text-sm"
+        >
+          <AlertTriangle aria-hidden className="mt-0.5 size-5 shrink-0 text-warning" />
+          <p>{t('loyalty.preview.highReturnWarning')}</p>
+        </div>
+      ) : null}
     </DashboardCard>
   )
 }

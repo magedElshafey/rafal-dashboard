@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createLoyaltySettingsSchema } from '@/modules/loyalty/schemas/loyalty-settings.schema'
 import type { LoyaltySettingsVersion } from '@/modules/loyalty/types/loyalty.types'
 import { getLoyaltyVersionChanges } from '@/modules/loyalty/utils/loyalty-history'
-import { calculateLoyaltyPreview } from '@/modules/loyalty/utils/loyalty-settings'
+import { calculateLoyaltyPreview, roundEarnedLoyaltyPoints } from '@/modules/loyalty/utils/loyalty-settings'
 
 const messages = {
   required: 'required',
@@ -34,6 +34,24 @@ const validValues = {
 describe('loyalty settings rules', () => {
   it('calculates the documented 500 SAR nominal preview locally', () => {
     expect(calculateLoyaltyPreview(validValues)).toEqual({ points: 50, value: 2.5, returnPercent: 0.5 })
+  })
+
+  it.each([
+    [33.4, 33],
+    [33.5, 34],
+    [33.6, 34],
+    [0, 0],
+    [999_999.5, 1_000_000],
+  ])('rounds %s earned points to %s using standard mathematical rounding', (points, expected) => {
+    expect(roundEarnedLoyaltyPoints(points)).toBe(expected)
+  })
+
+  it('uses rounded points for the preview value without changing the established return formula', () => {
+    const preview = calculateLoyaltyPreview({ ...validValues, amountPerPoint: 500 / 33.5 })
+
+    expect(preview?.points).toBe(34)
+    expect(preview?.value).toBeCloseTo(1.7)
+    expect(preview?.returnPercent).toBeCloseTo(0.335)
   })
 
   it('rejects invalid ranges, excess decimals, and a warning that cannot be shorter than validity', async () => {

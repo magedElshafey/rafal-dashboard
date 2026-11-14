@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next'
 import { History } from 'lucide-react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -13,6 +14,7 @@ import {
   ResponsiveDataTableRow,
 } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { EmptyState } from '@/components/shared/empty-state'
+import PaginatedListFooter from '@/components/shared/pagination/PaginatedListFooter'
 import { QueryStateBoundary } from '@/components/shared/query-state'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,6 +22,8 @@ import { useLoyaltyVersions } from '@/modules/loyalty/hooks/useLoyaltyVersions'
 import { orderMoneyLabel } from '@/modules/orders/utils/order-presentation'
 import type { LoyaltySettingsVersion, LoyaltyVersionValues } from '@/modules/loyalty/types/loyalty.types'
 import { getLoyaltyVersionChanges, type LoyaltyHistoryField } from '@/modules/loyalty/utils/loyalty-history'
+import { loyaltyPagination } from '@/modules/loyalty/utils/loyalty-pagination'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
 
 type HistoryValue = LoyaltyVersionValues[LoyaltyHistoryField] | null
@@ -157,10 +161,18 @@ function HistorySkeleton() {
   )
 }
 
-export function LoyaltySettingsHistory() {
+export function LoyaltySettingsHistory({ page }: { page: number }) {
   const { t, i18n } = useTranslation()
-  const query = useLoyaltyVersions()
+  const { forwardAddQuery } = useQuery()
+  const query = useLoyaltyVersions(page)
   const versions = query.data?.items ?? []
+  const correctedPage =
+    query.data && page > query.data.meta.last_page
+      ? Math.max(1, Math.min(query.data.meta.current_page, query.data.meta.last_page))
+      : page
+  useEffect(() => {
+    if (correctedPage !== page) forwardAddQuery({ page: String(correctedPage) }, { replace: true })
+  }, [correctedPage, forwardAddQuery, page])
   const locale = resolveAppLocale(i18n.language)
   const header = (
     <div className="min-w-0">
@@ -183,57 +195,66 @@ export function LoyaltySettingsHistory() {
           {null}
         </ResponsiveDataLayout>
       }
-      isLoading={query.isLoading}
+      isLoading={query.isLoading || correctedPage !== page}
       isLoadingError={query.isError && !query.data}
       isRefetchError={query.isRefetchError}
       isPaused={query.isPaused}
       isFetching={query.isFetching}
-      hasData={Boolean(query.data)}
+      hasData={Boolean(query.data) && correctedPage === page}
       onRetry={query.refetch}
     >
-      <ResponsiveDataLayout
-        header={header}
-        isEmpty={versions.length === 0}
-        empty={
-          <EmptyState
-            icon={<History />}
-            title={t('loyalty.history.emptyTitle')}
-            description={t('loyalty.history.emptyDescription')}
-          />
-        }
-      >
-        <ResponsiveDataDesktop>
-          <ResponsiveDataTable columns={columns} aria-label={t('loyalty.history.title')}>
-            {versions.map((version) => (
-              <ResponsiveDataTableRow key={version.id}>
-                <ResponsiveDataTableCell className="align-top">
-                  <time dateTime={version.savedAt}>{formatDateTime(version.savedAt, { locale }) || '—'}</time>
-                </ResponsiveDataTableCell>
-                <ResponsiveDataTableCell className="align-top whitespace-normal">
-                  {version.admin.name}
-                </ResponsiveDataTableCell>
-                <ResponsiveDataTableCell className="align-top whitespace-normal">
-                  <DesktopChanges version={version} />
-                </ResponsiveDataTableCell>
-              </ResponsiveDataTableRow>
-            ))}
-          </ResponsiveDataTable>
-        </ResponsiveDataDesktop>
-        <ResponsiveDataMobileCards>
-          {versions.map((version) => (
-            <ResponsiveDataMobileCard
-              key={version.id}
-              title={<time dateTime={version.savedAt}>{formatDateTime(version.savedAt, { locale }) || '—'}</time>}
-              subtitle={version.admin.name}
-              facts={
-                <ResponsiveDataFact label={t('loyalty.history.changes')}>
-                  <MobileChanges version={version} />
-                </ResponsiveDataFact>
-              }
+      <div className="space-y-4">
+        <ResponsiveDataLayout
+          header={header}
+          isEmpty={versions.length === 0}
+          empty={
+            <EmptyState
+              icon={<History />}
+              title={t('loyalty.history.emptyTitle')}
+              description={t('loyalty.history.emptyDescription')}
             />
-          ))}
-        </ResponsiveDataMobileCards>
-      </ResponsiveDataLayout>
+          }
+        >
+          <ResponsiveDataDesktop>
+            <ResponsiveDataTable columns={columns} aria-label={t('loyalty.history.title')}>
+              {versions.map((version) => (
+                <ResponsiveDataTableRow key={version.id}>
+                  <ResponsiveDataTableCell className="align-top">
+                    <time dateTime={version.savedAt}>{formatDateTime(version.savedAt, { locale }) || '—'}</time>
+                  </ResponsiveDataTableCell>
+                  <ResponsiveDataTableCell className="align-top whitespace-normal">
+                    {version.admin.name}
+                  </ResponsiveDataTableCell>
+                  <ResponsiveDataTableCell className="align-top whitespace-normal">
+                    <DesktopChanges version={version} />
+                  </ResponsiveDataTableCell>
+                </ResponsiveDataTableRow>
+              ))}
+            </ResponsiveDataTable>
+          </ResponsiveDataDesktop>
+          <ResponsiveDataMobileCards>
+            {versions.map((version) => (
+              <ResponsiveDataMobileCard
+                key={version.id}
+                title={<time dateTime={version.savedAt}>{formatDateTime(version.savedAt, { locale }) || '—'}</time>}
+                subtitle={version.admin.name}
+                facts={
+                  <ResponsiveDataFact label={t('loyalty.history.changes')}>
+                    <MobileChanges version={version} />
+                  </ResponsiveDataFact>
+                }
+              />
+            ))}
+          </ResponsiveDataMobileCards>
+        </ResponsiveDataLayout>
+        {query.data && correctedPage === page ? (
+          <PaginatedListFooter
+            pagination={loyaltyPagination(query.data.meta, versions.length)}
+            itemCount={versions.length}
+            getRangeLabel={({ start, end, total }) => t('loyalty.history.range', { start, end, total })}
+          />
+        ) : null}
+      </div>
     </QueryStateBoundary>
   )
 }

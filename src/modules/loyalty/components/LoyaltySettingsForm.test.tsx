@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/config/i18'
+import loyaltyAr from '@/modules/loyalty/locale/ar.json'
 import type { LoyaltySettings } from '@/modules/loyalty/types/loyalty.types'
 import { LoyaltySettingsForm } from './LoyaltySettingsForm'
 
@@ -144,14 +145,59 @@ describe('LoyaltySettingsForm', () => {
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
   })
 
+  it.each([
+    [9.99, false],
+    [10, false],
+    [10.01, true],
+  ])('shows the informational high-return warning for %s%% only when above 10%%', (redeemAmount, expected) => {
+    render(
+      <LoyaltySettingsForm
+        settings={{ ...settings, amountPerPoint: '1.00', redeemPoints: 100, redeemAmount: String(redeemAmount) }}
+        isSubmitting={false}
+        onSubmit={vi.fn()}
+        onReloadConflict={vi.fn()}
+      />
+    )
+
+    expect(Boolean(screen.queryByRole('status'))).toBe(expected)
+  })
+
+  it('updates the warning reactively and does not block saving', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn().mockResolvedValue(settings)
+    render(
+      <LoyaltySettingsForm
+        settings={{ ...settings, amountPerPoint: '1.00', redeemPoints: 100, redeemAmount: '10.00' }}
+        isSubmitting={false}
+        onSubmit={onSubmit}
+        onReloadConflict={vi.fn()}
+      />
+    )
+    const redeemAmount = screen.getByRole('spinbutton', { name: 'Redemption value — amount (SAR)' })
+
+    await user.clear(redeemAmount)
+    await user.type(redeemAmount, '10.01')
+
+    expect(await screen.findByRole('status')).toHaveTextContent('return greater than 10%')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
+  })
+
   it('uses Arabic labels and the document RTL direction', async () => {
     await i18n.changeLanguage('ar')
     render(
-      <LoyaltySettingsForm settings={settings} isSubmitting={false} onSubmit={vi.fn()} onReloadConflict={vi.fn()} />
+      <LoyaltySettingsForm
+        settings={{ ...settings, amountPerPoint: '1.00', redeemPoints: 100, redeemAmount: '10.01' }}
+        isSubmitting={false}
+        onSubmit={vi.fn()}
+        onReloadConflict={vi.fn()}
+      />
     )
 
     expect(document.documentElement.dir).toBe('rtl')
     expect(screen.getByRole('switch', { name: 'تفعيل برنامج الولاء' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'حفظ' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(loyaltyAr.loyalty.preview.highReturnWarning)
   })
 })

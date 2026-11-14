@@ -69,7 +69,7 @@ describe('useUpdateLoyaltySettings', () => {
       meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
     }
     client.setQueryData(loyaltyKeys.settings(), existingSettings)
-    client.setQueryData(loyaltyKeys.history(20), history)
+    client.setQueryData(loyaltyKeys.history(1, 20), history)
     const invalidate = vi.spyOn(client, 'invalidateQueries')
     const wrapper = ({ children }: PropsWithChildren) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -93,7 +93,7 @@ describe('useUpdateLoyaltySettings', () => {
     ).rejects.toBe(error)
 
     expect(client.getQueryData(loyaltyKeys.settings())).toEqual(existingSettings)
-    expect(client.getQueryData(loyaltyKeys.history(20))).toEqual(history)
+    expect(client.getQueryData(loyaltyKeys.history(1, 20))).toEqual(history)
     expect(invalidate).not.toHaveBeenCalled()
   })
 })

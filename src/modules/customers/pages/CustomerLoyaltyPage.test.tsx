@@ -197,6 +197,8 @@ describe('Customer loyalty page', () => {
     expect(loyaltyService.getCustomerLedger).toHaveBeenCalledExactlyOnceWith(
       12,
       { type: null, from: '', to: '' },
+      1,
+      50,
       expect.any(AbortSignal)
     )
   })
@@ -208,12 +210,17 @@ describe('Customer loyalty page', () => {
       expect(loyaltyService.getCustomerLedger).toHaveBeenCalledWith(
         12,
         { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
+        4,
+        50,
         expect.any(AbortSignal)
       )
     )
-    expect(screen.getByTestId('location')).toHaveTextContent(
-      'tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30'
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        'tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30&page=1'
+      )
     )
+    await waitFor(() => expect(loyaltyService.getCustomerLedger).toHaveBeenCalledTimes(2))
   })
 
   it('clears supported filters while preserving the Points tab', async () => {
@@ -227,9 +234,41 @@ describe('Customer loyalty page', () => {
       expect(loyaltyService.getCustomerLedger).toHaveBeenLastCalledWith(
         12,
         { type: null, from: '', to: '' },
+        1,
+        50,
         expect.any(AbortSignal)
       )
     )
+  })
+
+  it('loads a direct ledger page and preserves filters through pagination and browser navigation', async () => {
+    const user = userEvent.setup()
+    const getLedger = vi
+      .mocked(loyaltyService.getCustomerLedger)
+      .mockImplementation(async (_id, _filters, page = 1) => ({
+        items: [{ ...ledgerItem, id: 115 + page }],
+        meta: { current_page: page, last_page: 2, per_page: 50, total: 51 },
+      }))
+    const filters = { type: 'adjust_credit' as const, from: '', to: '' }
+    const { client } = renderPage('/dashboard/customers/12?tab=points&type=adjust_credit&page=2')
+
+    await waitFor(() => expect(getLedger).toHaveBeenCalledExactlyOnceWith(12, filters, 2, 50, expect.any(AbortSignal)))
+    expect(screen.getByTestId('location')).toHaveTextContent('tab=points&type=adjust_credit&page=2')
+    expect(client.getQueryData(loyaltyKeys.customerLedger(12, filters, 2, 50))).toBeDefined()
+
+    await user.click(await screen.findByRole('button', { name: 'Go to page 1' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent('tab=points&type=adjust_credit&page=1')
+    )
+    await waitFor(() => expect(getLedger).toHaveBeenCalledTimes(2))
+    expect(client.getQueryData(loyaltyKeys.customerLedger(12, filters, 1, 50))).toBeDefined()
+    expect(customersService.orders).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent('tab=points&type=adjust_credit&page=2')
+    )
+    expect(getLedger).toHaveBeenCalledTimes(2)
   })
 
   it('does not request the ledger for an incomplete date range', async () => {
@@ -257,8 +296,19 @@ describe('Customer loyalty page', () => {
 
     await user.click(screen.getByRole('button', { name: 'Customer 13' }))
     await waitFor(() => expect(loyaltyService.getCustomerSummary).toHaveBeenCalledWith(13, expect.any(AbortSignal)))
+    await waitFor(() =>
+      expect(loyaltyService.getCustomerLedger).toHaveBeenCalledWith(
+        13,
+        { type: null, from: '', to: '' },
+        1,
+        50,
+        expect.any(AbortSignal)
+      )
+    )
     expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(summary)
     expect(client.getQueryData(loyaltyKeys.customerSummary(13))).toEqual(summary)
+    expect(client.getQueryData(loyaltyKeys.customerLedger(12, { type: null, from: '', to: '' }, 1, 50))).toBeDefined()
+    expect(client.getQueryData(loyaltyKeys.customerLedger(13, { type: null, from: '', to: '' }, 1, 50))).toBeDefined()
   })
 
   it('keeps a successful ledger visible when the summary fails', async () => {

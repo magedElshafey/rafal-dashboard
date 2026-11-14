@@ -12,6 +12,10 @@ export type LoyaltyPreview = {
   returnPercent: number
 }
 
+export function roundEarnedLoyaltyPoints(points: number): number {
+  return Math.round(points)
+}
+
 export function toLoyaltySettingsFormValues(settings: LoyaltySettings): LoyaltySettingsFormValues {
   return {
     isEnabled: settings.isEnabled,
@@ -59,7 +63,7 @@ export function calculateLoyaltyPreview(values: Partial<LoyaltySettingsFormValue
     return null
   }
 
-  const points = LOYALTY_PREVIEW_ORDER_AMOUNT / amountPerPoint
+  const points = roundEarnedLoyaltyPoints(LOYALTY_PREVIEW_ORDER_AMOUNT / amountPerPoint)
   const valuePerPoint = redeemAmount / redeemPoints
   return {
     points,

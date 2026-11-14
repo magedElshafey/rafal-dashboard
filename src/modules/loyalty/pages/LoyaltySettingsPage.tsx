@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -8,6 +9,7 @@ import { LoyaltySettingsHistory } from '@/modules/loyalty/components/LoyaltySett
 import { LoyaltySettingsSkeleton } from '@/modules/loyalty/components/LoyaltySettingsSkeleton'
 import { useLoyaltySettings } from '@/modules/loyalty/hooks/useLoyaltySettings'
 import { useUpdateLoyaltySettings } from '@/modules/loyalty/hooks/useUpdateLoyaltySettings'
+import { readLoyaltyPage } from '@/modules/loyalty/utils/loyalty-pagination'
 import QueryProvider from '@/store/queryContext/queryContext'
 import { useQuery } from '@/store/queryContext/useQueryContext'
 
@@ -15,8 +17,15 @@ type LoyaltyTab = 'settings' | 'history'
 
 function LoyaltySettingsContent() {
   const { t } = useTranslation()
-  const { forwardQuery } = useQuery()
+  const { forwardAddQuery, forwardQuery } = useQuery()
   const activeTab: LoyaltyTab = forwardQuery?.tab === 'history' ? 'history' : 'settings'
+  const rawPage = forwardQuery?.page
+  const page = readLoyaltyPage(rawPage)
+  useEffect(() => {
+    if (activeTab === 'history' && rawPage !== undefined && rawPage !== String(page)) {
+      forwardAddQuery({ page: String(page) }, { replace: true })
+    }
+  }, [activeTab, forwardAddQuery, page, rawPage])
   const query = useLoyaltySettings()
   const update = useUpdateLoyaltySettings()
   const tabs = [
@@ -36,6 +45,7 @@ function LoyaltySettingsContent() {
         ariaLabel={t('loyalty.tabs.label')}
         id="loyalty-settings-tabs"
         panelId="loyalty-active-panel"
+        queryUpdateOptions={{ resetQueryNames: ['page'] }}
       />
       <section id="loyalty-active-panel" role="tabpanel" aria-labelledby={`loyalty-settings-tabs-tab-${activeTab}`}>
         <div hidden={activeTab !== 'settings'}>
@@ -59,7 +69,7 @@ function LoyaltySettingsContent() {
             ) : null}
           </QueryStateBoundary>
         </div>
-        {activeTab === 'history' ? <LoyaltySettingsHistory /> : null}
+        {activeTab === 'history' ? <LoyaltySettingsHistory page={page} /> : null}
       </section>
     </main>
   )

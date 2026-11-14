@@ -1,4 +1,5 @@
 import { BookOpenText, CalendarClock } from 'lucide-react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -12,11 +13,14 @@ import {
   ResponsiveDataTableRow,
 } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { EmptyState } from '@/components/shared/empty-state'
+import PaginatedListFooter from '@/components/shared/pagination/PaginatedListFooter'
 import { QueryStateBoundary } from '@/components/shared/query-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCustomerLoyaltyLedger } from '@/modules/loyalty/hooks/useCustomerLoyaltyLedger'
 import type { CustomerLoyaltyLedgerItem, LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
 import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
+import { loyaltyPagination } from '@/modules/loyalty/utils/loyalty-pagination'
+import { useQuery } from '@/store/queryContext/useQueryContext'
 import { formatDateTime, resolveAppLocale, type AppLocale } from '@/utils/date/date.helpers'
 
 function LedgerSkeleton() {
@@ -150,11 +154,27 @@ function LedgerMobile({ items }: { items: CustomerLoyaltyLedgerItem[] }) {
   )
 }
 
-export function CustomerLoyaltyLedger({ customerId, filters }: { customerId: number; filters: LoyaltyLedgerFilters }) {
+export function CustomerLoyaltyLedger({
+  customerId,
+  filters,
+  page,
+}: {
+  customerId: number
+  filters: LoyaltyLedgerFilters
+  page: number
+}) {
   const { t } = useTranslation()
+  const { forwardAddQuery } = useQuery()
   const dateState = getLoyaltyLedgerDateState(filters)
-  const query = useCustomerLoyaltyLedger(customerId, filters, true)
+  const query = useCustomerLoyaltyLedger(customerId, filters, page, true)
   const items = query.data?.items ?? []
+  const correctedPage =
+    query.data && page > query.data.meta.last_page
+      ? Math.max(1, Math.min(query.data.meta.current_page, query.data.meta.last_page))
+      : page
+  useEffect(() => {
+    if (correctedPage !== page) forwardAddQuery({ page: String(correctedPage) }, { replace: true })
+  }, [correctedPage, forwardAddQuery, page])
   const header = (
     <div className="min-w-0 space-y-1">
       <h2 className="text-lg font-semibold">{t('loyalty.customer.ledger.title')}</h2>
@@ -189,28 +209,37 @@ export function CustomerLoyaltyLedger({ customerId, filters }: { customerId: num
           {null}
         </ResponsiveDataLayout>
       }
-      isLoading={query.isLoading}
+      isLoading={query.isLoading || correctedPage !== page}
       isLoadingError={query.isError && !query.data}
       isRefetchError={query.isRefetchError}
       isPaused={query.isPaused}
       isFetching={query.isFetching}
-      hasData={Boolean(query.data)}
+      hasData={Boolean(query.data) && correctedPage === page}
       onRetry={query.refetch}
     >
-      <ResponsiveDataLayout
-        header={header}
-        isEmpty={items.length === 0}
-        empty={
-          <EmptyState
-            icon={<BookOpenText />}
-            title={t('loyalty.customer.ledger.emptyTitle')}
-            description={t('loyalty.customer.ledger.emptyDescription')}
+      <div className="space-y-4">
+        <ResponsiveDataLayout
+          header={header}
+          isEmpty={items.length === 0}
+          empty={
+            <EmptyState
+              icon={<BookOpenText />}
+              title={t('loyalty.customer.ledger.emptyTitle')}
+              description={t('loyalty.customer.ledger.emptyDescription')}
+            />
+          }
+        >
+          <LedgerDesktop items={items} />
+          <LedgerMobile items={items} />
+        </ResponsiveDataLayout>
+        {query.data && correctedPage === page ? (
+          <PaginatedListFooter
+            pagination={loyaltyPagination(query.data.meta, items.length)}
+            itemCount={items.length}
+            getRangeLabel={({ start, end, total }) => t('loyalty.customer.ledger.range', { start, end, total })}
           />
-        }
-      >
-        <LedgerDesktop items={items} />
-        <LedgerMobile items={items} />
-      </ResponsiveDataLayout>
+        ) : null}
+      </div>
     </QueryStateBoundary>
   )
 }

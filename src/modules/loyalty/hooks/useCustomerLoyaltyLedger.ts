@@ -5,10 +5,17 @@ import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
 import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
 import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
 
-export function useCustomerLoyaltyLedger(customerId: number, filters: LoyaltyLedgerFilters, enabled: boolean) {
+const LEDGER_PAGE_SIZE = 50
+
+export function useCustomerLoyaltyLedger(
+  customerId: number,
+  filters: LoyaltyLedgerFilters,
+  page: number,
+  enabled: boolean
+) {
   return useQuery({
-    queryKey: loyaltyKeys.customerLedger(customerId, filters),
-    queryFn: ({ signal }) => loyaltyService.getCustomerLedger(customerId, filters, signal),
+    queryKey: loyaltyKeys.customerLedger(customerId, filters, page, LEDGER_PAGE_SIZE),
+    queryFn: ({ signal }) => loyaltyService.getCustomerLedger(customerId, filters, page, LEDGER_PAGE_SIZE, signal),
     enabled: enabled && getLoyaltyLedgerDateState(filters) === 'valid',
     retry: false,
     // The global client disables mount refetches. An adjustment can invalidate

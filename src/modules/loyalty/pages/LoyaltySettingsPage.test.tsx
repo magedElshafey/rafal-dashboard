@@ -55,10 +55,15 @@ const values: LoyaltySettingsVersion['values'] = {
   effectiveReturnPercent: 0.5,
 }
 
-function versionsPage(items: LoyaltySettingsVersion[]): LoyaltyVersionsPage {
+function versionsPage(
+  items: LoyaltySettingsVersion[],
+  currentPage = 1,
+  lastPage = 1,
+  total = items.length
+): LoyaltyVersionsPage {
   return {
     items,
-    meta: { current_page: 1, last_page: 1, per_page: 20, total: items.length },
+    meta: { current_page: currentPage, last_page: lastPage, per_page: 20, total },
   }
 }
 
@@ -147,7 +152,7 @@ describe('LoyaltySettingsPage', () => {
     renderPage('/dashboard/loyalty/settings?tab=history')
 
     expect(await screen.findByRole('tab', { name: 'Change history' })).toHaveAttribute('aria-selected', 'true')
-    await waitFor(() => expect(versions).toHaveBeenCalledExactlyOnceWith(20, expect.any(AbortSignal)))
+    await waitFor(() => expect(versions).toHaveBeenCalledExactlyOnceWith(1, 20, expect.any(AbortSignal)))
     expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/loyalty/settings?tab=history')
   })
 
@@ -171,6 +176,41 @@ describe('LoyaltySettingsPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('tab', { name: 'Change history' })).toHaveAttribute('aria-selected', 'true')
     )
+  })
+
+  it('loads a direct History page, separates page caches, and supports URL Back and Forward navigation', async () => {
+    const user = userEvent.setup()
+    const versions = vi
+      .mocked(loyaltyService.getVersions)
+      .mockImplementation(async (page = 1) => versionsPage([historyVersion(page)], page, 2, 21))
+    const { client } = renderPage('/dashboard/loyalty/settings?tab=history&page=2')
+
+    await waitFor(() => expect(versions).toHaveBeenCalledExactlyOnceWith(2, 20, expect.any(AbortSignal)))
+    expect(screen.getByTestId('location')).toHaveTextContent('tab=history&page=2')
+    expect(client.getQueryData(loyaltyKeys.history(2, 20))).toBeDefined()
+    expect(client.getQueryData(loyaltyKeys.history(1, 20))).toBeUndefined()
+
+    await user.click(await screen.findByRole('button', { name: 'Go to page 1' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=history&page=1'))
+    await waitFor(() => expect(versions).toHaveBeenCalledTimes(2))
+    expect(client.getQueryData(loyaltyKeys.history(1, 20))).toBeDefined()
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=history&page=2'))
+    expect(versions).toHaveBeenCalledTimes(2)
+    await user.click(screen.getByRole('button', { name: 'Forward' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=history&page=1'))
+    expect(versions).toHaveBeenCalledTimes(2)
+  })
+
+  it('replaces an out-of-range History page with the last server page', async () => {
+    const versions = vi.mocked(loyaltyService.getVersions)
+    renderPage('/dashboard/loyalty/settings?tab=history&page=9')
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=history&page=1'))
+    await waitFor(() => expect(versions).toHaveBeenCalledTimes(2))
+    expect(versions).toHaveBeenNthCalledWith(1, 9, 20, expect.any(AbortSignal))
+    expect(versions).toHaveBeenNthCalledWith(2, 1, 20, expect.any(AbortSignal))
   })
 
   it('fetches History once on first open and reuses a still-fresh cached result', async () => {

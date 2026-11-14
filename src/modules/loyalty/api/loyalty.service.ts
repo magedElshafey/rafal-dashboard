@@ -197,10 +197,10 @@ export const loyaltyService = {
     return normalizeLoyaltySettings(response.data.data)
   },
 
-  async getVersions(perPage = 20, signal?: AbortSignal): Promise<LoyaltyVersionsPage> {
+  async getVersions(page = 1, perPage = 20, signal?: AbortSignal): Promise<LoyaltyVersionsPage> {
     const response = await $http.get<RawLoyaltyVersionsResponse>({
       url: '/dashboard/loyalty/settings/versions',
-      query: { per_page: perPage },
+      query: { page, per_page: perPage },
       signal,
       suppressErrorNotification: true,
     })
@@ -223,12 +223,14 @@ export const loyaltyService = {
   async getCustomerLedger(
     customerId: number,
     filters: LoyaltyLedgerFilters,
+    page = 1,
+    perPage = 50,
     signal?: AbortSignal
   ): Promise<CustomerLoyaltyLedgerPage> {
     const id = normalizeCustomerId(customerId)
     const response = await $http.get<RawCustomerLoyaltyLedgerResponse>({
       url: `/dashboard/customers/${id}/loyalty/ledger`,
-      query: serializeLoyaltyLedgerFilters(filters),
+      query: { ...serializeLoyaltyLedgerFilters(filters), page, per_page: perPage },
       signal,
       suppressErrorNotification: true,
     })

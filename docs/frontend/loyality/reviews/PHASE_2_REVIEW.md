@@ -26,7 +26,7 @@ Source-level and regression review of Customer Details Points navigation, summar
 ## Known issues
 
 - Only `adjust_credit` is exposed as a ledger filter because it is the sole documented filter value.
-- Ledger pagination request parameters, non-null order shape, complete transaction enum, and CSV export remain undocumented.
+- Ledger `page`/`per_page` support is confirmed and implemented. The non-null order shape, complete transaction enum, date semantics, and CSV export remain undocumented.
 - Deleted-customer and notification behavior require backend verification.
 
 ## Review outcome

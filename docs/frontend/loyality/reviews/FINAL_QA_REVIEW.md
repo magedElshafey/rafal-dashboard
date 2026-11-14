@@ -9,7 +9,7 @@ Independent cross-role review of the Order Details compatibility fix and Loyalty
 - **Senior frontend:** Existing services, forms, query keys, query boundaries, API errors, i18n, and UI primitives are reused. Summary and ledger state remain independent; mutation reconciliation is exact and customer-scoped. No new effects, dependencies, broad invalidation, or optimistic financial state were added.
 - **E-commerce domain:** Available, pending, held, expiring, and cancelled earning states remain distinct. Nullable financial context is not converted to zero. Manual debits use positive input and never optimistically create a negative balance; backend responses remain authoritative.
 - **UI/UX:** English LTR and Arabic RTL, localized labels, mobile dialog sizing, pending/disabled states, inline errors, keyboard controls, and trigger-focus restoration are covered. Nullable values use explicit unavailable placeholders.
-- **Product:** All behavior supported by the six documented endpoints is delivered. Missing settings, pagination, export, order linking, and lifecycle guarantees are classified rather than simulated. Authorization remains backend-owned.
+- **Product:** Confirmed mathematical preview rounding, server pagination, and the warning-only high-return UX are delivered. Missing settings, export, order linking, and lifecycle guarantees remain classified rather than simulated. Authorization remains backend-owned.
 - **QA:** Happy paths, validation, Laravel/network failures, null shapes, six real order lifecycles, request counts, filter preservation, cache isolation, cache reconciliation, duplicate submissions, accessibility, and direction are covered by focused tests.
 
 ## Validation results
@@ -27,8 +27,9 @@ Independent cross-role review of the Order Details compatibility fix and Loyalty
 
 - Backend endpoint authorization and standard 401/403 responses require integration verification; no frontend RBAC or control-visibility layer is required.
 - Financial concurrency, audit/lot creation, notification delivery, launch permanence, disable semantics, and historical non-recalculation require backend integration verification.
-- Full ledger/history pagination, full type/reason enums, CSV export, related orders, deleted customers, guest claims, and never-expiring points remain contract gaps.
+- Full type/reason enums, CSV export, related orders, deleted customers, guest claims, and never-expiring points remain contract gaps. History sorting and ledger date-range semantics still need backend verification.
 - Automated coverage did not execute an authenticated browser session or any real financial mutation.
+- Browser QA remains deferred for Settings History beyond 20 versions, Customer Ledger beyond 50 entries, an adjustment while viewing Ledger page 2, and real API out-of-range pagination behavior because suitable test data was unavailable.
 - Production build size warnings predate and are outside this focused change; no global chunking refactor was attempted.
 
 ## Manual smoke checklist

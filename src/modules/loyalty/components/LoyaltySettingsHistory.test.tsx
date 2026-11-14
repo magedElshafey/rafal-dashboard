@@ -49,7 +49,7 @@ function renderHistory(items: LoyaltySettingsVersion[]) {
     isFetching: false,
     refetch: vi.fn(),
   })
-  return render(<LoyaltySettingsHistory />)
+  return render(<LoyaltySettingsHistory page={1} />)
 }
 
 describe('LoyaltySettingsHistory', () => {

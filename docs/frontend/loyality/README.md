@@ -34,12 +34,11 @@
 
 ## 2. Story 1 — Configure the loyalty programme
 
-**User story:** As a staff member with `loyalty.settings.manage`, I want to set every loyalty value from the dashboard so Rafal can tune the programme without a release.
+**User story:** As an authorized staff member, I want to set every loyalty value from the dashboard so Rafal can tune the programme without a release.
 
 ### Preconditions / access
 
-- `loyalty.settings.manage`: can edit and save.
-- `loyalty.view`: settings read-only; hide **حفظ**. Follow existing permission guards and enforce backend access separately.
+- The backend owns endpoint authorization. The frontend adds no loyalty-specific RBAC, capability hook, or control-visibility rule and relies on the dashboard's standard Laravel 401/403 handling.
 
 ### Main flow
 
@@ -65,9 +64,9 @@
 | التنبيه قبل انتهاء الصلاحية (أيام) | `expiry_warning_days` | integer | Shown/required only if expiry enabled; 1–90, must be shorter than validity period | مدة التنبيه يجب أن تكون أقل من مدة الصلاحية |
 | مدة مطالبة الزائر بنقاط طلباته (أيام) | **not in available API** | integer | 0–365; `0` turns claims off | Required |
 | Live preview | local derived view | label | Update while typing; explain points, SAR value and percentage | — |
-| حفظ | PUT mutation | button | Hidden for read-only staff; disable/guard while pending | — |
+| حفظ | PUT mutation | button | Disable/guard while pending; backend authorizes the request | — |
 
-**Not settled by the supplied contract:** How the API represents **no expiry** (`null` vs separate flag vs other); how to set/read guest claim days; exact earning rounding for a 500 SAR preview. These must not be silently invented.
+**Not settled by the supplied contract:** How the API represents **no expiry** (`null` vs separate flag vs other), and how to set/read guest claim days. These must not be silently invented.
 
 ### Preview example / business math
 
@@ -77,7 +76,7 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 
 - Nominal value per point: `redeem_amount / redeem_points`.
 - Nominal return percent: `(redeem_amount / redeem_points / amount_per_point) * 100`.
-- **Caution:** `500 / amount_per_point` can be fractional. Actual earned-points rounding and display precision must match the backend; the response's `effective_return_percent` is the *nominal* rate, not necessarily the exact return from a fixed 500 SAR sample.
+- `500 / amount_per_point` uses standard mathematical rounding (`Math.round`) once at the earned-points boundary. The response's `effective_return_percent` remains the nominal rate.
 - Only show a valid preview when numeric inputs are valid. Do not call the settings endpoint on every keystroke; compute locally based on the loaded settings/form values.
 
 ### Acceptance criteria
@@ -89,11 +88,11 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 | AC-03 | First activation on 2027-02-01 fixes launch date to 2027-02-01; read-only forever. |
 | AC-04 | 1 month validity + 40 warning days is rejected with the specified warning validation message. |
 | AC-05 | Programme off ⇒ no new earning/redemption, balances retained, maturity/expiry continue. |
-| AC-06 | `loyalty.view` ⇒ read-only form, save button hidden. |
+| AC-06 | Unauthorized requests follow the dashboard's standard backend-owned 401/403 handling. |
 
 ### Alternative scenarios
 
-- **AS-01 (proposed; confirm product approval):** Effective return above 10% triggers confirmation **نسبة العائد مرتفعة، هل تريد المتابعة؟** before save.
+- **AS-01:** Effective return strictly above 10% shows a localized, non-blocking warning. It does not require confirmation or add a request field.
 - **AS-02:** Re-enable never changes launch date; orders placed while off never earn retroactively.
 - **AS-03:** Concurrent change is rejected; show **تم تعديل الإعدادات من مستخدم آخر، يرجى إعادة التحميل**; do not overwrite someone else's settings. Use API `version_id`; refetch deliberately and avoid erasing in-progress edits silently.
 
@@ -133,7 +132,7 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 | مجمّد | `is_blocked` | Badge for blocked accounts |
 | Ledger | `created_at`, `label`, `type`, `points`, `bucket`, `order`, `lot_expires_at`, `actor_type`, `actor_name`, `reason`, `reason_label`, `note` | Rows must not have edit/delete controls |
 | Filters | `type`, `from`, `to` | Server-side query params; type enum/date boundaries TBD |
-| Pagination | `meta.current_page`, `last_page`, `per_page`, `total` | Response example uses 50 per page; exact `page` request support to verify |
+| Pagination | `page`, `per_page`; response `meta.current_page`, `last_page`, `per_page`, `total` | Backend support confirmed; Settings History defaults to 20 and Customer Ledger defaults to 50 |
 | CSV | **no export contract supplied** | Avoid incorrectly exporting only current page; choose backend export or bounded client-side all-pages method once agreed |
 
 ### Adjustment dialog
@@ -178,8 +177,8 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 ### Build without waiting for backend changes
 
 - Settings GET, editable/read-only UI, supported fields, existing-style validation, save + disable confirmation, setting versions table/history UI.
-- Customer details **النقاط** tab, summary tiles, blocked badge, ledger table, type/date filter UI, current-page server pagination (subject to `page` contract), supported adjustment fields, submission, loading/error/success states.
-- Route/permission integration using established auth/authorization conventions; preserve existing customer details behavior.
+- Customer details **النقاط** tab, summary tiles, blocked badge, ledger table, type/date filter UI, URL-backed current-page server pagination, supported adjustment fields, submission, loading/error/success states.
+- Route integration using established backend-owned 401/403 handling; preserve existing customer details behavior.
 - After settings PUT: use returned version/settings to refresh relevant cache and invalidate version history precisely. After adjustment POST: update summary from returned response or invalidate summary; invalidate ledger. No speculative balance updates.
 - Arabic RTL, responsive design, keyboard-accessible dialogs/controls, visible validation feedback, focus management, semantic tables, sensible date/currency formatting.
 - Reuse tests/tools already in the repo; test calculations, validation, read-only permissions, mutation states, history diffs, filters, and non-duplication of requests.
@@ -192,9 +191,9 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 | No-expiry setting | Representation undocumented: wait for contract for *this field only*, not whole page. |
 | Order-linked adjustments | POST does not document order identifier: do not send invented key; record gap. |
 | CSV of all matching ledger rows | No export endpoint documented: choose bounded all-pages client implementation only if safe and explicitly decided; otherwise clearly mark pending. |
-| Return >10% confirmation | Product story labels **proposed**: only implement as an approved UX safeguard if product decision confirms. |
-| Rule rounding, expiry validation across calendar months | Confirm backend algorithm for exact parity; do not replace it with assumptions. |
-| Deleted-customer response, full reason/type enums, fine-grained permissions | Verify with repo/backend as needed; record precise scenarios. |
+| Return >10% warning | Confirmed and implemented as a localized, non-blocking warning strictly above 10%; no confirmation or request field. |
+| Expiry validation across calendar months | Confirm backend algorithm for exact parity; do not replace it with assumptions. |
+| Deleted-customer response and full reason/type enums | Verify with backend as needed; record precise scenarios. Endpoint authorization remains backend-owned. |
 | Error shape | Already standard Laravel pattern used across this dashboard; reuse existing handling, no new schema work needed. |
 
 ### Definition of done (per completed slice)
@@ -203,7 +202,7 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 2. No duplicate components/utilities when a suitable equivalent exists; any new component has a specific reuse or composition reason.
 3. Queries stable/cached appropriately, no request per keystroke, no accidental refetch loop or full-table download to render one page.
 4. Accessibility: semantic labels, RTL, error announcements, focus return/management, keyboard operation, disabled/loading states; no color-only status.
-5. Error and empty/loading states mirror established dashboard UX; permissions do not rely only on hiding controls.
+5. Error and empty/loading states mirror established dashboard UX; backend-owned 401/403 handling remains unchanged.
 6. Responsive verified at existing project breakpoints; formatting follows current locale and SAR conventions.
 7. Focused tests pass and no regression in existing customer details/settings screens.
 8. Backend gaps documented precisely (endpoint/field/expected behavior) without blocking supported implementation.
@@ -213,9 +212,7 @@ Given **10 SAR per point**, **100 points = 5 SAR**, the 500 SAR example must say
 - Add/read/write/history **guest claim days** configuration (`0..365`).
 - Define **no expiry** representation and expiry warning behavior when disabled.
 - Add/document optional **linked order number** on adjustment POST; validate order belongs to intended customer.
-- Confirm full `reason` enums, ledger `type` enums, pagination arguments, date boundaries, CSV export contract.
-- Confirm preview's **points rounding** vs nominal `effective_return_percent`.
-- Verify stale `version_id` rejection, permissions, debit atomicity/nonnegative balance, append-only rows, first launch permanence, programme disable semantics, blocked/deleted users, credit lot expiry, notification delivery.
-- Confirm whether >10% warning is officially approved (explicitly *proposed* in story).
+- Confirm full `reason` enums, ledger `type` enums, date boundaries, and CSV export contract.
+- Verify stale `version_id` rejection, backend endpoint authorization, debit atomicity/nonnegative balance, append-only rows, first launch permanence, programme disable semantics, blocked/deleted users, credit lot expiry, notification delivery.
 
 **Implementation note:** The supplied API responses demonstrate shape and selected happy paths. They do **not** prove server-side validation, authorization, atomicity, historical non-recalculation, or notification delivery. These are verification items, not assumptions.

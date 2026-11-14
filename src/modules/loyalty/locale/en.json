@@ -41,7 +41,8 @@
       "title": "Live nominal preview",
       "example": "An order of {{order}} SAR earns {{points}} points worth {{value}} SAR ({{percent}}% return).",
       "unavailable": "Enter valid earning and redemption values to see the preview.",
-      "nominalHint": "This preview is calculated locally. Actual earned-point rounding remains backend-defined."
+      "nominalHint": "This preview is calculated locally using standard mathematical rounding for earned points.",
+      "highReturnWarning": "The current loyalty settings provide a return greater than 10%. Review the financial impact before saving."
     },
     "actions": {
       "save": "Save",
@@ -65,6 +66,7 @@
       "title": "Change history",
       "total_one": "{{count}} version",
       "total_other": "{{count}} versions",
+      "range": "Showing {{start}}–{{end}} of {{total}} versions",
       "savedAt": "Saved at",
       "admin": "Administrator",
       "changes": "Changes",
@@ -148,6 +150,7 @@
         "title": "Points ledger",
         "total_one": "{{count}} transaction",
         "total_other": "{{count}} transactions",
+        "range": "Showing {{start}}–{{end}} of {{total}} transactions",
         "unavailable": "Unavailable",
         "orderAvailable": "Order details provided",
         "waitingForDates": "Complete the date range",

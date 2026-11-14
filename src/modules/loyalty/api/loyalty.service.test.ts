@@ -124,12 +124,12 @@ describe('loyaltyService', () => {
       },
     })
 
-    await loyaltyService.getVersions(20)
+    await loyaltyService.getVersions(2, 20)
 
     expect(http.get).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/dashboard/loyalty/settings/versions',
-        query: { per_page: 20 },
+        query: { page: 2, per_page: 20 },
       })
     )
   })
@@ -162,7 +162,7 @@ describe('loyaltyService', () => {
       },
     })
 
-    const result = await loyaltyService.getVersions(20)
+    const result = await loyaltyService.getVersions(1, 20)
 
     expect(result.items[0].values).toMatchObject({ validityMonths: null, expiryWarningDays: null })
   })
@@ -214,17 +214,22 @@ describe('loyaltyService', () => {
       },
     })
 
-    const result = await loyaltyService.getCustomerLedger(12, {
-      type: 'adjust_credit',
-      from: '2026-11-01',
-      to: '2026-11-30',
-    })
+    const result = await loyaltyService.getCustomerLedger(
+      12,
+      {
+        type: 'adjust_credit',
+        from: '2026-11-01',
+        to: '2026-11-30',
+      },
+      2,
+      50
+    )
 
     expect(result.items[0]).toMatchObject({ id: 116, points: 5000, lotExpiresAt: null, order: null })
     expect(http.get).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/dashboard/customers/12/loyalty/ledger',
-        query: { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
+        query: { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30', page: 2, per_page: 50 },
       })
     )
   })
