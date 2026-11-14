@@ -6,6 +6,7 @@ const count = z.number().int().nonnegative().safe()
 const decimal = z.string().regex(/^\d+(?:\.\d+)?$/)
 const nullableText = z.string().nullable().catch(null)
 const customer = z.object({ type: text, name: z.string(), email: z.string(), phone: z.string() })
+const orderCustomer = customer.extend({ email: z.string().nullable() })
 const warehouse = z.object({ id, name: text }).nullable()
 const identity = {
   id,
@@ -46,10 +47,24 @@ const rawOrderItemPersonalizationSchema = z.object({
   fee: decimal,
 })
 
+const rawOrderLoyaltySchema = z.object({
+  points_earned: count,
+  earned_status: text,
+  available_on: z.string().nullable(),
+  return_window_days: count,
+  points_redeemed: count,
+  amount_applied: decimal,
+  amount_due: decimal,
+  value_per_point: z.number().finite().nonnegative().nullable(),
+  points_returned: count,
+  amount_per_point: decimal,
+  rule_version_id: id,
+})
+
 export const rawOrderStatusSchema = z.object({ value: text, label: text, customer_status: text })
 export const rawOrderListItemSchema = z.object({
   ...identity,
-  customer: customer.extend({ email: z.string().nullable() }),
+  customer: orderCustomer,
   items_count: count,
   total: decimal,
   currency: text,
@@ -73,6 +88,7 @@ export const rawOrderGiftSchema = z.object({
 })
 export const rawOrderDetailSchema = z.object({
   ...identity,
+  customer: orderCustomer,
   shipping_address: z
     .object({
       recipient_name: z.string(),
@@ -127,6 +143,10 @@ export const rawOrderDetailSchema = z.object({
       }
     }),
   coupon: z.unknown(),
+  loyalty: rawOrderLoyaltySchema
+    .nullable()
+    .optional()
+    .transform((value) => value ?? null),
   payment: z.object({ method: text, status: text, reference: nullableText, paid_at: nullableText }),
   status_history: z.array(
     z.object({

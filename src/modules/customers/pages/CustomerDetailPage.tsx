@@ -3,6 +3,7 @@ import { UserRoundX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { EmptyState } from '@/components/shared/empty-state'
+import QueryProvider from '@/store/queryContext/queryContext'
 import { CustomerDetailsHeader } from '../components/CustomerDetailsHeader'
 import { CustomerDetailsLayout } from '../components/CustomerDetailsLayout'
 import { useCustomer } from '../hooks/useCustomer'
@@ -24,7 +25,11 @@ function CustomerNotFound() {
 function CustomerDetails({ id }: { id: number }) {
   const query = useCustomer(id)
   if (!query.data && isAxiosError(query.error) && query.error.response?.status === 404) return <CustomerNotFound />
-  return <CustomerDetailsLayout customerId={id} query={query} />
+  return (
+    <QueryProvider>
+      <CustomerDetailsLayout customerId={id} query={query} />
+    </QueryProvider>
+  )
 }
 
 export default function CustomerDetailPage() {

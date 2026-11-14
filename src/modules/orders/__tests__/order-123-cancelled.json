@@ -1,0 +1,91 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 123,
+    "order_number": "RF-10123",
+    "display_number": "#RF-10123",
+    "status": "cancelled",
+    "customer": {
+      "type": "registered",
+      "name": "",
+      "email": null,
+      "phone": "+966553212125"
+    },
+    "shipping_address": {
+      "recipient_name": "sdfdsfsdf",
+      "recipient_phone": "0556764321",
+      "city": {
+        "id": 1,
+        "name": "الرياض"
+      },
+      "district": "نمار",
+      "street_details": "الرون"
+    },
+    "items": [
+      {
+        "id": 187,
+        "product_name": "عطر مسك أبيض",
+        "variant_sku": "RAF-wmz-4710",
+        "variant_attributes": {
+          "size": "50"
+        },
+        "quantity": 1,
+        "unit_price": "260.00",
+        "discount_amount": "0.00",
+        "line_total": "260.00"
+      }
+    ],
+    "money": {
+      "subtotal": "260.00",
+      "discount_total": "0.00",
+      "shipping_fee": "149.00",
+      "personalization_total": "0.00",
+      "gift_wrap_fee": "0.00",
+      "taxable_amount": "409.00",
+      "vat": {
+        "rate": "15.00",
+        "amount": "61.35"
+      },
+      "total": "470.35",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "tap",
+      "status": "failed",
+      "reference": "chg_TS07A4020261804Ng0n2710965",
+      "paid_at": null
+    },
+    "warehouse": {
+      "id": 6,
+      "name": "محزن الرياض"
+    },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-10-27T21:04:40+03:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "cancelled",
+        "note": "Payment expired",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-10-27T22:30:25+03:00"
+      }
+    ],
+    "allowed_transitions": [],
+    "loyalty": null,
+    "placed_at": "2026-10-27T21:04:40+03:00",
+    "cancelled_at": "2026-10-27T22:30:25+03:00",
+    "created_at": "2026-10-27T21:04:40+03:00",
+    "updated_at": "2026-10-27T22:30:25+03:00"
+  }
+}

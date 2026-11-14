@@ -75,6 +75,22 @@
       "language": "Language",
       "fee": "Fee"
     },
+    "loyalty": {
+      "title": "Loyalty earning",
+      "unavailable": "No loyalty earning is associated with this order.",
+      "earnedStatus": "Earning status",
+      "pointsEarned": "Points earned",
+      "availableOn": "Available on",
+      "returnWindowDays": "Return window (days)",
+      "pointsRedeemed": "Points redeemed",
+      "amountApplied": "Amount applied",
+      "amountDue": "Amount due",
+      "valuePerPoint": "Value per point",
+      "pointsReturned": "Points returned",
+      "amountPerPoint": "Amount per point",
+      "ruleVersion": "Rule version",
+      "status": { "pending": "Pending", "cancelled": "Cancelled" }
+    },
     "gift": {
       "anonymous": "Anonymous",
       "message": "Gift message",
@@ -116,7 +132,7 @@
       "paymentFailed": "Payment failed",
       "pendingVerification": "Pending verification"
     },
-    "paymentStatus": { "paid": "Paid", "pending": "Pending" },
+    "paymentStatus": { "paid": "Paid", "pending": "Pending", "failed": "Failed" },
     "values": { "guest": "Guest", "registered": "Registered", "system": "System", "admin": "Admin", "card": "Card" }
   }
 }

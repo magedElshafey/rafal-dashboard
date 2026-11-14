@@ -73,6 +73,21 @@ export function normalizeOrderDetail(value: unknown): OrderDetail {
       currency: money.currency,
     },
     coupon: raw.coupon,
+    loyalty: raw.loyalty
+      ? {
+          pointsEarned: raw.loyalty.points_earned,
+          earnedStatus: raw.loyalty.earned_status,
+          availableOn: raw.loyalty.available_on,
+          returnWindowDays: raw.loyalty.return_window_days,
+          pointsRedeemed: raw.loyalty.points_redeemed,
+          amountApplied: raw.loyalty.amount_applied,
+          amountDue: raw.loyalty.amount_due,
+          valuePerPoint: raw.loyalty.value_per_point,
+          pointsReturned: raw.loyalty.points_returned,
+          amountPerPoint: raw.loyalty.amount_per_point,
+          ruleVersionId: raw.loyalty.rule_version_id,
+        }
+      : null,
     payment: {
       method: raw.payment.method,
       status: raw.payment.status,

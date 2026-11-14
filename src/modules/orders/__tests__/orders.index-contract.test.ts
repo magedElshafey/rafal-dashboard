@@ -17,7 +17,7 @@ describe('Orders Index nullable email contract', () => {
     expect(http.get).toHaveBeenCalledTimes(1)
   })
 
-  it('still rejects missing or malformed email and retains the Details contract', () => {
+  it('still rejects missing or malformed email while accepting documented null emails', () => {
     for (const email of [undefined, 123, {}, []]) {
       expect(
         rawOrderListItemSchema.safeParse({ ...fixture.data[0], customer: { ...fixture.data[0].customer, email } })
@@ -26,6 +26,11 @@ describe('Orders Index nullable email contract', () => {
     }
     expect(
       rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email: null } }).success
-    ).toBe(false)
+    ).toBe(true)
+    for (const email of [undefined, 123, {}, []]) {
+      expect(
+        rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email } }).success
+      ).toBe(false)
+    }
   })
 })

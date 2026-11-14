@@ -27,7 +27,7 @@ export function OrderPartySections({ order }: { order?: OrderDetail }) {
                 '—'
               ),
             ],
-            [t('orders.email'), customer?.email.trim() || '—'],
+            [t('orders.email'), customer?.email?.trim() || '—'],
             [t('orders.phone'), customer?.phone.trim() || '—'],
           ]}
         />

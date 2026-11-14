@@ -10,6 +10,12 @@ import show from './order-detail.fixture.json'
 import index from './orders-index.fixture.json'
 import statuses from './statuses.fixture.json'
 import dashboardShow from './order-dashboard-show.fixture.json'
+import cancelled123 from './order-123-cancelled.json'
+import confirmed145 from './order-145-confirmed.json'
+import processing145 from './order-145-processing.json'
+import shipped145 from './order-145-shipped.json'
+import delivered145 from './order-145-delivered.json'
+import returned145 from './order-145-returned.json'
 import { cancelledOrder20, confirmedOrder18, processingOrder19 } from './order-detail-runtime.fixtures'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
@@ -36,6 +42,104 @@ describe('real Orders read contracts', () => {
     expect(detail.gift?.recipient.city?.name).toBe('الرياض')
     http.patch.mockResolvedValue({ data: dashboardShow })
     expect((await ordersService.updateStatus(208, 'confirmed')).detail).toEqual(detail)
+  })
+
+  it('normalizes the exact nullable cancelled Show response without fabricating optional data', async () => {
+    http.get.mockResolvedValue({ data: cancelled123 })
+
+    const detail = await ordersService.show(123)
+
+    expect(detail).toMatchObject({
+      id: 123,
+      status: 'cancelled',
+      customer: { name: '', email: null, phone: '+966553212125' },
+      coupon: null,
+      loyalty: null,
+      payment: { method: 'tap', status: 'failed', paidAt: null },
+      allowedTransitions: [],
+    })
+    expect(detail.money).toEqual({
+      subtotal: '260.00',
+      discountTotal: '0.00',
+      shippingFee: '149.00',
+      personalizationTotal: '0.00',
+      giftWrapFee: '0.00',
+      taxableAmount: '409.00',
+      vat: { rate: '15.00', amount: '61.35' },
+      total: '470.35',
+      currency: 'SAR',
+    })
+    expect(detail.statusHistory).toEqual([
+      expect.objectContaining({ fromStatus: null, actorId: null, actorName: null, actorType: 'system' }),
+      expect.objectContaining({ fromStatus: 'new', actorId: null, actorName: null, actorType: 'system' }),
+    ])
+    expect(http.get).toHaveBeenCalledExactlyOnceWith({
+      url: '/dashboard/orders/123',
+      signal: undefined,
+      suppressErrorNotification: true,
+    })
+  })
+
+  it.each([
+    ['confirmed', confirmed145, 'pending', null, ['processing', 'cancelled'], 2],
+    ['processing', processing145, 'pending', null, ['shipped', 'cancelled'], 3],
+    ['shipped', shipped145, 'pending', null, ['delivered'], 4],
+    ['delivered', delivered145, 'pending', '2026-11-29T01:00:57+03:00', ['returned'], 5],
+    ['returned', returned145, 'cancelled', '2026-11-29T01:00:57+03:00', [], 6],
+  ] as const)(
+    'normalizes the exact Order 145 %s lifecycle response',
+    async (status, fixture, earnedStatus, availableOn, allowedTransitions, historyLength) => {
+      http.get.mockResolvedValue({ data: fixture })
+
+      const detail = await ordersService.show(145)
+
+      expect(detail).toMatchObject({
+        id: 145,
+        status,
+        customer: { name: '', email: null, phone: '+966552122332' },
+        money: {
+          subtotal: '3520.00',
+          personalizationTotal: '4.00',
+          taxableAmount: '3524.00',
+          vat: { rate: '15.00', amount: '528.60' },
+          total: '4052.60',
+        },
+        payment: { method: 'card', status: 'paid', reference: 'chg_TS01A3020262154s3RR1311020' },
+        allowedTransitions: [...allowedTransitions],
+        loyalty: {
+          pointsEarned: 4052,
+          earnedStatus,
+          availableOn,
+          returnWindowDays: 15,
+          pointsRedeemed: 0,
+          amountApplied: '0.00',
+          amountDue: '4052.60',
+          valuePerPoint: null,
+          pointsReturned: 0,
+          amountPerPoint: '1.00',
+          ruleVersionId: 5,
+        },
+      })
+      expect(detail.items[1].personalization).toEqual({ text: 'A', language: 'en', fee: '1.00' })
+      expect(detail.statusHistory).toHaveLength(historyLength)
+      expect(http.get).toHaveBeenCalledExactlyOnceWith({
+        url: '/dashboard/orders/145',
+        signal: undefined,
+        suppressErrorNotification: true,
+      })
+    }
+  )
+
+  it('rejects malformed required loyalty fields without weakening the order contract', () => {
+    for (const loyalty of [
+      { ...confirmed145.data.loyalty, points_earned: -1 },
+      { ...confirmed145.data.loyalty, available_on: 123 },
+      { ...confirmed145.data.loyalty, amount_due: 4052.6 },
+      { ...confirmed145.data.loyalty, value_per_point: '0.05' },
+      { ...confirmed145.data.loyalty, rule_version_id: 0 },
+    ]) {
+      expect(() => normalizeOrderDetail({ ...confirmed145.data, loyalty })).toThrow()
+    }
   })
 
   it('rejects absent, malformed or conflicting VAT amounts rather than inventing an accounting value', () => {
@@ -128,6 +232,7 @@ describe('real Orders read contracts', () => {
         currency: 'SAR',
       },
       coupon: null,
+      loyalty: null,
       payment: {
         method: 'card',
         status: 'paid',

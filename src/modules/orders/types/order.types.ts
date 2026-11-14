@@ -53,6 +53,19 @@ export type OrderMoney = {
   total: string
   currency: string
 }
+export type OrderLoyalty = {
+  pointsEarned: number
+  earnedStatus: string
+  availableOn: string | null
+  returnWindowDays: number
+  pointsRedeemed: number
+  amountApplied: string
+  amountDue: string
+  valuePerPoint: number | null
+  pointsReturned: number
+  amountPerPoint: string
+  ruleVersionId: number
+}
 export type OrderGift = {
   isAnonymous: boolean
   message: string | null
@@ -79,6 +92,7 @@ export type OrderDetail = Omit<OrderIdentity, 'customer'> & {
   items: OrderItem[]
   money: OrderMoney
   coupon: unknown
+  loyalty: OrderLoyalty | null
   payment: { method: string; status: string; reference: string | null; paidAt: string | null }
   statusHistory: {
     fromStatus: string | null

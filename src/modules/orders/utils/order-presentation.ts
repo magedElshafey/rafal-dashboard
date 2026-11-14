@@ -20,7 +20,7 @@ export function orderStatusLabel(value: string, definitions: OrderStatusDefiniti
     : definitions.find((item) => item.value === value)?.label || humanizeOrderValue(value)
 }
 export function paymentLabel(value: string, t: TFunction) {
-  return value === 'paid' || value === 'pending' ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
+  return ['paid', 'pending', 'failed'].includes(value) ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
 }
 export function customerLabel(customer: OrderListItem['customer'], unavailable: string) {
   return [customer.name, customer.email, customer.phone].find((value) => value?.trim()) || unavailable

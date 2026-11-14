@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { loyaltyService, serializeLoyaltySettingsUpdate } from '@/modules/loyalty/api/loyalty.service'
+import {
+  loyaltyService,
+  serializeLoyaltyAdjustment,
+  serializeLoyaltySettingsUpdate,
+} from '@/modules/loyalty/api/loyalty.service'
 
-const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn() }))
+const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: http }))
 
 const rawSettings = {
@@ -161,5 +165,142 @@ describe('loyaltyService', () => {
     const result = await loyaltyService.getVersions(20)
 
     expect(result.items[0].values).toMatchObject({ validityMonths: null, expiryWarningDays: null })
+  })
+
+  it('normalizes an authoritative customer summary including nullable expiry data', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: { available: 0, pending: 0, held: 0, expiring_soon: null, is_blocked: 1 },
+      },
+    })
+
+    await expect(loyaltyService.getCustomerSummary(12)).resolves.toEqual({
+      available: 0,
+      pending: 0,
+      held: 0,
+      expiringSoon: null,
+      isBlocked: true,
+    })
+    expect(http.get).toHaveBeenCalledWith(
+      expect.objectContaining({ url: '/dashboard/customers/12/loyalty', suppressErrorNotification: true })
+    )
+  })
+
+  it('normalizes ledger rows and sends only documented filters', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [
+          {
+            id: 116,
+            created_at: '2026-11-13T17:25:44+03:00',
+            type: 'adjust_credit',
+            label: 'Manual adjustment',
+            bucket: 'available',
+            points: 5000,
+            lot_expires_at: null,
+            actor_type: 'admin',
+            actor_name: null,
+            reason: null,
+            reason_label: null,
+            note: null,
+            order: null,
+          },
+        ],
+        meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
+      },
+    })
+
+    const result = await loyaltyService.getCustomerLedger(12, {
+      type: 'adjust_credit',
+      from: '2026-11-01',
+      to: '2026-11-30',
+    })
+
+    expect(result.items[0]).toMatchObject({ id: 116, points: 5000, lotExpiresAt: null, order: null })
+    expect(http.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/dashboard/customers/12/loyalty/ledger',
+        query: { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
+      })
+    )
+  })
+
+  it('rejects fractional ledger points instead of fabricating an integer balance movement', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [
+          {
+            id: 1,
+            created_at: '2026-11-13T17:25:44+03:00',
+            type: 'adjust_credit',
+            label: 'Manual adjustment',
+            bucket: 'available',
+            points: 1.5,
+            lot_expires_at: null,
+            actor_type: null,
+            actor_name: null,
+            reason: null,
+            reason_label: null,
+            note: null,
+            order: null,
+          },
+        ],
+        meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
+      },
+    })
+
+    await expect(loyaltyService.getCustomerLedger(12, { type: null, from: '', to: '' })).rejects.toThrow(
+      'Ledger points is unavailable'
+    )
+  })
+
+  it('serializes only the documented adjustment fields and returns the authoritative summary', async () => {
+    const payload = {
+      type: 'credit' as const,
+      points: 5000,
+      reason: 'customer_service' as const,
+      note: 'Test credit for loyalty QA',
+      notifyCustomer: false,
+    }
+    expect(serializeLoyaltyAdjustment(payload)).toEqual({
+      type: 'credit',
+      points: 5000,
+      reason: 'customer_service',
+      note: 'Test credit for loyalty QA',
+      notify_customer: false,
+    })
+    http.post.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: { available: 5127, pending: 0, held: 0, expiring_soon: null, is_blocked: false },
+      },
+    })
+
+    await expect(loyaltyService.adjustCustomerPoints(12, payload)).resolves.toEqual({
+      available: 5127,
+      pending: 0,
+      held: 0,
+      expiringSoon: null,
+      isBlocked: false,
+    })
+    expect(http.post).toHaveBeenCalledExactlyOnceWith({
+      url: '/dashboard/customers/12/loyalty/adjustments',
+      data: {
+        type: 'credit',
+        points: 5000,
+        reason: 'customer_service',
+        note: 'Test credit for loyalty QA',
+        notify_customer: false,
+      },
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
   })
 })

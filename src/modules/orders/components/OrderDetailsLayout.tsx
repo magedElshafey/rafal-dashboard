@@ -9,6 +9,7 @@ import { OrderMoneySummary } from './OrderMoneySummary'
 import { OrderPaymentSections } from './OrderPaymentSections'
 import { OrderGiftSection } from './OrderGiftSection'
 import { OrderStatusHistory } from './OrderStatusHistory'
+import { OrderLoyaltySection } from './OrderLoyaltySection'
 
 /** Share all major page geometry between loaded data and primitive placeholders. */
 export function OrderDetailsLayout({ order, refreshing = false }: { order?: OrderDetail; refreshing?: boolean }) {
@@ -27,6 +28,7 @@ export function OrderDetailsLayout({ order, refreshing = false }: { order?: Orde
           <OrderMoneySummary order={order} />
         </div>
         <OrderPaymentSections order={order} />
+        <OrderLoyaltySection order={order} />
         <OrderGiftSection order={order} />
         <OrderStatusHistory order={order} />
         <OrderDetailsSection title={t('orders.details.metadata')}>

@@ -138,6 +138,88 @@
     "feedback": {
       "updated": "تم تحديث إعدادات الولاء.",
       "updateError": "تعذر تحديث إعدادات الولاء."
+    },
+    "customer": {
+      "summary": {
+        "title": "ملخص النقاط",
+        "available": "النقاط المتاحة",
+        "pending": "النقاط المعلّقة",
+        "held": "النقاط المحجوزة",
+        "expiringSoon": "تنتهي قريبًا",
+        "unavailable": "غير متاح",
+        "expiresAt": "تنتهي في {{date}}",
+        "frozen": "مجمّد"
+      },
+      "filters": {
+        "title": "تصفية سجل النقاط",
+        "type": "نوع العملية",
+        "allTypes": "كل الأنواع الموثقة",
+        "from": "التاريخ من",
+        "to": "التاريخ إلى",
+        "clear": "مسح عوامل التصفية",
+        "completeRange": "اختر تاريخي البداية والنهاية لتطبيق النطاق الزمني.",
+        "invalidRange": "أدخل نطاقًا زمنيًا صالحًا يبدأ في تاريخ يسبق تاريخ النهاية أو يساويه."
+      },
+      "ledger": {
+        "title": "سجل النقاط",
+        "total_zero": "لا توجد عمليات",
+        "total_one": "عملية واحدة",
+        "total_two": "عمليتان",
+        "total_few": "{{count}} عمليات",
+        "total_many": "{{count}} عملية",
+        "total_other": "{{count}} عملية",
+        "unavailable": "غير متاح",
+        "orderAvailable": "تفاصيل الطلب متوفرة",
+        "waitingForDates": "أكمل النطاق الزمني",
+        "waitingForDatesDescription": "سيتم تحميل السجل بعد اختيار تاريخين صالحين.",
+        "emptyTitle": "لا توجد عمليات في السجل",
+        "emptyDescription": "لا توجد عمليات تطابق عوامل التصفية الحالية.",
+        "types": {
+          "adjustCredit": "إضافة يدوية"
+        },
+        "fields": {
+          "date": "التاريخ والوقت",
+          "transaction": "العملية",
+          "points": "النقاط",
+          "bucket": "الرصيد",
+          "order": "الطلب المرتبط",
+          "expiry": "انتهاء الدفعة",
+          "actor": "المنفّذ",
+          "reason": "السبب"
+        }
+      },
+      "adjustment": {
+        "action": "تعديل النقاط",
+        "title": "تعديل نقاط الولاء",
+        "description": "أنشئ إضافة أو خصمًا مسجلاً بالاعتماد على رصيد الولاء الحالي للعميل.",
+        "availableBalance": "الرصيد المتاح: {{available}} نقطة",
+        "availableUnavailable": "غير متاح",
+        "frozenHint": "هذا العميل مجمّد. يظل الخادم المرجع المعتمد لأهلية التعديل وسلوك الرصيد.",
+        "fields": {
+          "type": "نوع التعديل",
+          "points": "عدد النقاط",
+          "reason": "السبب",
+          "note": "ملاحظة داخلية",
+          "notifyCustomer": "طلب إرسال إشعار للعميل"
+        },
+        "types": { "credit": "إضافة", "debit": "خصم" },
+        "reasons": { "customerService": "خدمة العملاء", "other": "أخرى" },
+        "reasonPlaceholder": "اختر السبب",
+        "submit": "تطبيق التعديل",
+        "submitting": "جارٍ التطبيق…",
+        "cancel": "إلغاء",
+        "validation": {
+          "required": "هذا الحقل مطلوب.",
+          "integer": "أدخل عددًا صحيحًا دون كسور.",
+          "pointsRange": "يجب أن تكون النقاط بين 1 و100,000.",
+          "noteLength": "يجب أن تتراوح الملاحظة الداخلية بين 10 و250 حرفًا.",
+          "insufficientBalance": "لا يمكن أن يتجاوز الخصم الرصيد المتاح البالغ {{available}} نقطة."
+        },
+        "feedback": {
+          "success": "تم تعديل نقاط الولاء بنجاح.",
+          "error": "تعذر تعديل نقاط الولاء. راجع النموذج وحاول مرة أخرى."
+        }
+      }
     }
   }
 }

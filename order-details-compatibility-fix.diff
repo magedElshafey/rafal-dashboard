@@ -1,0 +1,1399 @@
+# Complete Order Details nullable/loyalty compatibility fix
+# Includes tracked changes plus complete untracked production/test files.
+
+warning: in the working copy of 'src/modules/orders/__tests__/orders.details-page.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/__tests__/orders.index-contract.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/__tests__/orders.service.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/components/OrderDetailsLayout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/components/OrderPartySections.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/locale/ar.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/locale/en.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/schemas/order.schema.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/types/order.types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/utils/order-normalizers.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/modules/orders/utils/order-presentation.ts', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/orders.details-page.test.tsx b/src/modules/orders/__tests__/orders.details-page.test.tsx
+index e175888..98b1ab7 100644
+--- a/src/modules/orders/__tests__/orders.details-page.test.tsx
++++ b/src/modules/orders/__tests__/orders.details-page.test.tsx
+@@ -11,6 +11,12 @@ import { normalizeOrderDetail } from '../utils/order-normalizers'
+ import { ordersKeys } from '../queries/orders.keys'
+ import { renderOrders } from './test-utils'
+ import show from './order-dashboard-show.fixture.json'
++import cancelled123 from './order-123-cancelled.json'
++import confirmed145 from './order-145-confirmed.json'
++import processing145 from './order-145-processing.json'
++import shipped145 from './order-145-shipped.json'
++import delivered145 from './order-145-delivered.json'
++import returned145 from './order-145-returned.json'
+ 
+ const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
+ vi.mock('@/utils/http', () => ({ $http: http }))
+@@ -67,6 +73,95 @@ describe('production Order Details', () => {
+     service.mockRestore()
+   })
+ 
++  it('renders the exact nullable cancelled response without a parsing or runtime failure', async () => {
++    http.get.mockResolvedValue({ data: cancelled123 })
++    const service = vi.spyOn(ordersService, 'show')
++
++    const { client, container } = renderOrders(<OrderDetailPage />, '/dashboard/orders/123')
++
++    expect(await screen.findByRole('heading', { name: '#RF-10123', level: 1 })).toBeInTheDocument()
++    expect(service).toHaveBeenCalledExactlyOnceWith(123, expect.any(AbortSignal))
++    expect(http.get).toHaveBeenCalledExactlyOnceWith({
++      url: '/dashboard/orders/123',
++      signal: expect.any(AbortSignal),
++      suppressErrorNotification: true,
++    })
++    expect(client.getQueryData(ordersKeys.detail(123))).toEqual(normalizeOrderDetail(cancelled123.data))
++
++    const customer = within(screen.getByRole('region', { name: 'Customer' }))
++    expect(customer.getAllByText('+966553212125')).toHaveLength(2)
++    expect(customer.getByText('—')).toBeInTheDocument()
++    expect(customer.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument()
++
++    const payment = within(screen.getByRole('region', { name: 'Payment' }))
++    expect(payment.getByText('Failed')).toBeInTheDocument()
++    expect(payment.getByText('tap')).toBeInTheDocument()
++    expect(payment.getByText('chg_TS07A4020261804Ng0n2710965')).toBeInTheDocument()
++    expect(payment.getByText('—')).toBeInTheDocument()
++
++    expect(screen.getByText('No coupon applied')).toBeInTheDocument()
++    expect(screen.getByText('No loyalty earning is associated with this order.')).toBeInTheDocument()
++    expect(within(screen.getByRole('region', { name: 'Money summary' })).getByText('470.35 SAR')).toBeInTheDocument()
++    const history = within(screen.getByRole('region', { name: 'Status history' }))
++    expect(history.getByText('Initial status:')).toBeInTheDocument()
++    expect(history.getAllByText('System')).toHaveLength(2)
++    expect(history.getByText('Payment expired')).toBeInTheDocument()
++    expect(screen.queryByRole('button', { name: 'Update status' })).not.toBeInTheDocument()
++    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
++    expect(container).not.toHaveTextContent(/^(null|undefined)$/)
++    service.mockRestore()
++  })
++
++  it.each([
++    ['confirmed', 'Confirmed', confirmed145, 'Pending', null, 2, true],
++    ['processing', 'Processing', processing145, 'Pending', null, 3, true],
++    ['shipped', 'Shipped', shipped145, 'Pending', null, 4, true],
++    ['delivered', 'Delivered', delivered145, 'Pending', '2026-11-29T01:00:57+03:00', 5, true],
++    ['returned', 'Returned', returned145, 'Cancelled', '2026-11-29T01:00:57+03:00', 6, false],
++  ] as const)(
++    'renders the exact Order 145 %s lifecycle response',
++    async (_status, statusLabel, fixture, earnedStatus, availableOn, historyLength, hasTransition) => {
++      http.get.mockResolvedValue({ data: fixture })
++      const service = vi.spyOn(ordersService, 'show')
++
++      const { client } = renderOrders(<OrderDetailPage />, '/dashboard/orders/145')
++
++      expect(await screen.findByRole('heading', { name: '#RF-10145', level: 1 })).toBeInTheDocument()
++      expect(service).toHaveBeenCalledExactlyOnceWith(145, expect.any(AbortSignal))
++      expect(http.get).toHaveBeenCalledExactlyOnceWith({
++        url: '/dashboard/orders/145',
++        signal: expect.any(AbortSignal),
++        suppressErrorNotification: true,
++      })
++      expect(client.getQueryData(ordersKeys.detail(145))).toEqual(normalizeOrderDetail(fixture.data))
++      expect(screen.getAllByText(statusLabel).length).toBeGreaterThan(0)
++      expect(screen.getByText('Paid')).toBeInTheDocument()
++
++      const loyalty = within(screen.getByRole('region', { name: 'Loyalty earning' }))
++      expect(loyalty.getByText(earnedStatus)).toBeInTheDocument()
++      expect(loyalty.getByText('4,052')).toBeInTheDocument()
++      expect(loyalty.getByText('0.00 SAR')).toBeInTheDocument()
++      expect(loyalty.getByText('4,052.60 SAR')).toBeInTheDocument()
++      expect(loyalty.queryByText('Available points')).not.toBeInTheDocument()
++      if (availableOn) {
++        expect(loyalty.getByText(formatDateTime(availableOn, { locale: 'en' }))).toBeInTheDocument()
++      } else {
++        expect(loyalty.getAllByText('—')).toHaveLength(2)
++      }
++
++      expect(
++        within(screen.getByRole('region', { name: 'Money summary' })).getByText('4,052.60 SAR')
++      ).toBeInTheDocument()
++      expect(screen.getAllByText('A')).toHaveLength(2)
++      expect(within(screen.getByRole('region', { name: 'Status history' })).getByRole('list').children).toHaveLength(
++        historyLength
++      )
++      expect(screen.queryByRole('button', { name: 'Update status' }) !== null).toBe(hasTransition)
++      expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
++      service.mockRestore()
++    }
++  )
++
+   it.each(['0', '-1', 'abc', '1.5', '1e2', '9007199254740992'])(
+     'handles invalid ID %s without any query or API request',
+     (id) => {
+diff --git a/src/modules/orders/__tests__/orders.index-contract.test.ts b/src/modules/orders/__tests__/orders.index-contract.test.ts
+index f4f21b9..ebce9b0 100644
+--- a/src/modules/orders/__tests__/orders.index-contract.test.ts
++++ b/src/modules/orders/__tests__/orders.index-contract.test.ts
+@@ -17,7 +17,7 @@ describe('Orders Index nullable email contract', () => {
+     expect(http.get).toHaveBeenCalledTimes(1)
+   })
+ 
+-  it('still rejects missing or malformed email and retains the Details contract', () => {
++  it('still rejects missing or malformed email while accepting documented null emails', () => {
+     for (const email of [undefined, 123, {}, []]) {
+       expect(
+         rawOrderListItemSchema.safeParse({ ...fixture.data[0], customer: { ...fixture.data[0].customer, email } })
+@@ -26,6 +26,11 @@ describe('Orders Index nullable email contract', () => {
+     }
+     expect(
+       rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email: null } }).success
+-    ).toBe(false)
++    ).toBe(true)
++    for (const email of [undefined, 123, {}, []]) {
++      expect(
++        rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email } }).success
++      ).toBe(false)
++    }
+   })
+ })
+diff --git a/src/modules/orders/__tests__/orders.service.test.ts b/src/modules/orders/__tests__/orders.service.test.ts
+index c102fa6..32dd778 100644
+--- a/src/modules/orders/__tests__/orders.service.test.ts
++++ b/src/modules/orders/__tests__/orders.service.test.ts
+@@ -10,6 +10,12 @@ import show from './order-detail.fixture.json'
+ import index from './orders-index.fixture.json'
+ import statuses from './statuses.fixture.json'
+ import dashboardShow from './order-dashboard-show.fixture.json'
++import cancelled123 from './order-123-cancelled.json'
++import confirmed145 from './order-145-confirmed.json'
++import processing145 from './order-145-processing.json'
++import shipped145 from './order-145-shipped.json'
++import delivered145 from './order-145-delivered.json'
++import returned145 from './order-145-returned.json'
+ import { cancelledOrder20, confirmedOrder18, processingOrder19 } from './order-detail-runtime.fixtures'
+ 
+ const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
+@@ -38,6 +44,104 @@ describe('real Orders read contracts', () => {
+     expect((await ordersService.updateStatus(208, 'confirmed')).detail).toEqual(detail)
+   })
+ 
++  it('normalizes the exact nullable cancelled Show response without fabricating optional data', async () => {
++    http.get.mockResolvedValue({ data: cancelled123 })
++
++    const detail = await ordersService.show(123)
++
++    expect(detail).toMatchObject({
++      id: 123,
++      status: 'cancelled',
++      customer: { name: '', email: null, phone: '+966553212125' },
++      coupon: null,
++      loyalty: null,
++      payment: { method: 'tap', status: 'failed', paidAt: null },
++      allowedTransitions: [],
++    })
++    expect(detail.money).toEqual({
++      subtotal: '260.00',
++      discountTotal: '0.00',
++      shippingFee: '149.00',
++      personalizationTotal: '0.00',
++      giftWrapFee: '0.00',
++      taxableAmount: '409.00',
++      vat: { rate: '15.00', amount: '61.35' },
++      total: '470.35',
++      currency: 'SAR',
++    })
++    expect(detail.statusHistory).toEqual([
++      expect.objectContaining({ fromStatus: null, actorId: null, actorName: null, actorType: 'system' }),
++      expect.objectContaining({ fromStatus: 'new', actorId: null, actorName: null, actorType: 'system' }),
++    ])
++    expect(http.get).toHaveBeenCalledExactlyOnceWith({
++      url: '/dashboard/orders/123',
++      signal: undefined,
++      suppressErrorNotification: true,
++    })
++  })
++
++  it.each([
++    ['confirmed', confirmed145, 'pending', null, ['processing', 'cancelled'], 2],
++    ['processing', processing145, 'pending', null, ['shipped', 'cancelled'], 3],
++    ['shipped', shipped145, 'pending', null, ['delivered'], 4],
++    ['delivered', delivered145, 'pending', '2026-11-29T01:00:57+03:00', ['returned'], 5],
++    ['returned', returned145, 'cancelled', '2026-11-29T01:00:57+03:00', [], 6],
++  ] as const)(
++    'normalizes the exact Order 145 %s lifecycle response',
++    async (status, fixture, earnedStatus, availableOn, allowedTransitions, historyLength) => {
++      http.get.mockResolvedValue({ data: fixture })
++
++      const detail = await ordersService.show(145)
++
++      expect(detail).toMatchObject({
++        id: 145,
++        status,
++        customer: { name: '', email: null, phone: '+966552122332' },
++        money: {
++          subtotal: '3520.00',
++          personalizationTotal: '4.00',
++          taxableAmount: '3524.00',
++          vat: { rate: '15.00', amount: '528.60' },
++          total: '4052.60',
++        },
++        payment: { method: 'card', status: 'paid', reference: 'chg_TS01A3020262154s3RR1311020' },
++        allowedTransitions: [...allowedTransitions],
++        loyalty: {
++          pointsEarned: 4052,
++          earnedStatus,
++          availableOn,
++          returnWindowDays: 15,
++          pointsRedeemed: 0,
++          amountApplied: '0.00',
++          amountDue: '4052.60',
++          valuePerPoint: null,
++          pointsReturned: 0,
++          amountPerPoint: '1.00',
++          ruleVersionId: 5,
++        },
++      })
++      expect(detail.items[1].personalization).toEqual({ text: 'A', language: 'en', fee: '1.00' })
++      expect(detail.statusHistory).toHaveLength(historyLength)
++      expect(http.get).toHaveBeenCalledExactlyOnceWith({
++        url: '/dashboard/orders/145',
++        signal: undefined,
++        suppressErrorNotification: true,
++      })
++    }
++  )
++
++  it('rejects malformed required loyalty fields without weakening the order contract', () => {
++    for (const loyalty of [
++      { ...confirmed145.data.loyalty, points_earned: -1 },
++      { ...confirmed145.data.loyalty, available_on: 123 },
++      { ...confirmed145.data.loyalty, amount_due: 4052.6 },
++      { ...confirmed145.data.loyalty, value_per_point: '0.05' },
++      { ...confirmed145.data.loyalty, rule_version_id: 0 },
++    ]) {
++      expect(() => normalizeOrderDetail({ ...confirmed145.data, loyalty })).toThrow()
++    }
++  })
++
+   it('rejects absent, malformed or conflicting VAT amounts rather than inventing an accounting value', () => {
+     for (const money of [
+       { ...dashboardShow.data.money, vat_amount: undefined },
+@@ -128,6 +232,7 @@ describe('real Orders read contracts', () => {
+         currency: 'SAR',
+       },
+       coupon: null,
++      loyalty: null,
+       payment: {
+         method: 'card',
+         status: 'paid',
+diff --git a/src/modules/orders/components/OrderDetailsLayout.tsx b/src/modules/orders/components/OrderDetailsLayout.tsx
+index 4d36cf8..9f506fc 100644
+--- a/src/modules/orders/components/OrderDetailsLayout.tsx
++++ b/src/modules/orders/components/OrderDetailsLayout.tsx
+@@ -9,6 +9,7 @@ import { OrderMoneySummary } from './OrderMoneySummary'
+ import { OrderPaymentSections } from './OrderPaymentSections'
+ import { OrderGiftSection } from './OrderGiftSection'
+ import { OrderStatusHistory } from './OrderStatusHistory'
++import { OrderLoyaltySection } from './OrderLoyaltySection'
+ 
+ /** Share all major page geometry between loaded data and primitive placeholders. */
+ export function OrderDetailsLayout({ order, refreshing = false }: { order?: OrderDetail; refreshing?: boolean }) {
+@@ -27,6 +28,7 @@ export function OrderDetailsLayout({ order, refreshing = false }: { order?: Orde
+           <OrderMoneySummary order={order} />
+         </div>
+         <OrderPaymentSections order={order} />
++        <OrderLoyaltySection order={order} />
+         <OrderGiftSection order={order} />
+         <OrderStatusHistory order={order} />
+         <OrderDetailsSection title={t('orders.details.metadata')}>
+diff --git a/src/modules/orders/components/OrderPartySections.tsx b/src/modules/orders/components/OrderPartySections.tsx
+index f4729e6..d2bd66f 100644
+--- a/src/modules/orders/components/OrderPartySections.tsx
++++ b/src/modules/orders/components/OrderPartySections.tsx
+@@ -27,7 +27,7 @@ export function OrderPartySections({ order }: { order?: OrderDetail }) {
+                 '—'
+               ),
+             ],
+-            [t('orders.email'), customer?.email.trim() || '—'],
++            [t('orders.email'), customer?.email?.trim() || '—'],
+             [t('orders.phone'), customer?.phone.trim() || '—'],
+           ]}
+         />
+diff --git a/src/modules/orders/locale/ar.json b/src/modules/orders/locale/ar.json
+index 92a074a..2e619a3 100644
+--- a/src/modules/orders/locale/ar.json
++++ b/src/modules/orders/locale/ar.json
+@@ -75,6 +75,25 @@
+       "language": "\u0627\u0644\u0644\u063a\u0629",
+       "fee": "\u0627\u0644\u0631\u0633\u0648\u0645"
+     },
++    "loyalty": {
++      "title": "\u0643\u0633\u0628 \u0627\u0644\u0648\u0644\u0627\u0621",
++      "unavailable": "\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u0642\u0627\u0637 \u0648\u0644\u0627\u0621 \u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628.",
++      "earnedStatus": "\u062d\u0627\u0644\u0629 \u0627\u0644\u0643\u0633\u0628",
++      "pointsEarned": "\u0627\u0644\u0646\u0642\u0627\u0637 \u0627\u0644\u0645\u0643\u062a\u0633\u0628\u0629",
++      "availableOn": "\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0625\u062a\u0627\u062d\u0629",
++      "returnWindowDays": "\u0645\u062f\u0629 \u0627\u0644\u0625\u0631\u062c\u0627\u0639 (\u0628\u0627\u0644\u0623\u064a\u0627\u0645)",
++      "pointsRedeemed": "\u0627\u0644\u0646\u0642\u0627\u0637 \u0627\u0644\u0645\u0633\u062a\u0628\u062f\u0644\u0629",
++      "amountApplied": "\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0645\u0637\u0628\u0642",
++      "amountDue": "\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0645\u0633\u062a\u062d\u0642",
++      "valuePerPoint": "\u0642\u064a\u0645\u0629 \u0627\u0644\u0646\u0642\u0637\u0629",
++      "pointsReturned": "\u0627\u0644\u0646\u0642\u0627\u0637 \u0627\u0644\u0645\u0639\u0627\u062f\u0629",
++      "amountPerPoint": "\u0627\u0644\u0645\u0628\u0644\u063a \u0644\u0643\u0644 \u0646\u0642\u0637\u0629",
++      "ruleVersion": "\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0642\u0627\u0639\u062f\u0629",
++      "status": {
++        "pending": "\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631",
++        "cancelled": "\u0645\u0644\u063a\u0649"
++      }
++    },
+     "gift": {
+       "anonymous": "هدية مجهولة المرسل",
+       "message": "رسالة الهدية",
+@@ -116,7 +135,7 @@
+       "paymentFailed": "فشل الدفع",
+       "pendingVerification": "بانتظار التحقق"
+     },
+-    "paymentStatus": { "paid": "مدفوع", "pending": "قيد الانتظار" },
++    "paymentStatus": { "paid": "مدفوع", "pending": "قيد الانتظار", "failed": "فشل الدفع" },
+     "values": { "guest": "زائر", "registered": "مسجل", "system": "النظام", "admin": "مسؤول", "card": "بطاقة" }
+   }
+ }
+diff --git a/src/modules/orders/locale/en.json b/src/modules/orders/locale/en.json
+index 94713ef..3d58783 100644
+--- a/src/modules/orders/locale/en.json
++++ b/src/modules/orders/locale/en.json
+@@ -75,6 +75,22 @@
+       "language": "Language",
+       "fee": "Fee"
+     },
++    "loyalty": {
++      "title": "Loyalty earning",
++      "unavailable": "No loyalty earning is associated with this order.",
++      "earnedStatus": "Earning status",
++      "pointsEarned": "Points earned",
++      "availableOn": "Available on",
++      "returnWindowDays": "Return window (days)",
++      "pointsRedeemed": "Points redeemed",
++      "amountApplied": "Amount applied",
++      "amountDue": "Amount due",
++      "valuePerPoint": "Value per point",
++      "pointsReturned": "Points returned",
++      "amountPerPoint": "Amount per point",
++      "ruleVersion": "Rule version",
++      "status": { "pending": "Pending", "cancelled": "Cancelled" }
++    },
+     "gift": {
+       "anonymous": "Anonymous",
+       "message": "Gift message",
+@@ -116,7 +132,7 @@
+       "paymentFailed": "Payment failed",
+       "pendingVerification": "Pending verification"
+     },
+-    "paymentStatus": { "paid": "Paid", "pending": "Pending" },
++    "paymentStatus": { "paid": "Paid", "pending": "Pending", "failed": "Failed" },
+     "values": { "guest": "Guest", "registered": "Registered", "system": "System", "admin": "Admin", "card": "Card" }
+   }
+ }
+diff --git a/src/modules/orders/schemas/order.schema.ts b/src/modules/orders/schemas/order.schema.ts
+index 88b3805..e70b956 100644
+--- a/src/modules/orders/schemas/order.schema.ts
++++ b/src/modules/orders/schemas/order.schema.ts
+@@ -6,6 +6,7 @@ const count = z.number().int().nonnegative().safe()
+ const decimal = z.string().regex(/^\d+(?:\.\d+)?$/)
+ const nullableText = z.string().nullable().catch(null)
+ const customer = z.object({ type: text, name: z.string(), email: z.string(), phone: z.string() })
++const orderCustomer = customer.extend({ email: z.string().nullable() })
+ const warehouse = z.object({ id, name: text }).nullable()
+ const identity = {
+   id,
+@@ -46,10 +47,24 @@ const rawOrderItemPersonalizationSchema = z.object({
+   fee: decimal,
+ })
+ 
++const rawOrderLoyaltySchema = z.object({
++  points_earned: count,
++  earned_status: text,
++  available_on: z.string().nullable(),
++  return_window_days: count,
++  points_redeemed: count,
++  amount_applied: decimal,
++  amount_due: decimal,
++  value_per_point: z.number().finite().nonnegative().nullable(),
++  points_returned: count,
++  amount_per_point: decimal,
++  rule_version_id: id,
++})
++
+ export const rawOrderStatusSchema = z.object({ value: text, label: text, customer_status: text })
+ export const rawOrderListItemSchema = z.object({
+   ...identity,
+-  customer: customer.extend({ email: z.string().nullable() }),
++  customer: orderCustomer,
+   items_count: count,
+   total: decimal,
+   currency: text,
+@@ -73,6 +88,7 @@ export const rawOrderGiftSchema = z.object({
+ })
+ export const rawOrderDetailSchema = z.object({
+   ...identity,
++  customer: orderCustomer,
+   shipping_address: z
+     .object({
+       recipient_name: z.string(),
+@@ -127,6 +143,10 @@ export const rawOrderDetailSchema = z.object({
+       }
+     }),
+   coupon: z.unknown(),
++  loyalty: rawOrderLoyaltySchema
++    .nullable()
++    .optional()
++    .transform((value) => value ?? null),
+   payment: z.object({ method: text, status: text, reference: nullableText, paid_at: nullableText }),
+   status_history: z.array(
+     z.object({
+diff --git a/src/modules/orders/types/order.types.ts b/src/modules/orders/types/order.types.ts
+index 88d2adc..01e8129 100644
+--- a/src/modules/orders/types/order.types.ts
++++ b/src/modules/orders/types/order.types.ts
+@@ -53,6 +53,19 @@ export type OrderMoney = {
+   total: string
+   currency: string
+ }
++export type OrderLoyalty = {
++  pointsEarned: number
++  earnedStatus: string
++  availableOn: string | null
++  returnWindowDays: number
++  pointsRedeemed: number
++  amountApplied: string
++  amountDue: string
++  valuePerPoint: number | null
++  pointsReturned: number
++  amountPerPoint: string
++  ruleVersionId: number
++}
+ export type OrderGift = {
+   isAnonymous: boolean
+   message: string | null
+@@ -79,6 +92,7 @@ export type OrderDetail = Omit<OrderIdentity, 'customer'> & {
+   items: OrderItem[]
+   money: OrderMoney
+   coupon: unknown
++  loyalty: OrderLoyalty | null
+   payment: { method: string; status: string; reference: string | null; paidAt: string | null }
+   statusHistory: {
+     fromStatus: string | null
+diff --git a/src/modules/orders/utils/order-normalizers.ts b/src/modules/orders/utils/order-normalizers.ts
+index a3f106b..7cdd8d9 100644
+--- a/src/modules/orders/utils/order-normalizers.ts
++++ b/src/modules/orders/utils/order-normalizers.ts
+@@ -73,6 +73,21 @@ export function normalizeOrderDetail(value: unknown): OrderDetail {
+       currency: money.currency,
+     },
+     coupon: raw.coupon,
++    loyalty: raw.loyalty
++      ? {
++          pointsEarned: raw.loyalty.points_earned,
++          earnedStatus: raw.loyalty.earned_status,
++          availableOn: raw.loyalty.available_on,
++          returnWindowDays: raw.loyalty.return_window_days,
++          pointsRedeemed: raw.loyalty.points_redeemed,
++          amountApplied: raw.loyalty.amount_applied,
++          amountDue: raw.loyalty.amount_due,
++          valuePerPoint: raw.loyalty.value_per_point,
++          pointsReturned: raw.loyalty.points_returned,
++          amountPerPoint: raw.loyalty.amount_per_point,
++          ruleVersionId: raw.loyalty.rule_version_id,
++        }
++      : null,
+     payment: {
+       method: raw.payment.method,
+       status: raw.payment.status,
+diff --git a/src/modules/orders/utils/order-presentation.ts b/src/modules/orders/utils/order-presentation.ts
+index 5478bc0..c5c1708 100644
+--- a/src/modules/orders/utils/order-presentation.ts
++++ b/src/modules/orders/utils/order-presentation.ts
+@@ -20,7 +20,7 @@ export function orderStatusLabel(value: string, definitions: OrderStatusDefiniti
+     : definitions.find((item) => item.value === value)?.label || humanizeOrderValue(value)
+ }
+ export function paymentLabel(value: string, t: TFunction) {
+-  return value === 'paid' || value === 'pending' ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
++  return ['paid', 'pending', 'failed'].includes(value) ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
+ }
+ export function customerLabel(customer: OrderListItem['customer'], unavailable: string) {
+   return [customer.name, customer.email, customer.phone].find((value) => value?.trim()) || unavailable
+warning: in the working copy of 'src/modules/orders/components/OrderLoyaltySection.tsx', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/components/OrderLoyaltySection.tsx b/src/modules/orders/components/OrderLoyaltySection.tsx
+new file mode 100644
+index 0000000..beddbb5
+--- /dev/null
++++ b/src/modules/orders/components/OrderLoyaltySection.tsx
+@@ -0,0 +1,49 @@
++import { useTranslation } from 'react-i18next'
++import { Badge } from '@/components/ui/badge'
++import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
++import type { OrderDetail } from '../types/order.types'
++import { humanizeOrderValue, orderMoneyLabel } from '../utils/order-presentation'
++import { OrderDetailsFacts, OrderDetailsSection } from './OrderDetailsSection'
++
++export function OrderLoyaltySection({ order }: { order?: OrderDetail }) {
++  const { t, i18n } = useTranslation()
++  const loyalty = order?.loyalty
++  const currency = order?.money.currency
++  const numbers = new Intl.NumberFormat(resolveAppLocale(i18n.language))
++  const status = loyalty?.earnedStatus
++  const statusLabel = status
++    ? ['pending', 'cancelled'].includes(status)
++      ? t(`orders.loyalty.status.${status}`)
++      : humanizeOrderValue(status)
++    : '—'
++  const money = (value: string | null | undefined) =>
++    value != null && currency ? orderMoneyLabel(value, currency, i18n.language) : '—'
++
++  return (
++    <OrderDetailsSection title={t('orders.loyalty.title')}>
++      {order && !loyalty ? <p className="text-sm text-muted-foreground">{t('orders.loyalty.unavailable')}</p> : null}
++      <OrderDetailsFacts
++        loading={!order}
++        facts={[
++          [t('orders.loyalty.earnedStatus'), status ? <Badge variant="outline">{statusLabel}</Badge> : '—'],
++          [t('orders.loyalty.pointsEarned'), loyalty ? numbers.format(loyalty.pointsEarned) : '—'],
++          [
++            t('orders.loyalty.availableOn'),
++            formatDateTime(loyalty?.availableOn, { locale: resolveAppLocale(i18n.language) }) || '—',
++          ],
++          [t('orders.loyalty.returnWindowDays'), loyalty ? numbers.format(loyalty.returnWindowDays) : '—'],
++          [t('orders.loyalty.pointsRedeemed'), loyalty ? numbers.format(loyalty.pointsRedeemed) : '—'],
++          [t('orders.loyalty.amountApplied'), money(loyalty?.amountApplied)],
++          [t('orders.loyalty.amountDue'), money(loyalty?.amountDue)],
++          [
++            t('orders.loyalty.valuePerPoint'),
++            loyalty?.valuePerPoint != null ? money(String(loyalty.valuePerPoint)) : '—',
++          ],
++          [t('orders.loyalty.pointsReturned'), loyalty ? numbers.format(loyalty.pointsReturned) : '—'],
++          [t('orders.loyalty.amountPerPoint'), money(loyalty?.amountPerPoint)],
++          [t('orders.loyalty.ruleVersion'), loyalty ? numbers.format(loyalty.ruleVersionId) : '—'],
++        ]}
++      />
++    </OrderDetailsSection>
++  )
++}
+warning: in the working copy of 'src/modules/orders/__tests__/order-123-cancelled.json', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/order-123-cancelled.json b/src/modules/orders/__tests__/order-123-cancelled.json
+new file mode 100644
+index 0000000..668efae
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-123-cancelled.json
+@@ -0,0 +1,91 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 123,
++    "order_number": "RF-10123",
++    "display_number": "#RF-10123",
++    "status": "cancelled",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966553212125"
++    },
++    "shipping_address": {
++      "recipient_name": "sdfdsfsdf",
++      "recipient_phone": "0556764321",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "نمار",
++      "street_details": "الرون"
++    },
++    "items": [
++      {
++        "id": 187,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-wmz-4710",
++        "variant_attributes": {
++          "size": "50"
++        },
++        "quantity": 1,
++        "unit_price": "260.00",
++        "discount_amount": "0.00",
++        "line_total": "260.00"
++      }
++    ],
++    "money": {
++      "subtotal": "260.00",
++      "discount_total": "0.00",
++      "shipping_fee": "149.00",
++      "personalization_total": "0.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "409.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "61.35"
++      },
++      "total": "470.35",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "tap",
++      "status": "failed",
++      "reference": "chg_TS07A4020261804Ng0n2710965",
++      "paid_at": null
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-10-27T21:04:40+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "cancelled",
++        "note": "Payment expired",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-10-27T22:30:25+03:00"
++      }
++    ],
++    "allowed_transitions": [],
++    "loyalty": null,
++    "placed_at": "2026-10-27T21:04:40+03:00",
++    "cancelled_at": "2026-10-27T22:30:25+03:00",
++    "created_at": "2026-10-27T21:04:40+03:00",
++    "updated_at": "2026-10-27T22:30:25+03:00"
++  }
++}
+warning: in the working copy of 'src/modules/orders/__tests__/order-145-confirmed.json', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/order-145-confirmed.json b/src/modules/orders/__tests__/order-145-confirmed.json
+new file mode 100644
+index 0000000..553c3bb
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-confirmed.json
+@@ -0,0 +1,120 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "confirmed",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      }
++    ],
++    "allowed_transitions": ["processing", "cancelled"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": null,
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T00:55:47+03:00"
++  }
++}
+warning: in the working copy of 'src/modules/orders/__tests__/order-145-processing.json', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/order-145-processing.json b/src/modules/orders/__tests__/order-145-processing.json
+new file mode 100644
+index 0000000..f2d6163
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-processing.json
+@@ -0,0 +1,129 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "processing",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      }
++    ],
++    "allowed_transitions": ["shipped", "cancelled"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": null,
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T00:59:31+03:00"
++  }
++}
+warning: in the working copy of 'src/modules/orders/__tests__/order-145-shipped.json', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/order-145-shipped.json b/src/modules/orders/__tests__/order-145-shipped.json
+new file mode 100644
+index 0000000..0343c9f
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-shipped.json
+@@ -0,0 +1,138 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "shipped",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      },
++      {
++        "from_status": "processing",
++        "to_status": "shipped",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:17+03:00"
++      }
++    ],
++    "allowed_transitions": ["delivered"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": null,
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T01:00:17+03:00"
++  }
++}
+warning: in the working copy of 'src/modules/orders/__tests__/order-145-delivered.json', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/order-145-delivered.json b/src/modules/orders/__tests__/order-145-delivered.json
+new file mode 100644
+index 0000000..bb69088
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-delivered.json
+@@ -0,0 +1,147 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "delivered",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      },
++      {
++        "from_status": "processing",
++        "to_status": "shipped",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:17+03:00"
++      },
++      {
++        "from_status": "shipped",
++        "to_status": "delivered",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:57+03:00"
++      }
++    ],
++    "allowed_transitions": ["returned"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": "2026-11-29T01:00:57+03:00",
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T01:00:57+03:00"
++  }
++}
+warning: in the working copy of 'src/modules/orders/__tests__/order-145-returned.json', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/modules/orders/__tests__/order-145-returned.json b/src/modules/orders/__tests__/order-145-returned.json
+new file mode 100644
+index 0000000..f87da56
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-returned.json
+@@ -0,0 +1,156 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "returned",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      },
++      {
++        "from_status": "processing",
++        "to_status": "shipped",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:17+03:00"
++      },
++      {
++        "from_status": "shipped",
++        "to_status": "delivered",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:57+03:00"
++      },
++      {
++        "from_status": "delivered",
++        "to_status": "returned",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:01:24+03:00"
++      }
++    ],
++    "allowed_transitions": [],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "cancelled",
++      "available_on": "2026-11-29T01:00:57+03:00",
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T01:01:24+03:00"
++  }
++}
+

@@ -1,0 +1,1432 @@
+diff --git a/src/modules/customers/components/CustomerDetailsLayout.tsx b/src/modules/customers/components/CustomerDetailsLayout.tsx
+index fda67ce..1c38589 100644
+--- a/src/modules/customers/components/CustomerDetailsLayout.tsx
++++ b/src/modules/customers/components/CustomerDetailsLayout.tsx
+@@ -1,5 +1,10 @@
++import { useTranslation } from 'react-i18next'
++
+ import { QueryStateBoundary } from '@/components/shared/query-state'
+ import { QueryLoadingState } from '@/components/shared/query-state/components/QueryLoadingState'
++import QueryTabsFilter from '@/components/shared/tabs/QueryTabsFilter'
++import { CustomerLoyaltyWorkspace } from '@/modules/loyalty/components/CustomerLoyaltyWorkspace'
++import { useQuery } from '@/store/queryContext/useQueryContext'
+ import type { useCustomer } from '../hooks/useCustomer'
+ import { CustomerDetailsHeader } from './CustomerDetailsHeader'
+ import { CustomerProfileSections, CustomerMetadataSection } from './CustomerProfileSections'
+@@ -12,8 +17,27 @@ export function CustomerDetailsLayout({
+   customerId: number
+   query: ReturnType<typeof useCustomer>
+ }) {
++  const { t } = useTranslation()
++  const { forwardQuery } = useQuery()
++  const activeTab = forwardQuery?.tab === 'points' ? 'points' : 'overview'
++  const isOverview = activeTab === 'overview'
+   const customer = query.data
+   const initialFailure = !customer && (query.isError || query.isPaused)
++  const tabs = (
++    <QueryTabsFilter
++      name="tab"
++      tabs={[
++        { value: 'overview', label: t('customers.detail.tabs.overview') },
++        { value: 'points', label: t('customers.detail.tabs.points') },
++      ]}
++      value={activeTab}
++      defaultValue="overview"
++      variant="underline"
++      ariaLabel={t('customers.detail.tabs.label')}
++      id="customer-details-tabs"
++      panelId="customer-details-active-panel"
++    />
++  )
+   return (
+     <main className="min-w-0 space-y-5">
+       {initialFailure ? <CustomerDetailsHeader /> : null}
+@@ -21,7 +45,7 @@ export function CustomerDetailsLayout({
+         loadingFallback={
+           <>
+             <CustomerDetailsHeader loading />
+-            <CustomerProfileSections />
++            {isOverview ? <CustomerProfileSections /> : null}
+           </>
+         }
+         isLoading={query.isLoading}
+@@ -35,21 +59,34 @@ export function CustomerDetailsLayout({
+         {customer ? (
+           <>
+             <CustomerDetailsHeader customer={customer} refreshing={query.isFetching || query.isRefetchError} />
+-            <CustomerProfileSections customer={customer} />
++            {tabs}
++            {isOverview ? <CustomerProfileSections customer={customer} /> : null}
+           </>
+         ) : null}
+       </QueryStateBoundary>
+-      {/* Keep this independent observer mounted across core loading/success to avoid a second Orders GET. */}
+-      <div hidden={initialFailure}>
+-        <CustomerOrdersSection customerId={customerId} profileReady={Boolean(customer)} />
++      <div
++        id="customer-details-active-panel"
++        role="tabpanel"
++        aria-labelledby={`customer-details-tabs-tab-${activeTab}`}
++      >
++        {isOverview ? (
++          <>
++            {/* Keep this independent observer mounted across core loading/success to avoid a second Orders GET. */}
++            <div hidden={initialFailure}>
++              <CustomerOrdersSection customerId={customerId} profileReady={Boolean(customer)} />
++            </div>
++            {!initialFailure ? (
++              customer ? (
++                <CustomerMetadataSection customer={customer} />
++              ) : (
++                <QueryLoadingState fallback={<CustomerMetadataSection />} />
++              )
++            ) : null}
++          </>
++        ) : customer ? (
++          <CustomerLoyaltyWorkspace customerId={customerId} />
++        ) : null}
+       </div>
+-      {!initialFailure ? (
+-        customer ? (
+-          <CustomerMetadataSection customer={customer} />
+-        ) : (
+-          <QueryLoadingState fallback={<CustomerMetadataSection />} />
+-        )
+-      ) : null}
+     </main>
+   )
+ }
+diff --git a/src/modules/customers/locale/ar.json b/src/modules/customers/locale/ar.json
+index f590f80..ebfea22 100644
+--- a/src/modules/customers/locale/ar.json
++++ b/src/modules/customers/locale/ar.json
+@@ -108,6 +108,11 @@
+       "identity": "الهوية",
+       "account": "الحساب",
+       "metrics": "الإحصاءات",
++      "tabs": {
++        "label": "أقسام تفاصيل العميل",
++        "overview": "نظرة عامة",
++        "points": "النقاط"
++      },
+       "invalid": {
+         "title": "العميل غير موجود",
+         "description": "هذا العميل غير متاح أو الرابط غير صالح."
+diff --git a/src/modules/customers/locale/en.json b/src/modules/customers/locale/en.json
+index 6dd6d6a..d0039a1 100644
+--- a/src/modules/customers/locale/en.json
++++ b/src/modules/customers/locale/en.json
+@@ -104,6 +104,11 @@
+       "memberSince": "Member since",
+       "metadata": "Metadata",
+       "metrics": "Metrics",
++      "tabs": {
++        "label": "Customer details sections",
++        "overview": "Overview",
++        "points": "Points"
++      },
+       "invalid": {
+         "title": "Customer not found",
+         "description": "This customer is unavailable or the link is invalid."
+diff --git a/src/modules/customers/pages/CustomerDetailPage.tsx b/src/modules/customers/pages/CustomerDetailPage.tsx
+index 07fe2dc..deee11f 100644
+--- a/src/modules/customers/pages/CustomerDetailPage.tsx
++++ b/src/modules/customers/pages/CustomerDetailPage.tsx
+@@ -3,6 +3,7 @@ import { UserRoundX } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ import { useParams } from 'react-router-dom'
+ import { EmptyState } from '@/components/shared/empty-state'
++import QueryProvider from '@/store/queryContext/queryContext'
+ import { CustomerDetailsHeader } from '../components/CustomerDetailsHeader'
+ import { CustomerDetailsLayout } from '../components/CustomerDetailsLayout'
+ import { useCustomer } from '../hooks/useCustomer'
+@@ -24,7 +25,11 @@ function CustomerNotFound() {
+ function CustomerDetails({ id }: { id: number }) {
+   const query = useCustomer(id)
+   if (!query.data && isAxiosError(query.error) && query.error.response?.status === 404) return <CustomerNotFound />
+-  return <CustomerDetailsLayout customerId={id} query={query} />
++  return (
++    <QueryProvider>
++      <CustomerDetailsLayout customerId={id} query={query} />
++    </QueryProvider>
++  )
+ }
+ 
+ export default function CustomerDetailPage() {
+diff --git a/src/modules/loyalty/api/loyalty.service.test.ts b/src/modules/loyalty/api/loyalty.service.test.ts
+index cf4a42f..75e2551 100644
+--- a/src/modules/loyalty/api/loyalty.service.test.ts
++++ b/src/modules/loyalty/api/loyalty.service.test.ts
+@@ -162,4 +162,97 @@ describe('loyaltyService', () => {
+ 
+     expect(result.items[0].values).toMatchObject({ validityMonths: null, expiryWarningDays: null })
+   })
++
++  it('normalizes an authoritative customer summary including nullable expiry data', async () => {
++    http.get.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: { available: 0, pending: 0, held: 0, expiring_soon: null, is_blocked: 1 },
++      },
++    })
++
++    await expect(loyaltyService.getCustomerSummary(12)).resolves.toEqual({
++      available: 0,
++      pending: 0,
++      held: 0,
++      expiringSoon: null,
++      isBlocked: true,
++    })
++    expect(http.get).toHaveBeenCalledWith(
++      expect.objectContaining({ url: '/dashboard/customers/12/loyalty', suppressErrorNotification: true })
++    )
++  })
++
++  it('normalizes ledger rows and sends only documented filters', async () => {
++    http.get.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: [
++          {
++            id: 116,
++            created_at: '2026-11-13T17:25:44+03:00',
++            type: 'adjust_credit',
++            label: 'Manual adjustment',
++            bucket: 'available',
++            points: 5000,
++            lot_expires_at: null,
++            actor_type: 'admin',
++            actor_name: null,
++            reason: null,
++            reason_label: null,
++            note: null,
++            order: null,
++          },
++        ],
++        meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++      },
++    })
++
++    const result = await loyaltyService.getCustomerLedger(12, {
++      type: 'adjust_credit',
++      from: '2026-11-01',
++      to: '2026-11-30',
++    })
++
++    expect(result.items[0]).toMatchObject({ id: 116, points: 5000, lotExpiresAt: null, order: null })
++    expect(http.get).toHaveBeenCalledWith(
++      expect.objectContaining({
++        url: '/dashboard/customers/12/loyalty/ledger',
++        query: { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
++      })
++    )
++  })
++
++  it('rejects fractional ledger points instead of fabricating an integer balance movement', async () => {
++    http.get.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: [
++          {
++            id: 1,
++            created_at: '2026-11-13T17:25:44+03:00',
++            type: 'adjust_credit',
++            label: 'Manual adjustment',
++            bucket: 'available',
++            points: 1.5,
++            lot_expires_at: null,
++            actor_type: null,
++            actor_name: null,
++            reason: null,
++            reason_label: null,
++            note: null,
++            order: null,
++          },
++        ],
++        meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++      },
++    })
++
++    await expect(loyaltyService.getCustomerLedger(12, { type: null, from: '', to: '' })).rejects.toThrow(
++      'Ledger points is unavailable'
++    )
++  })
+ })
+diff --git a/src/modules/loyalty/api/loyalty.service.ts b/src/modules/loyalty/api/loyalty.service.ts
+index db1457a..26a0b38 100644
+--- a/src/modules/loyalty/api/loyalty.service.ts
++++ b/src/modules/loyalty/api/loyalty.service.ts
+@@ -1,4 +1,8 @@
+ import type {
++  CustomerLoyaltyLedgerItem,
++  CustomerLoyaltyLedgerPage,
++  CustomerLoyaltySummary,
++  LoyaltyLedgerFilters,
+   LoyaltySettings,
+   LoyaltySettingsUpdatePayload,
+   LoyaltySettingsVersion,
+@@ -10,7 +14,12 @@ import type {
+   RawLoyaltySettingsVersion,
+   RawLoyaltyVersionValues,
+   RawLoyaltyVersionsResponse,
++  RawCustomerLoyaltyLedgerItem,
++  RawCustomerLoyaltyLedgerResponse,
++  RawCustomerLoyaltySummary,
++  RawCustomerLoyaltySummaryResponse,
+ } from '@/modules/loyalty/types/loyalty.types'
++import { serializeLoyaltyLedgerFilters } from '@/modules/loyalty/utils/loyalty-ledger'
+ import { $http } from '@/utils/http'
+ 
+ function requirePositiveInteger(value: number, field: string): number {
+@@ -37,6 +46,11 @@ function requireFiniteNumber(value: number, field: string): number {
+   return value
+ }
+ 
++function requireInteger(value: number, field: string): number {
++  if (!Number.isSafeInteger(value)) throw new Error(`${field} is unavailable`)
++  return value
++}
++
+ function requireDecimalString(value: string, field: string): string {
+   if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value.trim())) {
+     throw new Error(`${field} is unavailable`)
+@@ -49,6 +63,48 @@ function normalizeBoolean(value: boolean | 0 | 1, field: string): boolean {
+   return value === true || value === 1
+ }
+ 
++function requireString(value: string, field: string): string {
++  if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} is unavailable`)
++  return value.trim()
++}
++
++function normalizeCustomerId(value: number): number {
++  return requirePositiveInteger(value, 'Customer')
++}
++
++export function normalizeCustomerLoyaltySummary(raw: RawCustomerLoyaltySummary): CustomerLoyaltySummary {
++  return {
++    available: requireNonNegativeInteger(raw.available, 'Available points'),
++    pending: requireNonNegativeInteger(raw.pending, 'Pending points'),
++    held: requireNonNegativeInteger(raw.held, 'Held points'),
++    expiringSoon: raw.expiring_soon
++      ? {
++          points: requireNonNegativeInteger(raw.expiring_soon.points, 'Expiring points'),
++          expiresAt: normalizeNullableString(raw.expiring_soon.expires_at, 'Expiry date'),
++        }
++      : null,
++    isBlocked: normalizeBoolean(raw.is_blocked, 'Customer loyalty blocked state'),
++  }
++}
++
++export function normalizeCustomerLoyaltyLedgerItem(raw: RawCustomerLoyaltyLedgerItem): CustomerLoyaltyLedgerItem {
++  return {
++    id: requirePositiveInteger(raw.id, 'Ledger entry'),
++    createdAt: requireString(raw.created_at, 'Ledger date'),
++    type: requireString(raw.type, 'Ledger type'),
++    label: requireString(raw.label, 'Ledger label'),
++    bucket: requireString(raw.bucket, 'Ledger bucket'),
++    points: requireInteger(raw.points, 'Ledger points'),
++    lotExpiresAt: normalizeNullableString(raw.lot_expires_at, 'Lot expiry'),
++    actorType: normalizeNullableString(raw.actor_type, 'Actor type'),
++    actorName: normalizeNullableString(raw.actor_name, 'Actor name'),
++    reason: normalizeNullableString(raw.reason, 'Reason'),
++    reasonLabel: normalizeNullableString(raw.reason_label, 'Reason label'),
++    note: normalizeNullableString(raw.note, 'Internal note'),
++    order: raw.order,
++  }
++}
++
+ function normalizeVersionValues(raw: RawLoyaltyVersionValues): LoyaltyVersionValues {
+   return {
+     isEnabled: normalizeBoolean(raw.is_enabled, 'Loyalty enabled state'),
+@@ -141,4 +197,32 @@ export const loyaltyService = {
+       meta: response.data.meta,
+     }
+   },
++
++  async getCustomerSummary(customerId: number, signal?: AbortSignal): Promise<CustomerLoyaltySummary> {
++    const id = normalizeCustomerId(customerId)
++    const response = await $http.get<RawCustomerLoyaltySummaryResponse>({
++      url: `/dashboard/customers/${id}/loyalty`,
++      signal,
++      suppressErrorNotification: true,
++    })
++    return normalizeCustomerLoyaltySummary(response.data.data)
++  },
++
++  async getCustomerLedger(
++    customerId: number,
++    filters: LoyaltyLedgerFilters,
++    signal?: AbortSignal
++  ): Promise<CustomerLoyaltyLedgerPage> {
++    const id = normalizeCustomerId(customerId)
++    const response = await $http.get<RawCustomerLoyaltyLedgerResponse>({
++      url: `/dashboard/customers/${id}/loyalty/ledger`,
++      query: serializeLoyaltyLedgerFilters(filters),
++      signal,
++      suppressErrorNotification: true,
++    })
++    return {
++      items: response.data.data.map(normalizeCustomerLoyaltyLedgerItem),
++      meta: response.data.meta,
++    }
++  },
+ }
+diff --git a/src/modules/loyalty/locale/ar.json b/src/modules/loyalty/locale/ar.json
+index c7e964f..65f67c8 100644
+--- a/src/modules/loyalty/locale/ar.json
++++ b/src/modules/loyalty/locale/ar.json
+@@ -138,6 +138,55 @@
+     "feedback": {
+       "updated": "تم تحديث إعدادات الولاء.",
+       "updateError": "تعذر تحديث إعدادات الولاء."
++    },
++    "customer": {
++      "summary": {
++        "title": "ملخص النقاط",
++        "available": "النقاط المتاحة",
++        "pending": "النقاط المعلّقة",
++        "held": "النقاط المحجوزة",
++        "expiringSoon": "تنتهي قريبًا",
++        "expiresAt": "تنتهي في {{date}}",
++        "frozen": "مجمّد"
++      },
++      "filters": {
++        "title": "تصفية سجل النقاط",
++        "type": "نوع العملية",
++        "allTypes": "كل الأنواع الموثقة",
++        "from": "التاريخ من",
++        "to": "التاريخ إلى",
++        "clear": "مسح عوامل التصفية",
++        "completeRange": "اختر تاريخي البداية والنهاية لتطبيق النطاق الزمني.",
++        "invalidRange": "أدخل نطاقًا زمنيًا صالحًا يبدأ في تاريخ يسبق تاريخ النهاية أو يساويه."
++      },
++      "ledger": {
++        "title": "سجل النقاط",
++        "total_zero": "لا توجد عمليات",
++        "total_one": "عملية واحدة",
++        "total_two": "عمليتان",
++        "total_few": "{{count}} عمليات",
++        "total_many": "{{count}} عملية",
++        "total_other": "{{count}} عملية",
++        "unavailable": "غير متاح",
++        "orderAvailable": "تفاصيل الطلب متوفرة",
++        "waitingForDates": "أكمل النطاق الزمني",
++        "waitingForDatesDescription": "سيتم تحميل السجل بعد اختيار تاريخين صالحين.",
++        "emptyTitle": "لا توجد عمليات في السجل",
++        "emptyDescription": "لا توجد عمليات تطابق عوامل التصفية الحالية.",
++        "types": {
++          "adjustCredit": "إضافة يدوية"
++        },
++        "fields": {
++          "date": "التاريخ والوقت",
++          "transaction": "العملية",
++          "points": "النقاط",
++          "bucket": "الرصيد",
++          "order": "الطلب المرتبط",
++          "expiry": "انتهاء الدفعة",
++          "actor": "المنفّذ",
++          "reason": "السبب"
++        }
++      }
+     }
+   }
+ }
+diff --git a/src/modules/loyalty/locale/en.json b/src/modules/loyalty/locale/en.json
+index b486f9d..a9a26bf 100644
+--- a/src/modules/loyalty/locale/en.json
++++ b/src/modules/loyalty/locale/en.json
+@@ -122,6 +122,51 @@
+     "feedback": {
+       "updated": "Loyalty settings updated.",
+       "updateError": "Loyalty settings could not be updated."
++    },
++    "customer": {
++      "summary": {
++        "title": "Points summary",
++        "available": "Available points",
++        "pending": "Pending points",
++        "held": "Held points",
++        "expiringSoon": "Expiring soon",
++        "expiresAt": "Expires {{date}}",
++        "frozen": "Frozen"
++      },
++      "filters": {
++        "title": "Ledger filters",
++        "type": "Transaction type",
++        "allTypes": "All documented types",
++        "from": "From date",
++        "to": "To date",
++        "clear": "Clear filters",
++        "completeRange": "Select both the from and to dates to apply a date range.",
++        "invalidRange": "Enter a valid date range with the from date on or before the to date."
++      },
++      "ledger": {
++        "title": "Points ledger",
++        "total_one": "{{count}} transaction",
++        "total_other": "{{count}} transactions",
++        "unavailable": "Unavailable",
++        "orderAvailable": "Order details provided",
++        "waitingForDates": "Complete the date range",
++        "waitingForDatesDescription": "The ledger will load after both valid dates are selected.",
++        "emptyTitle": "No ledger transactions",
++        "emptyDescription": "No transactions match the current filters.",
++        "types": {
++          "adjustCredit": "Manual credit"
++        },
++        "fields": {
++          "date": "Date and time",
++          "transaction": "Transaction",
++          "points": "Points",
++          "bucket": "Bucket",
++          "order": "Related order",
++          "expiry": "Lot expiry",
++          "actor": "Actor",
++          "reason": "Reason"
++        }
++      }
+     }
+   }
+ }
+diff --git a/src/modules/loyalty/queries/loyalty.keys.ts b/src/modules/loyalty/queries/loyalty.keys.ts
+index ef7517d..08f15fc 100644
+--- a/src/modules/loyalty/queries/loyalty.keys.ts
++++ b/src/modules/loyalty/queries/loyalty.keys.ts
+@@ -1,6 +1,14 @@
++import type { LoyaltyLedgerFilters } from '../types/loyalty.types'
++
+ export const loyaltyKeys = {
+   all: ['loyalty'] as const,
+   settings: () => [...loyaltyKeys.all, 'settings'] as const,
+   histories: () => [...loyaltyKeys.all, 'settings-history'] as const,
+   history: (perPage: number) => [...loyaltyKeys.histories(), { perPage }] as const,
++  customers: () => [...loyaltyKeys.all, 'customers'] as const,
++  customer: (customerId: number) => [...loyaltyKeys.customers(), customerId] as const,
++  customerSummary: (customerId: number) => [...loyaltyKeys.customer(customerId), 'summary'] as const,
++  customerLedgers: (customerId: number) => [...loyaltyKeys.customer(customerId), 'ledger'] as const,
++  customerLedger: (customerId: number, filters: LoyaltyLedgerFilters) =>
++    [...loyaltyKeys.customerLedgers(customerId), filters] as const,
+ }
+diff --git a/src/modules/loyalty/types/loyalty.types.ts b/src/modules/loyalty/types/loyalty.types.ts
+index db57699..2373866 100644
+--- a/src/modules/loyalty/types/loyalty.types.ts
++++ b/src/modules/loyalty/types/loyalty.types.ts
+@@ -121,3 +121,75 @@ export type LoyaltyVersionsPage = {
+   items: LoyaltySettingsVersion[]
+   meta: DashboardPaginationMeta
+ }
++
++export type CustomerLoyaltySummary = {
++  available: number
++  pending: number
++  held: number
++  expiringSoon: { points: number; expiresAt: string | null } | null
++  isBlocked: boolean
++}
++
++export type RawCustomerLoyaltySummary = {
++  available: number
++  pending: number
++  held: number
++  expiring_soon: { points: number; expires_at: string | null } | null
++  is_blocked: boolean | 0 | 1
++}
++
++export type RawCustomerLoyaltySummaryResponse = {
++  success: boolean
++  message: string
++  data: RawCustomerLoyaltySummary
++}
++
++export type LoyaltyLedgerFilters = {
++  type: 'adjust_credit' | null
++  from: string
++  to: string
++}
++
++export type CustomerLoyaltyLedgerItem = {
++  id: number
++  createdAt: string
++  type: string
++  label: string
++  bucket: string
++  points: number
++  lotExpiresAt: string | null
++  actorType: string | null
++  actorName: string | null
++  reason: string | null
++  reasonLabel: string | null
++  note: string | null
++  order: unknown | null
++}
++
++export type RawCustomerLoyaltyLedgerItem = {
++  id: number
++  created_at: string
++  type: string
++  label: string
++  bucket: string
++  points: number
++  lot_expires_at: string | null
++  actor_type: string | null
++  actor_name: string | null
++  reason: string | null
++  reason_label: string | null
++  note: string | null
++  order: unknown | null
++}
++
++export type RawCustomerLoyaltyLedgerResponse = {
++  success: boolean
++  message: string
++  data: RawCustomerLoyaltyLedgerItem[]
++  meta: DashboardPaginationMeta
++}
++
++export type CustomerLoyaltyLedgerPage = {
++  items: CustomerLoyaltyLedgerItem[]
++  meta: DashboardPaginationMeta
++}
+
+diff --git a/src/modules/customers/pages/CustomerLoyaltyPage.test.tsx b/src/modules/customers/pages/CustomerLoyaltyPage.test.tsx
+new file mode 100644
+index 0000000..c3a737c
+--- /dev/null
++++ b/src/modules/customers/pages/CustomerLoyaltyPage.test.tsx
+@@ -0,0 +1,298 @@
++import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
++import { render, screen, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++
++import '@/config/i18'
++import i18n from '@/config/i18'
++import { customersService } from '@/modules/customers/api/customers.service'
++import CustomerDetailPage from '@/modules/customers/pages/CustomerDetailPage'
++import type { CustomerDetail, CustomerOrderListItem } from '@/modules/customers/types/customer.types'
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++import type { CustomerLoyaltyLedgerItem, CustomerLoyaltySummary } from '@/modules/loyalty/types/loyalty.types'
++import customerAr from '@/modules/customers/locale/ar.json'
++import loyaltyAr from '@/modules/loyalty/locale/ar.json'
++
++vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
++
++const customer = (id = 12): CustomerDetail => ({
++  id,
++  name: `Customer ${id}`,
++  email: `customer-${id}@example.com`,
++  phone: null,
++  firstName: 'Customer',
++  lastName: String(id),
++  termsAcceptedAt: null,
++  marketingOptIn: false,
++  status: 'active',
++  isBlocked: false,
++  blockedAt: null,
++  blockedReason: null,
++  addressesCount: 0,
++  createdAt: '2026-09-20T19:55:28+00:00',
++  updatedAt: '2026-09-20T19:55:28+00:00',
++})
++
++const summary: CustomerLoyaltySummary = {
++  available: 0,
++  pending: 0,
++  held: 0,
++  expiringSoon: null,
++  isBlocked: true,
++}
++
++const ledgerItem: CustomerLoyaltyLedgerItem = {
++  id: 116,
++  createdAt: '2026-11-13T17:25:44+03:00',
++  type: 'adjust_credit',
++  label: 'Manual adjustment',
++  bucket: 'available',
++  points: 5000,
++  lotExpiresAt: null,
++  actorType: 'admin',
++  actorName: null,
++  reason: null,
++  reasonLabel: null,
++  note: 'Internal loyalty note',
++  order: null,
++}
++
++function ordersPage(): PaginatedData<CustomerOrderListItem> {
++  return {
++    items: [],
++    paginate: {
++      current_page: 1,
++      total_pages: 1,
++      per_page: 15,
++      total: 0,
++      count: 0,
++      next_page_url: null,
++      prev_page_url: null,
++    },
++    extra: null,
++  }
++}
++
++function NavigationControls() {
++  const location = useLocation()
++  const navigate = useNavigate()
++  return (
++    <>
++      <output data-testid="location">{`${location.pathname}${location.search}`}</output>
++      <button type="button" onClick={() => navigate(-1)}>
++        Back
++      </button>
++      <button type="button" onClick={() => navigate(1)}>
++        Forward
++      </button>
++      <button type="button" onClick={() => navigate('/dashboard/customers/13?tab=points')}>
++        Customer 13
++      </button>
++    </>
++  )
++}
++
++function renderPage(entry = '/dashboard/customers/12') {
++  const client = new QueryClient({
++    defaultOptions: {
++      queries: { retry: false, staleTime: 5 * 60 * 1000, gcTime: Infinity, refetchOnMount: false },
++      mutations: { retry: false },
++    },
++  })
++  return {
++    client,
++    ...render(
++      <QueryClientProvider client={client}>
++        <MemoryRouter initialEntries={[entry]}>
++          <Routes>
++            <Route
++              path="/dashboard/customers/:id"
++              element={
++                <>
++                  <CustomerDetailPage />
++                  <NavigationControls />
++                </>
++              }
++            />
++          </Routes>
++        </MemoryRouter>
++      </QueryClientProvider>
++    ),
++  }
++}
++
++describe('Customer loyalty page', () => {
++  beforeEach(async () => {
++    vi.restoreAllMocks()
++    vi.stubGlobal(
++      'IntersectionObserver',
++      class {
++        observe() {}
++        unobserve() {}
++        disconnect() {}
++      }
++    )
++    await i18n.changeLanguage('en')
++    vi.spyOn(customersService, 'show').mockImplementation(async (id) => customer(id))
++    vi.spyOn(customersService, 'orders').mockResolvedValue(ordersPage())
++    vi.spyOn(loyaltyService, 'getCustomerSummary').mockResolvedValue(summary)
++    vi.spyOn(loyaltyService, 'getCustomerLedger').mockResolvedValue({
++      items: [ledgerItem],
++      meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++    })
++  })
++
++  afterEach(() => vi.unstubAllGlobals())
++
++  it('keeps Overview behavior and performs no loyalty requests', async () => {
++    renderPage()
++
++    expect(await screen.findByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
++    expect(await screen.findByText('No orders yet')).toBeInTheDocument()
++    expect(customersService.show).toHaveBeenCalledOnce()
++    expect(customersService.orders).toHaveBeenCalledOnce()
++    expect(loyaltyService.getCustomerSummary).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerLedger).not.toHaveBeenCalled()
++  })
++
++  it('falls back to Overview for an invalid tab value', async () => {
++    renderPage('/dashboard/customers/12?tab=invalid')
++
++    expect(await screen.findByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
++    expect(customersService.orders).toHaveBeenCalledOnce()
++    expect(loyaltyService.getCustomerSummary).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerLedger).not.toHaveBeenCalled()
++  })
++
++  it('opens Points directly without Orders and renders zero, frozen, and nullable ledger values', async () => {
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByRole('tab', { name: 'Points' })).toHaveAttribute('aria-selected', 'true')
++    expect(await screen.findByText('Frozen')).toBeInTheDocument()
++    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(4)
++    expect(await screen.findByRole('table', { name: 'Points ledger' })).toBeInTheDocument()
++    expect(screen.getAllByText('+5,000')).not.toHaveLength(0)
++    expect(screen.getAllByText('Unavailable').length).toBeGreaterThan(0)
++    expect(screen.queryByRole('button', { name: /edit|delete/i })).not.toBeInTheDocument()
++    expect(customersService.orders).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerSummary).toHaveBeenCalledExactlyOnceWith(12, expect.any(AbortSignal))
++    expect(loyaltyService.getCustomerLedger).toHaveBeenCalledExactlyOnceWith(
++      12,
++      { type: null, from: '', to: '' },
++      expect.any(AbortSignal)
++    )
++  })
++
++  it('uses URL filters, avoids incomplete date requests, and preserves the Points tab', async () => {
++    renderPage('/dashboard/customers/12?tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30&page=4')
++
++    await waitFor(() =>
++      expect(loyaltyService.getCustomerLedger).toHaveBeenCalledWith(
++        12,
++        { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
++        expect.any(AbortSignal)
++      )
++    )
++    expect(screen.getByTestId('location')).toHaveTextContent(
++      'tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30'
++    )
++  })
++
++  it('clears supported filters while preserving the Points tab', async () => {
++    const user = userEvent.setup()
++    renderPage('/dashboard/customers/12?tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30&page=4')
++    await screen.findByRole('table', { name: 'Points ledger' })
++
++    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
++    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/customers/12?tab=points'))
++    await waitFor(() =>
++      expect(loyaltyService.getCustomerLedger).toHaveBeenLastCalledWith(
++        12,
++        { type: null, from: '', to: '' },
++        expect.any(AbortSignal)
++      )
++    )
++  })
++
++  it('does not request the ledger for an incomplete date range', async () => {
++    renderPage('/dashboard/customers/12?tab=points&from=2026-11-01')
++
++    expect(await screen.findByText('Complete the date range')).toBeInTheDocument()
++    expect(screen.getByRole('alert')).toHaveTextContent('Select both')
++    expect(loyaltyService.getCustomerLedger).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerSummary).toHaveBeenCalledOnce()
++  })
++
++  it('supports Back/Forward without duplicate reads and isolates customer-scoped caches', async () => {
++    const user = userEvent.setup()
++    const { client } = renderPage()
++    await screen.findByRole('tab', { name: 'Overview' })
++
++    await user.click(screen.getByRole('tab', { name: 'Points' }))
++    await screen.findByRole('table', { name: 'Points ledger' })
++    await user.click(screen.getByRole('button', { name: 'Back' }))
++    await waitFor(() => expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true'))
++    await user.click(screen.getByRole('button', { name: 'Forward' }))
++    await waitFor(() => expect(screen.getByRole('tab', { name: 'Points' })).toHaveAttribute('aria-selected', 'true'))
++    expect(loyaltyService.getCustomerSummary).toHaveBeenCalledTimes(1)
++    expect(loyaltyService.getCustomerLedger).toHaveBeenCalledTimes(1)
++
++    await user.click(screen.getByRole('button', { name: 'Customer 13' }))
++    await waitFor(() => expect(loyaltyService.getCustomerSummary).toHaveBeenCalledWith(13, expect.any(AbortSignal)))
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(summary)
++    expect(client.getQueryData(loyaltyKeys.customerSummary(13))).toEqual(summary)
++  })
++
++  it('keeps a successful ledger visible when the summary fails', async () => {
++    vi.mocked(loyaltyService.getCustomerSummary).mockRejectedValue(new Error('summary failed'))
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
++    expect(await screen.findByRole('table', { name: 'Points ledger' })).toBeInTheDocument()
++    expect(screen.queryByText('summary failed')).not.toBeInTheDocument()
++  })
++
++  it('keeps the summary visible when the independent ledger request fails', async () => {
++    vi.mocked(loyaltyService.getCustomerLedger).mockRejectedValue(new Error('ledger failed'))
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByText('Frozen')).toBeInTheDocument()
++    expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
++    expect(screen.queryByText('ledger failed')).not.toBeInTheDocument()
++  })
++
++  it('renders an empty filtered ledger state', async () => {
++    vi.mocked(loyaltyService.getCustomerLedger).mockResolvedValue({
++      items: [],
++      meta: { current_page: 1, last_page: 1, per_page: 50, total: 0 },
++    })
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByText('No ledger transactions')).toBeInTheDocument()
++    expect(screen.getByText('No transactions match the current filters.')).toBeInTheDocument()
++  })
++
++  it('uses Arabic RTL labels, localized points, and expiry dates', async () => {
++    await i18n.changeLanguage('ar')
++    vi.mocked(loyaltyService.getCustomerSummary).mockResolvedValue({
++      available: 5127,
++      pending: 0,
++      held: 0,
++      expiringSoon: { points: 100, expiresAt: '2026-11-21T21:29:08+03:00' },
++      isBlocked: true,
++    })
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByRole('tab', { name: customerAr.customers.detail.tabs.points })).toHaveAttribute(
++      'aria-selected',
++      'true'
++    )
++    expect(document.documentElement).toHaveAttribute('dir', 'rtl')
++    expect(await screen.findByText(loyaltyAr.loyalty.customer.summary.frozen)).toBeInTheDocument()
++    expect(screen.getAllByText('٥٬١٢٧')).not.toHaveLength(0)
++    expect(screen.getByText(/تنتهي في/)).toBeInTheDocument()
++    expect(screen.getAllByText('+٥٬٠٠٠').every((element) => element.closest('bdi')?.dir === 'ltr')).toBe(true)
++  })
++})
+
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyFilters.tsx b/src/modules/loyalty/components/CustomerLoyaltyFilters.tsx
+new file mode 100644
+index 0000000..613a7fb
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyFilters.tsx
+@@ -0,0 +1,68 @@
++import { useTranslation } from 'react-i18next'
++
++import FilterSelect from '@/components/filters/FilterSelect'
++import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
++
++export function CustomerLoyaltyFilters({ filters }: { filters: LoyaltyLedgerFilters }) {
++  const { t } = useTranslation()
++  const { forwardAddQuery, forwardDeleteQuery } = useQuery()
++  const dateState = getLoyaltyLedgerDateState(filters)
++  const dateErrorId = dateState === 'valid' ? undefined : 'loyalty-ledger-date-error'
++  const types = [{ value: 'adjust_credit', label: t('loyalty.customer.ledger.types.adjustCredit') }]
++  const updateDate = (name: 'from' | 'to', value: string) =>
++    forwardAddQuery({ [name]: value }, { resetQueryNames: ['page'] })
++
++  return (
++    <DashboardCard padding="lg" className="space-y-4">
++      <div className="flex flex-wrap items-center justify-between gap-3">
++        <h2 className="text-lg font-semibold">{t('loyalty.customer.filters.title')}</h2>
++        <Button
++          type="button"
++          variant="ghost"
++          disabled={!filters.type && !filters.from && !filters.to}
++          onClick={() => forwardDeleteQuery(['type', 'from', 'to'], { resetQueryNames: ['page'] })}
++        >
++          {t('loyalty.customer.filters.clear')}
++        </Button>
++      </div>
++      <div className="grid gap-4 md:grid-cols-3">
++        <FilterSelect
++          name="type"
++          label={t('loyalty.customer.filters.type')}
++          placeholder={t('loyalty.customer.filters.allTypes')}
++          data={types}
++          valueKey="value"
++          labelKey="label"
++          resetQueryNamesOnChange={['page']}
++          resetQueryNamesOnClear
++        />
++        {(['from', 'to'] as const).map((name) => (
++          <div key={name}>
++            <Label className="mb-2 text-foreground" htmlFor={`loyalty-ledger-${name}`}>
++              {t(`loyalty.customer.filters.${name}`)}
++            </Label>
++            <Input
++              id={`loyalty-ledger-${name}`}
++              type="date"
++              value={filters[name]}
++              aria-invalid={dateState !== 'valid'}
++              aria-describedby={dateErrorId}
++              onChange={(event) => updateDate(name, event.target.value)}
++            />
++          </div>
++        ))}
++      </div>
++      {dateErrorId ? (
++        <p id={dateErrorId} role="alert" className="text-sm text-destructive">
++          {t(`loyalty.customer.filters.${dateState === 'incomplete' ? 'completeRange' : 'invalidRange'}`)}
++        </p>
++      ) : null}
++    </DashboardCard>
++  )
++}
+
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyLedger.tsx b/src/modules/loyalty/components/CustomerLoyaltyLedger.tsx
+new file mode 100644
+index 0000000..de00d2e
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyLedger.tsx
+@@ -0,0 +1,216 @@
++import { BookOpenText, CalendarClock } from 'lucide-react'
++import { useTranslation } from 'react-i18next'
++
++import {
++  ResponsiveDataDesktop,
++  ResponsiveDataFact,
++  ResponsiveDataLayout,
++  ResponsiveDataMobileCard,
++  ResponsiveDataMobileCards,
++  ResponsiveDataTable,
++  ResponsiveDataTableCell,
++  ResponsiveDataTableRow,
++} from '@/components/shared/data-display/ResponsiveDataLayout'
++import { EmptyState } from '@/components/shared/empty-state'
++import { QueryStateBoundary } from '@/components/shared/query-state'
++import { Skeleton } from '@/components/ui/skeleton'
++import { useCustomerLoyaltyLedger } from '@/modules/loyalty/hooks/useCustomerLoyaltyLedger'
++import type { CustomerLoyaltyLedgerItem, LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
++import { formatDateTime, resolveAppLocale, type AppLocale } from '@/utils/date/date.helpers'
++
++function LedgerSkeleton() {
++  return (
++    <div className="space-y-3 p-5">
++      <Skeleton className="h-16 w-full" />
++      <Skeleton className="h-16 w-full" />
++      <Skeleton className="h-16 w-full" />
++    </div>
++  )
++}
++
++function LedgerDate({ value, unavailable, locale }: { value: string | null; unavailable: string; locale: AppLocale }) {
++  const label = value ? formatDateTime(value, { locale }) : ''
++  return value && label ? <time dateTime={value}>{label}</time> : <span>{unavailable}</span>
++}
++
++function signedPoints(value: number, language: string) {
++  const number = new Intl.NumberFormat(language.startsWith('ar') ? 'ar-EG' : 'en-GB')
++  const sign = value > 0 ? '+' : value < 0 ? '−' : ''
++  return `${sign}${number.format(Math.abs(value))}`
++}
++
++function orderLabel(order: unknown | null, available: string, unavailable: string) {
++  return order === null ? unavailable : available
++}
++
++function LedgerDesktop({ items }: { items: CustomerLoyaltyLedgerItem[] }) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const unavailable = t('loyalty.customer.ledger.unavailable')
++  const columns = [
++    { id: 'date', header: t('loyalty.customer.ledger.fields.date') },
++    { id: 'transaction', header: t('loyalty.customer.ledger.fields.transaction') },
++    { id: 'points', header: t('loyalty.customer.ledger.fields.points') },
++    { id: 'bucket', header: t('loyalty.customer.ledger.fields.bucket') },
++    { id: 'order', header: t('loyalty.customer.ledger.fields.order') },
++    { id: 'expiry', header: t('loyalty.customer.ledger.fields.expiry') },
++    { id: 'actor', header: t('loyalty.customer.ledger.fields.actor') },
++    { id: 'reason', header: t('loyalty.customer.ledger.fields.reason') },
++  ]
++  return (
++    <ResponsiveDataDesktop>
++      <ResponsiveDataTable columns={columns} aria-label={t('loyalty.customer.ledger.title')}>
++        {items.map((item) => (
++          <ResponsiveDataTableRow key={item.id}>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              <LedgerDate value={item.createdAt} unavailable={unavailable} locale={locale} />
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="min-w-52 whitespace-normal">
++              <p className="font-medium">{item.label || item.type}</p>
++              <p className="text-xs text-content-muted">
++                <bdi>{item.type}</bdi>
++              </p>
++              {item.note ? (
++                <p className="mt-1 line-clamp-2 max-w-64 text-xs text-content-secondary" title={item.note}>
++                  {item.note}
++                </p>
++              ) : null}
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell>
++              <bdi dir="ltr" className="font-semibold">
++                {signedPoints(item.points, i18n.language)}
++              </bdi>
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell>
++              <bdi>{item.bucket}</bdi>
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell>
++              {orderLabel(item.order, t('loyalty.customer.ledger.orderAvailable'), unavailable)}
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              <LedgerDate value={item.lotExpiresAt} unavailable={unavailable} locale={locale} />
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              {item.actorName || item.actorType || unavailable}
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              {item.reasonLabel || item.reason || unavailable}
++            </ResponsiveDataTableCell>
++          </ResponsiveDataTableRow>
++        ))}
++      </ResponsiveDataTable>
++    </ResponsiveDataDesktop>
++  )
++}
++
++function LedgerMobile({ items }: { items: CustomerLoyaltyLedgerItem[] }) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const unavailable = t('loyalty.customer.ledger.unavailable')
++  return (
++    <ResponsiveDataMobileCards>
++      {items.map((item) => (
++        <ResponsiveDataMobileCard
++          key={item.id}
++          title={item.label || item.type}
++          subtitle={<LedgerDate value={item.createdAt} unavailable={unavailable} locale={locale} />}
++          facts={
++            <>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.points')}>
++                <bdi dir="ltr">{signedPoints(item.points, i18n.language)}</bdi>
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.bucket')}>
++                <bdi>{item.bucket}</bdi>
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.order')}>
++                {orderLabel(item.order, t('loyalty.customer.ledger.orderAvailable'), unavailable)}
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.expiry')}>
++                <LedgerDate value={item.lotExpiresAt} unavailable={unavailable} locale={locale} />
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.actor')}>
++                {item.actorName || item.actorType || unavailable}
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.reason')}>
++                {item.reasonLabel || item.reason || unavailable}
++              </ResponsiveDataFact>
++            </>
++          }
++          footer={
++            item.note ? (
++              <p className="line-clamp-2 text-xs text-content-secondary" title={item.note}>
++                {item.note}
++              </p>
++            ) : undefined
++          }
++        />
++      ))}
++    </ResponsiveDataMobileCards>
++  )
++}
++
++export function CustomerLoyaltyLedger({ customerId, filters }: { customerId: number; filters: LoyaltyLedgerFilters }) {
++  const { t } = useTranslation()
++  const dateState = getLoyaltyLedgerDateState(filters)
++  const query = useCustomerLoyaltyLedger(customerId, filters, true)
++  const items = query.data?.items ?? []
++  const header = (
++    <div className="min-w-0 space-y-1">
++      <h2 className="text-lg font-semibold">{t('loyalty.customer.ledger.title')}</h2>
++      <p className="text-sm text-content-muted">
++        {t('loyalty.customer.ledger.total', { count: query.data?.meta.total ?? items.length })}
++      </p>
++    </div>
++  )
++
++  if (dateState !== 'valid') {
++    return (
++      <ResponsiveDataLayout
++        header={header}
++        isEmpty
++        empty={
++          <EmptyState
++            icon={<CalendarClock />}
++            title={t('loyalty.customer.ledger.waitingForDates')}
++            description={t('loyalty.customer.ledger.waitingForDatesDescription')}
++          />
++        }
++      >
++        {null}
++      </ResponsiveDataLayout>
++    )
++  }
++
++  return (
++    <QueryStateBoundary
++      loadingFallback={
++        <ResponsiveDataLayout header={header} isEmpty={false} empty={null} isLoading loading={<LedgerSkeleton />}>
++          {null}
++        </ResponsiveDataLayout>
++      }
++      isLoading={query.isLoading}
++      isLoadingError={query.isError && !query.data}
++      isRefetchError={query.isRefetchError}
++      isPaused={query.isPaused}
++      isFetching={query.isFetching}
++      hasData={Boolean(query.data)}
++      onRetry={query.refetch}
++    >
++      <ResponsiveDataLayout
++        header={header}
++        isEmpty={items.length === 0}
++        empty={
++          <EmptyState
++            icon={<BookOpenText />}
++            title={t('loyalty.customer.ledger.emptyTitle')}
++            description={t('loyalty.customer.ledger.emptyDescription')}
++          />
++        }
++      >
++        <LedgerDesktop items={items} />
++        <LedgerMobile items={items} />
++      </ResponsiveDataLayout>
++    </QueryStateBoundary>
++  )
++}
+
+diff --git a/src/modules/loyalty/components/CustomerLoyaltySummary.tsx b/src/modules/loyalty/components/CustomerLoyaltySummary.tsx
+new file mode 100644
+index 0000000..98c8fb1
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltySummary.tsx
+@@ -0,0 +1,87 @@
++import { Snowflake } from 'lucide-react'
++import { useTranslation } from 'react-i18next'
++
++import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
++import { QueryStateBoundary } from '@/components/shared/query-state'
++import { Badge } from '@/components/ui/badge'
++import { Skeleton } from '@/components/ui/skeleton'
++import { useCustomerLoyalty } from '@/modules/loyalty/hooks/useCustomerLoyalty'
++import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
++
++function SummarySkeleton() {
++  return (
++    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
++      {Array.from({ length: 4 }, (_, index) => (
++        <DashboardCard key={index} padding="lg" className="space-y-3">
++          <Skeleton className="h-4 w-28" />
++          <Skeleton className="h-8 w-20" />
++        </DashboardCard>
++      ))}
++    </div>
++  )
++}
++
++export function CustomerLoyaltySummary({ customerId }: { customerId: number }) {
++  const { t, i18n } = useTranslation()
++  const query = useCustomerLoyalty(customerId, true)
++  const locale = resolveAppLocale(i18n.language)
++  const number = new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-GB')
++  const summary = query.data
++  const expiry = summary?.expiringSoon?.expiresAt
++
++  return (
++    <section aria-labelledby="customer-loyalty-summary-title" className="space-y-3">
++      <div className="flex flex-wrap items-center gap-3">
++        <h2 id="customer-loyalty-summary-title" className="text-lg font-semibold">
++          {t('loyalty.customer.summary.title')}
++        </h2>
++        {summary?.isBlocked ? (
++          <Badge variant="warning">
++            <Snowflake aria-hidden />
++            {t('loyalty.customer.summary.frozen')}
++          </Badge>
++        ) : null}
++      </div>
++      <QueryStateBoundary
++        loadingFallback={<SummarySkeleton />}
++        isLoading={query.isLoading}
++        isLoadingError={query.isError && !summary}
++        isRefetchError={query.isRefetchError}
++        isPaused={query.isPaused}
++        isFetching={query.isFetching}
++        hasData={Boolean(summary)}
++        onRetry={query.refetch}
++      >
++        {summary ? (
++          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
++            {(
++              [
++                ['available', summary.available],
++                ['pending', summary.pending],
++                ['held', summary.held],
++              ] as const
++            ).map(([key, value]) => (
++              <DashboardCard key={key} padding="lg" className="min-w-0 space-y-2">
++                <h3 className="text-sm font-medium text-content-secondary">{t(`loyalty.customer.summary.${key}`)}</h3>
++                <bdi className="block text-2xl font-semibold text-content-primary">{number.format(value)}</bdi>
++              </DashboardCard>
++            ))}
++            <DashboardCard padding="lg" className="min-w-0 space-y-2">
++              <h3 className="text-sm font-medium text-content-secondary">
++                {t('loyalty.customer.summary.expiringSoon')}
++              </h3>
++              <bdi className="block text-2xl font-semibold text-content-primary">
++                {number.format(summary.expiringSoon?.points ?? 0)}
++              </bdi>
++              {expiry ? (
++                <p className="text-xs text-content-muted">
++                  {t('loyalty.customer.summary.expiresAt', { date: formatDateTime(expiry, { locale }) })}
++                </p>
++              ) : null}
++            </DashboardCard>
++          </div>
++        ) : null}
++      </QueryStateBoundary>
++    </section>
++  )
++}
+
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx b/src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx
+new file mode 100644
+index 0000000..31c938b
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx
+@@ -0,0 +1,17 @@
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import { readLoyaltyLedgerFilters } from '@/modules/loyalty/utils/loyalty-ledger'
++import { CustomerLoyaltyFilters } from './CustomerLoyaltyFilters'
++import { CustomerLoyaltyLedger } from './CustomerLoyaltyLedger'
++import { CustomerLoyaltySummary } from './CustomerLoyaltySummary'
++
++export function CustomerLoyaltyWorkspace({ customerId }: { customerId: number }) {
++  const { forwardQuery } = useQuery()
++  const filters = readLoyaltyLedgerFilters(forwardQuery)
++  return (
++    <div className="space-y-5">
++      <CustomerLoyaltySummary customerId={customerId} />
++      <CustomerLoyaltyFilters filters={filters} />
++      <CustomerLoyaltyLedger customerId={customerId} filters={filters} />
++    </div>
++  )
++}
+
+diff --git a/src/modules/loyalty/hooks/useCustomerLoyalty.ts b/src/modules/loyalty/hooks/useCustomerLoyalty.ts
+new file mode 100644
+index 0000000..63335e1
+--- /dev/null
++++ b/src/modules/loyalty/hooks/useCustomerLoyalty.ts
+@@ -0,0 +1,13 @@
++import { useQuery } from '@tanstack/react-query'
++
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++
++export function useCustomerLoyalty(customerId: number, enabled: boolean) {
++  return useQuery({
++    queryKey: loyaltyKeys.customerSummary(customerId),
++    queryFn: ({ signal }) => loyaltyService.getCustomerSummary(customerId, signal),
++    enabled,
++    retry: false,
++  })
++}
+
+diff --git a/src/modules/loyalty/hooks/useCustomerLoyaltyLedger.ts b/src/modules/loyalty/hooks/useCustomerLoyaltyLedger.ts
+new file mode 100644
+index 0000000..8decb61
+--- /dev/null
++++ b/src/modules/loyalty/hooks/useCustomerLoyaltyLedger.ts
+@@ -0,0 +1,15 @@
++import { useQuery } from '@tanstack/react-query'
++
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
++
++export function useCustomerLoyaltyLedger(customerId: number, filters: LoyaltyLedgerFilters, enabled: boolean) {
++  return useQuery({
++    queryKey: loyaltyKeys.customerLedger(customerId, filters),
++    queryFn: ({ signal }) => loyaltyService.getCustomerLedger(customerId, filters, signal),
++    enabled: enabled && getLoyaltyLedgerDateState(filters) === 'valid',
++    retry: false,
++  })
++}
+
+diff --git a/src/modules/loyalty/utils/loyalty-ledger.test.ts b/src/modules/loyalty/utils/loyalty-ledger.test.ts
+new file mode 100644
+index 0000000..95ac55a
+--- /dev/null
++++ b/src/modules/loyalty/utils/loyalty-ledger.test.ts
+@@ -0,0 +1,25 @@
++import { describe, expect, it } from 'vitest'
++
++import { getLoyaltyLedgerDateState, readLoyaltyLedgerFilters, serializeLoyaltyLedgerFilters } from './loyalty-ledger'
++
++describe('loyalty ledger filters', () => {
++  it('accepts only the documented type and complete valid date ranges', () => {
++    expect(readLoyaltyLedgerFilters({ type: 'unknown', from: '2026-11-01', to: '2026-11-30' })).toEqual({
++      type: null,
++      from: '2026-11-01',
++      to: '2026-11-30',
++    })
++    expect(getLoyaltyLedgerDateState({ type: null, from: '2026-11-01', to: '' })).toBe('incomplete')
++    expect(getLoyaltyLedgerDateState({ type: null, from: '2026-12-01', to: '2026-11-30' })).toBe('invalid')
++    expect(getLoyaltyLedgerDateState({ type: null, from: '2026-11-01', to: '2026-11-30' })).toBe('valid')
++  })
++
++  it('never serializes incomplete date ranges or unsupported values', () => {
++    expect(serializeLoyaltyLedgerFilters({ type: null, from: '2026-11-01', to: '' })).toEqual({})
++    expect(serializeLoyaltyLedgerFilters({ type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' })).toEqual({
++      type: 'adjust_credit',
++      from: '2026-11-01',
++      to: '2026-11-30',
++    })
++  })
++})
+
+diff --git a/src/modules/loyalty/utils/loyalty-ledger.ts b/src/modules/loyalty/utils/loyalty-ledger.ts
+new file mode 100644
+index 0000000..664d4bf
+--- /dev/null
++++ b/src/modules/loyalty/utils/loyalty-ledger.ts
+@@ -0,0 +1,37 @@
++import type { QueryRecord } from '@/store/queryContext/types'
++import { isValidDateInput } from '@/utils/date/date.helpers'
++import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++
++const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
++
++export const emptyLoyaltyLedgerFilters: LoyaltyLedgerFilters = { type: null, from: '', to: '' }
++
++export function readLoyaltyLedgerFilters(query: QueryRecord): LoyaltyLedgerFilters {
++  return {
++    type: query?.type === 'adjust_credit' ? 'adjust_credit' : null,
++    from: query?.from ?? '',
++    to: query?.to ?? '',
++  }
++}
++
++export function getLoyaltyLedgerDateState(filters: LoyaltyLedgerFilters): 'valid' | 'incomplete' | 'invalid' {
++  if (!filters.from && !filters.to) return 'valid'
++  if (!filters.from || !filters.to) return 'incomplete'
++  if (
++    !DATE_PATTERN.test(filters.from) ||
++    !DATE_PATTERN.test(filters.to) ||
++    !isValidDateInput(filters.from) ||
++    !isValidDateInput(filters.to) ||
++    filters.from > filters.to
++  ) {
++    return 'invalid'
++  }
++  return 'valid'
++}
++
++export function serializeLoyaltyLedgerFilters(filters: LoyaltyLedgerFilters) {
++  return {
++    ...(filters.type ? { type: filters.type } : {}),
++    ...(filters.from && filters.to ? { from: filters.from, to: filters.to } : {}),
++  }
++}
+

@@ -1,4 +1,9 @@
 import type {
+  CustomerLoyaltyLedgerItem,
+  CustomerLoyaltyLedgerPage,
+  CustomerLoyaltySummary,
+  LoyaltyLedgerFilters,
+  LoyaltyAdjustmentPayload,
   LoyaltySettings,
   LoyaltySettingsUpdatePayload,
   LoyaltySettingsVersion,
@@ -10,7 +15,13 @@ import type {
   RawLoyaltySettingsVersion,
   RawLoyaltyVersionValues,
   RawLoyaltyVersionsResponse,
+  RawCustomerLoyaltyLedgerItem,
+  RawCustomerLoyaltyLedgerResponse,
+  RawCustomerLoyaltySummary,
+  RawCustomerLoyaltySummaryResponse,
+  RawLoyaltyAdjustmentPayload,
 } from '@/modules/loyalty/types/loyalty.types'
+import { serializeLoyaltyLedgerFilters } from '@/modules/loyalty/utils/loyalty-ledger'
 import { $http } from '@/utils/http'
 
 function requirePositiveInteger(value: number, field: string): number {
@@ -37,6 +48,11 @@ function requireFiniteNumber(value: number, field: string): number {
   return value
 }
 
+function requireInteger(value: number, field: string): number {
+  if (!Number.isSafeInteger(value)) throw new Error(`${field} is unavailable`)
+  return value
+}
+
 function requireDecimalString(value: string, field: string): string {
   if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value.trim())) {
     throw new Error(`${field} is unavailable`)
@@ -47,6 +63,48 @@ function requireDecimalString(value: string, field: string): string {
 function normalizeBoolean(value: boolean | 0 | 1, field: string): boolean {
   if (value !== true && value !== false && value !== 0 && value !== 1) throw new Error(`${field} is unavailable`)
   return value === true || value === 1
+}
+
+function requireString(value: string, field: string): string {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} is unavailable`)
+  return value.trim()
+}
+
+function normalizeCustomerId(value: number): number {
+  return requirePositiveInteger(value, 'Customer')
+}
+
+export function normalizeCustomerLoyaltySummary(raw: RawCustomerLoyaltySummary): CustomerLoyaltySummary {
+  return {
+    available: requireNonNegativeInteger(raw.available, 'Available points'),
+    pending: requireNonNegativeInteger(raw.pending, 'Pending points'),
+    held: requireNonNegativeInteger(raw.held, 'Held points'),
+    expiringSoon: raw.expiring_soon
+      ? {
+          points: requireNonNegativeInteger(raw.expiring_soon.points, 'Expiring points'),
+          expiresAt: normalizeNullableString(raw.expiring_soon.expires_at, 'Expiry date'),
+        }
+      : null,
+    isBlocked: normalizeBoolean(raw.is_blocked, 'Customer loyalty blocked state'),
+  }
+}
+
+export function normalizeCustomerLoyaltyLedgerItem(raw: RawCustomerLoyaltyLedgerItem): CustomerLoyaltyLedgerItem {
+  return {
+    id: requirePositiveInteger(raw.id, 'Ledger entry'),
+    createdAt: requireString(raw.created_at, 'Ledger date'),
+    type: requireString(raw.type, 'Ledger type'),
+    label: requireString(raw.label, 'Ledger label'),
+    bucket: requireString(raw.bucket, 'Ledger bucket'),
+    points: requireInteger(raw.points, 'Ledger points'),
+    lotExpiresAt: normalizeNullableString(raw.lot_expires_at, 'Lot expiry'),
+    actorType: normalizeNullableString(raw.actor_type, 'Actor type'),
+    actorName: normalizeNullableString(raw.actor_name, 'Actor name'),
+    reason: normalizeNullableString(raw.reason, 'Reason'),
+    reasonLabel: normalizeNullableString(raw.reason_label, 'Reason label'),
+    note: normalizeNullableString(raw.note, 'Internal note'),
+    order: raw.order,
+  }
 }
 
 function normalizeVersionValues(raw: RawLoyaltyVersionValues): LoyaltyVersionValues {
@@ -109,6 +167,16 @@ export function serializeLoyaltySettingsUpdate(payload: LoyaltySettingsUpdatePay
   }
 }
 
+export function serializeLoyaltyAdjustment(payload: LoyaltyAdjustmentPayload): RawLoyaltyAdjustmentPayload {
+  return {
+    type: payload.type,
+    points: payload.points,
+    reason: payload.reason,
+    note: payload.note,
+    notify_customer: payload.notifyCustomer,
+  }
+}
+
 export const loyaltyService = {
   async getSettings(signal?: AbortSignal): Promise<LoyaltySettings> {
     const response = await $http.get<RawLoyaltySettingsResponse>({
@@ -140,5 +208,44 @@ export const loyaltyService = {
       items: response.data.data.map(normalizeLoyaltyVersion),
       meta: response.data.meta,
     }
+  },
+
+  async getCustomerSummary(customerId: number, signal?: AbortSignal): Promise<CustomerLoyaltySummary> {
+    const id = normalizeCustomerId(customerId)
+    const response = await $http.get<RawCustomerLoyaltySummaryResponse>({
+      url: `/dashboard/customers/${id}/loyalty`,
+      signal,
+      suppressErrorNotification: true,
+    })
+    return normalizeCustomerLoyaltySummary(response.data.data)
+  },
+
+  async getCustomerLedger(
+    customerId: number,
+    filters: LoyaltyLedgerFilters,
+    signal?: AbortSignal
+  ): Promise<CustomerLoyaltyLedgerPage> {
+    const id = normalizeCustomerId(customerId)
+    const response = await $http.get<RawCustomerLoyaltyLedgerResponse>({
+      url: `/dashboard/customers/${id}/loyalty/ledger`,
+      query: serializeLoyaltyLedgerFilters(filters),
+      signal,
+      suppressErrorNotification: true,
+    })
+    return {
+      items: response.data.data.map(normalizeCustomerLoyaltyLedgerItem),
+      meta: response.data.meta,
+    }
+  },
+
+  async adjustCustomerPoints(customerId: number, payload: LoyaltyAdjustmentPayload): Promise<CustomerLoyaltySummary> {
+    const id = normalizeCustomerId(customerId)
+    const response = await $http.post<RawCustomerLoyaltySummaryResponse>({
+      url: `/dashboard/customers/${id}/loyalty/adjustments`,
+      data: serializeLoyaltyAdjustment(payload),
+      suppressSuccessNotification: true,
+      suppressErrorNotification: true,
+    })
+    return normalizeCustomerLoyaltySummary(response.data.data)
   },
 }

@@ -122,6 +122,84 @@
     "feedback": {
       "updated": "Loyalty settings updated.",
       "updateError": "Loyalty settings could not be updated."
+    },
+    "customer": {
+      "summary": {
+        "title": "Points summary",
+        "available": "Available points",
+        "pending": "Pending points",
+        "held": "Held points",
+        "expiringSoon": "Expiring soon",
+        "unavailable": "Unavailable",
+        "expiresAt": "Expires {{date}}",
+        "frozen": "Frozen"
+      },
+      "filters": {
+        "title": "Ledger filters",
+        "type": "Transaction type",
+        "allTypes": "All documented types",
+        "from": "From date",
+        "to": "To date",
+        "clear": "Clear filters",
+        "completeRange": "Select both the from and to dates to apply a date range.",
+        "invalidRange": "Enter a valid date range with the from date on or before the to date."
+      },
+      "ledger": {
+        "title": "Points ledger",
+        "total_one": "{{count}} transaction",
+        "total_other": "{{count}} transactions",
+        "unavailable": "Unavailable",
+        "orderAvailable": "Order details provided",
+        "waitingForDates": "Complete the date range",
+        "waitingForDatesDescription": "The ledger will load after both valid dates are selected.",
+        "emptyTitle": "No ledger transactions",
+        "emptyDescription": "No transactions match the current filters.",
+        "types": {
+          "adjustCredit": "Manual credit"
+        },
+        "fields": {
+          "date": "Date and time",
+          "transaction": "Transaction",
+          "points": "Points",
+          "bucket": "Bucket",
+          "order": "Related order",
+          "expiry": "Lot expiry",
+          "actor": "Actor",
+          "reason": "Reason"
+        }
+      },
+      "adjustment": {
+        "action": "Adjust points",
+        "title": "Adjust loyalty points",
+        "description": "Create an audited credit or debit using the customer's current loyalty balance.",
+        "availableBalance": "Available balance: {{available}} points",
+        "availableUnavailable": "Unavailable",
+        "frozenHint": "This customer is frozen. The backend remains authoritative for adjustment eligibility and balance behavior.",
+        "fields": {
+          "type": "Adjustment type",
+          "points": "Points",
+          "reason": "Reason",
+          "note": "Internal note",
+          "notifyCustomer": "Request customer notification"
+        },
+        "types": { "credit": "Credit", "debit": "Debit" },
+        "reasons": { "customerService": "Customer service", "other": "Other" },
+        "reasonPlaceholder": "Select a reason",
+        "submit": "Apply adjustment",
+        "submitting": "Applying…",
+        "cancel": "Cancel",
+        "validation": {
+          "required": "This field is required.",
+          "integer": "Enter a whole number.",
+          "pointsRange": "Points must be between 1 and 100,000.",
+          "noteLength": "The internal note must be between 10 and 250 characters.",
+          "insufficientBalance": "Debit cannot exceed the available balance of {{available}} points."
+        },
+        "feedback": {
+          "success": "Loyalty points adjusted successfully.",
+          "error": "Loyalty points could not be adjusted. Review the form and try again."
+        }
+      }
     }
   }
 }

@@ -121,3 +121,99 @@ export type LoyaltyVersionsPage = {
   items: LoyaltySettingsVersion[]
   meta: DashboardPaginationMeta
 }
+
+export type CustomerLoyaltySummary = {
+  available: number
+  pending: number
+  held: number
+  expiringSoon: { points: number; expiresAt: string | null } | null
+  isBlocked: boolean
+}
+
+export type RawCustomerLoyaltySummary = {
+  available: number
+  pending: number
+  held: number
+  expiring_soon: { points: number; expires_at: string | null } | null
+  is_blocked: boolean | 0 | 1
+}
+
+export type RawCustomerLoyaltySummaryResponse = {
+  success: boolean
+  message: string
+  data: RawCustomerLoyaltySummary
+}
+
+export type LoyaltyLedgerFilters = {
+  type: 'adjust_credit' | null
+  from: string
+  to: string
+}
+
+export type CustomerLoyaltyLedgerItem = {
+  id: number
+  createdAt: string
+  type: string
+  label: string
+  bucket: string
+  points: number
+  lotExpiresAt: string | null
+  actorType: string | null
+  actorName: string | null
+  reason: string | null
+  reasonLabel: string | null
+  note: string | null
+  order: unknown | null
+}
+
+export type RawCustomerLoyaltyLedgerItem = {
+  id: number
+  created_at: string
+  type: string
+  label: string
+  bucket: string
+  points: number
+  lot_expires_at: string | null
+  actor_type: string | null
+  actor_name: string | null
+  reason: string | null
+  reason_label: string | null
+  note: string | null
+  order: unknown | null
+}
+
+export type RawCustomerLoyaltyLedgerResponse = {
+  success: boolean
+  message: string
+  data: RawCustomerLoyaltyLedgerItem[]
+  meta: DashboardPaginationMeta
+}
+
+export type CustomerLoyaltyLedgerPage = {
+  items: CustomerLoyaltyLedgerItem[]
+  meta: DashboardPaginationMeta
+}
+
+export type LoyaltyAdjustmentType = 'credit' | 'debit'
+export type LoyaltyAdjustmentReason = 'customer_service' | 'other'
+
+export type LoyaltyAdjustmentFormValues = {
+  type: LoyaltyAdjustmentType
+  points: number | ''
+  reason: LoyaltyAdjustmentReason | ''
+  note: string
+  notifyCustomer: boolean
+}
+
+export type LoyaltyAdjustmentPayload = Omit<LoyaltyAdjustmentFormValues, 'points' | 'reason'> & {
+  points: number
+  reason: LoyaltyAdjustmentReason
+}
+
+export type RawLoyaltyAdjustmentPayload = {
+  type: LoyaltyAdjustmentType
+  points: number
+  reason: LoyaltyAdjustmentReason
+  note: string
+  notify_customer: boolean
+}

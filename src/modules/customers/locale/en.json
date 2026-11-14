@@ -104,6 +104,11 @@
       "memberSince": "Member since",
       "metadata": "Metadata",
       "metrics": "Metrics",
+      "tabs": {
+        "label": "Customer details sections",
+        "overview": "Overview",
+        "points": "Points"
+      },
       "invalid": {
         "title": "Customer not found",
         "description": "This customer is unavailable or the link is invalid."

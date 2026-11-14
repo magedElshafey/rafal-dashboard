@@ -11,6 +11,12 @@ import { normalizeOrderDetail } from '../utils/order-normalizers'
 import { ordersKeys } from '../queries/orders.keys'
 import { renderOrders } from './test-utils'
 import show from './order-dashboard-show.fixture.json'
+import cancelled123 from './order-123-cancelled.json'
+import confirmed145 from './order-145-confirmed.json'
+import processing145 from './order-145-processing.json'
+import shipped145 from './order-145-shipped.json'
+import delivered145 from './order-145-delivered.json'
+import returned145 from './order-145-returned.json'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: http }))
@@ -66,6 +72,95 @@ describe('production Order Details', () => {
     expect(new Set(ids).size).toBe(ids.length)
     service.mockRestore()
   })
+
+  it('renders the exact nullable cancelled response without a parsing or runtime failure', async () => {
+    http.get.mockResolvedValue({ data: cancelled123 })
+    const service = vi.spyOn(ordersService, 'show')
+
+    const { client, container } = renderOrders(<OrderDetailPage />, '/dashboard/orders/123')
+
+    expect(await screen.findByRole('heading', { name: '#RF-10123', level: 1 })).toBeInTheDocument()
+    expect(service).toHaveBeenCalledExactlyOnceWith(123, expect.any(AbortSignal))
+    expect(http.get).toHaveBeenCalledExactlyOnceWith({
+      url: '/dashboard/orders/123',
+      signal: expect.any(AbortSignal),
+      suppressErrorNotification: true,
+    })
+    expect(client.getQueryData(ordersKeys.detail(123))).toEqual(normalizeOrderDetail(cancelled123.data))
+
+    const customer = within(screen.getByRole('region', { name: 'Customer' }))
+    expect(customer.getAllByText('+966553212125')).toHaveLength(2)
+    expect(customer.getByText('—')).toBeInTheDocument()
+    expect(customer.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument()
+
+    const payment = within(screen.getByRole('region', { name: 'Payment' }))
+    expect(payment.getByText('Failed')).toBeInTheDocument()
+    expect(payment.getByText('tap')).toBeInTheDocument()
+    expect(payment.getByText('chg_TS07A4020261804Ng0n2710965')).toBeInTheDocument()
+    expect(payment.getByText('—')).toBeInTheDocument()
+
+    expect(screen.getByText('No coupon applied')).toBeInTheDocument()
+    expect(screen.getByText('No loyalty earning is associated with this order.')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Money summary' })).getByText('470.35 SAR')).toBeInTheDocument()
+    const history = within(screen.getByRole('region', { name: 'Status history' }))
+    expect(history.getByText('Initial status:')).toBeInTheDocument()
+    expect(history.getAllByText('System')).toHaveLength(2)
+    expect(history.getByText('Payment expired')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Update status' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
+    expect(container).not.toHaveTextContent(/^(null|undefined)$/)
+    service.mockRestore()
+  })
+
+  it.each([
+    ['confirmed', 'Confirmed', confirmed145, 'Pending', null, 2, true],
+    ['processing', 'Processing', processing145, 'Pending', null, 3, true],
+    ['shipped', 'Shipped', shipped145, 'Pending', null, 4, true],
+    ['delivered', 'Delivered', delivered145, 'Pending', '2026-11-29T01:00:57+03:00', 5, true],
+    ['returned', 'Returned', returned145, 'Cancelled', '2026-11-29T01:00:57+03:00', 6, false],
+  ] as const)(
+    'renders the exact Order 145 %s lifecycle response',
+    async (_status, statusLabel, fixture, earnedStatus, availableOn, historyLength, hasTransition) => {
+      http.get.mockResolvedValue({ data: fixture })
+      const service = vi.spyOn(ordersService, 'show')
+
+      const { client } = renderOrders(<OrderDetailPage />, '/dashboard/orders/145')
+
+      expect(await screen.findByRole('heading', { name: '#RF-10145', level: 1 })).toBeInTheDocument()
+      expect(service).toHaveBeenCalledExactlyOnceWith(145, expect.any(AbortSignal))
+      expect(http.get).toHaveBeenCalledExactlyOnceWith({
+        url: '/dashboard/orders/145',
+        signal: expect.any(AbortSignal),
+        suppressErrorNotification: true,
+      })
+      expect(client.getQueryData(ordersKeys.detail(145))).toEqual(normalizeOrderDetail(fixture.data))
+      expect(screen.getAllByText(statusLabel).length).toBeGreaterThan(0)
+      expect(screen.getByText('Paid')).toBeInTheDocument()
+
+      const loyalty = within(screen.getByRole('region', { name: 'Loyalty earning' }))
+      expect(loyalty.getByText(earnedStatus)).toBeInTheDocument()
+      expect(loyalty.getByText('4,052')).toBeInTheDocument()
+      expect(loyalty.getByText('0.00 SAR')).toBeInTheDocument()
+      expect(loyalty.getByText('4,052.60 SAR')).toBeInTheDocument()
+      expect(loyalty.queryByText('Available points')).not.toBeInTheDocument()
+      if (availableOn) {
+        expect(loyalty.getByText(formatDateTime(availableOn, { locale: 'en' }))).toBeInTheDocument()
+      } else {
+        expect(loyalty.getAllByText('—')).toHaveLength(2)
+      }
+
+      expect(
+        within(screen.getByRole('region', { name: 'Money summary' })).getByText('4,052.60 SAR')
+      ).toBeInTheDocument()
+      expect(screen.getAllByText('A')).toHaveLength(2)
+      expect(within(screen.getByRole('region', { name: 'Status history' })).getByRole('list').children).toHaveLength(
+        historyLength
+      )
+      expect(screen.queryByRole('button', { name: 'Update status' }) !== null).toBe(hasTransition)
+      expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
+      service.mockRestore()
+    }
+  )
 
   it.each(['0', '-1', 'abc', '1.5', '1e2', '9007199254740992'])(
     'handles invalid ID %s without any query or API request',

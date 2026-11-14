@@ -1,0 +1,120 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 145,
+    "order_number": "RF-10145",
+    "display_number": "#RF-10145",
+    "status": "confirmed",
+    "customer": {
+      "type": "registered",
+      "name": "",
+      "email": null,
+      "phone": "+966552122332"
+    },
+    "shipping_address": {
+      "recipient_name": "maged elshafey",
+      "recipient_phone": "0556545543",
+      "city": {
+        "id": 1,
+        "name": "الرياض"
+      },
+      "district": "بدر",
+      "street_details": "الهايشة"
+    },
+    "items": [
+      {
+        "id": 233,
+        "product_name": "عطر مسك أبيض",
+        "variant_sku": "RAF-dcb-3089363",
+        "variant_attributes": {
+          "size": "100"
+        },
+        "quantity": 6,
+        "unit_price": "500.00",
+        "discount_amount": "0.00",
+        "line_total": "3000.00"
+      },
+      {
+        "id": 234,
+        "product_name": "الورد الزجاجية المضيئة",
+        "variant_sku": "RAF-dcb-3086332198765",
+        "variant_attributes": {
+          "length": "40cm"
+        },
+        "quantity": 4,
+        "unit_price": "130.00",
+        "discount_amount": "0.00",
+        "personalization": {
+          "text": "A",
+          "language": "en",
+          "fee": "1.00"
+        },
+        "line_total": "524.00"
+      }
+    ],
+    "money": {
+      "subtotal": "3520.00",
+      "discount_total": "0.00",
+      "shipping_fee": "0.00",
+      "personalization_total": "4.00",
+      "gift_wrap_fee": "0.00",
+      "taxable_amount": "3524.00",
+      "vat": {
+        "rate": "15.00",
+        "amount": "528.60"
+      },
+      "total": "4052.60",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "card",
+      "status": "paid",
+      "reference": "chg_TS01A3020262154s3RR1311020",
+      "paid_at": "2026-11-14T00:55:47+03:00"
+    },
+    "warehouse": {
+      "id": 6,
+      "name": "محزن الرياض"
+    },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T00:54:29+03:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "confirmed",
+        "note": "Payment confirmed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T00:55:47+03:00"
+      }
+    ],
+    "allowed_transitions": ["processing", "cancelled"],
+    "loyalty": {
+      "points_earned": 4052,
+      "earned_status": "pending",
+      "available_on": null,
+      "return_window_days": 15,
+      "points_redeemed": 0,
+      "amount_applied": "0.00",
+      "amount_due": "4052.60",
+      "value_per_point": null,
+      "points_returned": 0,
+      "amount_per_point": "1.00",
+      "rule_version_id": 5
+    },
+    "placed_at": "2026-11-14T00:54:29+03:00",
+    "cancelled_at": null,
+    "created_at": "2026-11-14T00:54:29+03:00",
+    "updated_at": "2026-11-14T00:55:47+03:00"
+  }
+}

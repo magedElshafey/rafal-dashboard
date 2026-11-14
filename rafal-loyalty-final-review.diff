@@ -1,0 +1,3986 @@
+diff --git a/src/modules/customers/components/CustomerDetailsLayout.tsx b/src/modules/customers/components/CustomerDetailsLayout.tsx
+index fda67ce..1c38589 100644
+--- a/src/modules/customers/components/CustomerDetailsLayout.tsx
++++ b/src/modules/customers/components/CustomerDetailsLayout.tsx
+@@ -1,5 +1,10 @@
++import { useTranslation } from 'react-i18next'
++
+ import { QueryStateBoundary } from '@/components/shared/query-state'
+ import { QueryLoadingState } from '@/components/shared/query-state/components/QueryLoadingState'
++import QueryTabsFilter from '@/components/shared/tabs/QueryTabsFilter'
++import { CustomerLoyaltyWorkspace } from '@/modules/loyalty/components/CustomerLoyaltyWorkspace'
++import { useQuery } from '@/store/queryContext/useQueryContext'
+ import type { useCustomer } from '../hooks/useCustomer'
+ import { CustomerDetailsHeader } from './CustomerDetailsHeader'
+ import { CustomerProfileSections, CustomerMetadataSection } from './CustomerProfileSections'
+@@ -12,8 +17,27 @@ export function CustomerDetailsLayout({
+   customerId: number
+   query: ReturnType<typeof useCustomer>
+ }) {
++  const { t } = useTranslation()
++  const { forwardQuery } = useQuery()
++  const activeTab = forwardQuery?.tab === 'points' ? 'points' : 'overview'
++  const isOverview = activeTab === 'overview'
+   const customer = query.data
+   const initialFailure = !customer && (query.isError || query.isPaused)
++  const tabs = (
++    <QueryTabsFilter
++      name="tab"
++      tabs={[
++        { value: 'overview', label: t('customers.detail.tabs.overview') },
++        { value: 'points', label: t('customers.detail.tabs.points') },
++      ]}
++      value={activeTab}
++      defaultValue="overview"
++      variant="underline"
++      ariaLabel={t('customers.detail.tabs.label')}
++      id="customer-details-tabs"
++      panelId="customer-details-active-panel"
++    />
++  )
+   return (
+     <main className="min-w-0 space-y-5">
+       {initialFailure ? <CustomerDetailsHeader /> : null}
+@@ -21,7 +45,7 @@ export function CustomerDetailsLayout({
+         loadingFallback={
+           <>
+             <CustomerDetailsHeader loading />
+-            <CustomerProfileSections />
++            {isOverview ? <CustomerProfileSections /> : null}
+           </>
+         }
+         isLoading={query.isLoading}
+@@ -35,21 +59,34 @@ export function CustomerDetailsLayout({
+         {customer ? (
+           <>
+             <CustomerDetailsHeader customer={customer} refreshing={query.isFetching || query.isRefetchError} />
+-            <CustomerProfileSections customer={customer} />
++            {tabs}
++            {isOverview ? <CustomerProfileSections customer={customer} /> : null}
+           </>
+         ) : null}
+       </QueryStateBoundary>
+-      {/* Keep this independent observer mounted across core loading/success to avoid a second Orders GET. */}
+-      <div hidden={initialFailure}>
+-        <CustomerOrdersSection customerId={customerId} profileReady={Boolean(customer)} />
++      <div
++        id="customer-details-active-panel"
++        role="tabpanel"
++        aria-labelledby={`customer-details-tabs-tab-${activeTab}`}
++      >
++        {isOverview ? (
++          <>
++            {/* Keep this independent observer mounted across core loading/success to avoid a second Orders GET. */}
++            <div hidden={initialFailure}>
++              <CustomerOrdersSection customerId={customerId} profileReady={Boolean(customer)} />
++            </div>
++            {!initialFailure ? (
++              customer ? (
++                <CustomerMetadataSection customer={customer} />
++              ) : (
++                <QueryLoadingState fallback={<CustomerMetadataSection />} />
++              )
++            ) : null}
++          </>
++        ) : customer ? (
++          <CustomerLoyaltyWorkspace customerId={customerId} />
++        ) : null}
+       </div>
+-      {!initialFailure ? (
+-        customer ? (
+-          <CustomerMetadataSection customer={customer} />
+-        ) : (
+-          <QueryLoadingState fallback={<CustomerMetadataSection />} />
+-        )
+-      ) : null}
+     </main>
+   )
+ }
+diff --git a/src/modules/customers/locale/ar.json b/src/modules/customers/locale/ar.json
+index f590f80..ebfea22 100644
+--- a/src/modules/customers/locale/ar.json
++++ b/src/modules/customers/locale/ar.json
+@@ -108,6 +108,11 @@
+       "identity": "الهوية",
+       "account": "الحساب",
+       "metrics": "الإحصاءات",
++      "tabs": {
++        "label": "أقسام تفاصيل العميل",
++        "overview": "نظرة عامة",
++        "points": "النقاط"
++      },
+       "invalid": {
+         "title": "العميل غير موجود",
+         "description": "هذا العميل غير متاح أو الرابط غير صالح."
+diff --git a/src/modules/customers/locale/en.json b/src/modules/customers/locale/en.json
+index 6dd6d6a..d0039a1 100644
+--- a/src/modules/customers/locale/en.json
++++ b/src/modules/customers/locale/en.json
+@@ -104,6 +104,11 @@
+       "memberSince": "Member since",
+       "metadata": "Metadata",
+       "metrics": "Metrics",
++      "tabs": {
++        "label": "Customer details sections",
++        "overview": "Overview",
++        "points": "Points"
++      },
+       "invalid": {
+         "title": "Customer not found",
+         "description": "This customer is unavailable or the link is invalid."
+diff --git a/src/modules/customers/pages/CustomerDetailPage.tsx b/src/modules/customers/pages/CustomerDetailPage.tsx
+index 07fe2dc..deee11f 100644
+--- a/src/modules/customers/pages/CustomerDetailPage.tsx
++++ b/src/modules/customers/pages/CustomerDetailPage.tsx
+@@ -3,6 +3,7 @@ import { UserRoundX } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ import { useParams } from 'react-router-dom'
+ import { EmptyState } from '@/components/shared/empty-state'
++import QueryProvider from '@/store/queryContext/queryContext'
+ import { CustomerDetailsHeader } from '../components/CustomerDetailsHeader'
+ import { CustomerDetailsLayout } from '../components/CustomerDetailsLayout'
+ import { useCustomer } from '../hooks/useCustomer'
+@@ -24,7 +25,11 @@ function CustomerNotFound() {
+ function CustomerDetails({ id }: { id: number }) {
+   const query = useCustomer(id)
+   if (!query.data && isAxiosError(query.error) && query.error.response?.status === 404) return <CustomerNotFound />
+-  return <CustomerDetailsLayout customerId={id} query={query} />
++  return (
++    <QueryProvider>
++      <CustomerDetailsLayout customerId={id} query={query} />
++    </QueryProvider>
++  )
+ }
+ 
+ export default function CustomerDetailPage() {
+diff --git a/src/modules/loyalty/api/loyalty.service.test.ts b/src/modules/loyalty/api/loyalty.service.test.ts
+index cf4a42f..ee797a5 100644
+--- a/src/modules/loyalty/api/loyalty.service.test.ts
++++ b/src/modules/loyalty/api/loyalty.service.test.ts
+@@ -1,8 +1,12 @@
+ import { beforeEach, describe, expect, it, vi } from 'vitest'
+ 
+-import { loyaltyService, serializeLoyaltySettingsUpdate } from '@/modules/loyalty/api/loyalty.service'
++import {
++  loyaltyService,
++  serializeLoyaltyAdjustment,
++  serializeLoyaltySettingsUpdate,
++} from '@/modules/loyalty/api/loyalty.service'
+ 
+-const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn() }))
++const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn() }))
+ vi.mock('@/utils/http', () => ({ $http: http }))
+ 
+ const rawSettings = {
+@@ -162,4 +166,141 @@ describe('loyaltyService', () => {
+ 
+     expect(result.items[0].values).toMatchObject({ validityMonths: null, expiryWarningDays: null })
+   })
++
++  it('normalizes an authoritative customer summary including nullable expiry data', async () => {
++    http.get.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: { available: 0, pending: 0, held: 0, expiring_soon: null, is_blocked: 1 },
++      },
++    })
++
++    await expect(loyaltyService.getCustomerSummary(12)).resolves.toEqual({
++      available: 0,
++      pending: 0,
++      held: 0,
++      expiringSoon: null,
++      isBlocked: true,
++    })
++    expect(http.get).toHaveBeenCalledWith(
++      expect.objectContaining({ url: '/dashboard/customers/12/loyalty', suppressErrorNotification: true })
++    )
++  })
++
++  it('normalizes ledger rows and sends only documented filters', async () => {
++    http.get.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: [
++          {
++            id: 116,
++            created_at: '2026-11-13T17:25:44+03:00',
++            type: 'adjust_credit',
++            label: 'Manual adjustment',
++            bucket: 'available',
++            points: 5000,
++            lot_expires_at: null,
++            actor_type: 'admin',
++            actor_name: null,
++            reason: null,
++            reason_label: null,
++            note: null,
++            order: null,
++          },
++        ],
++        meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++      },
++    })
++
++    const result = await loyaltyService.getCustomerLedger(12, {
++      type: 'adjust_credit',
++      from: '2026-11-01',
++      to: '2026-11-30',
++    })
++
++    expect(result.items[0]).toMatchObject({ id: 116, points: 5000, lotExpiresAt: null, order: null })
++    expect(http.get).toHaveBeenCalledWith(
++      expect.objectContaining({
++        url: '/dashboard/customers/12/loyalty/ledger',
++        query: { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
++      })
++    )
++  })
++
++  it('rejects fractional ledger points instead of fabricating an integer balance movement', async () => {
++    http.get.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: [
++          {
++            id: 1,
++            created_at: '2026-11-13T17:25:44+03:00',
++            type: 'adjust_credit',
++            label: 'Manual adjustment',
++            bucket: 'available',
++            points: 1.5,
++            lot_expires_at: null,
++            actor_type: null,
++            actor_name: null,
++            reason: null,
++            reason_label: null,
++            note: null,
++            order: null,
++          },
++        ],
++        meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++      },
++    })
++
++    await expect(loyaltyService.getCustomerLedger(12, { type: null, from: '', to: '' })).rejects.toThrow(
++      'Ledger points is unavailable'
++    )
++  })
++
++  it('serializes only the documented adjustment fields and returns the authoritative summary', async () => {
++    const payload = {
++      type: 'credit' as const,
++      points: 5000,
++      reason: 'customer_service' as const,
++      note: 'Test credit for loyalty QA',
++      notifyCustomer: false,
++    }
++    expect(serializeLoyaltyAdjustment(payload)).toEqual({
++      type: 'credit',
++      points: 5000,
++      reason: 'customer_service',
++      note: 'Test credit for loyalty QA',
++      notify_customer: false,
++    })
++    http.post.mockResolvedValue({
++      data: {
++        success: true,
++        message: 'ok',
++        data: { available: 5127, pending: 0, held: 0, expiring_soon: null, is_blocked: false },
++      },
++    })
++
++    await expect(loyaltyService.adjustCustomerPoints(12, payload)).resolves.toEqual({
++      available: 5127,
++      pending: 0,
++      held: 0,
++      expiringSoon: null,
++      isBlocked: false,
++    })
++    expect(http.post).toHaveBeenCalledExactlyOnceWith({
++      url: '/dashboard/customers/12/loyalty/adjustments',
++      data: {
++        type: 'credit',
++        points: 5000,
++        reason: 'customer_service',
++        note: 'Test credit for loyalty QA',
++        notify_customer: false,
++      },
++      suppressSuccessNotification: true,
++      suppressErrorNotification: true,
++    })
++  })
+ })
+diff --git a/src/modules/loyalty/api/loyalty.service.ts b/src/modules/loyalty/api/loyalty.service.ts
+index db1457a..4003eaa 100644
+--- a/src/modules/loyalty/api/loyalty.service.ts
++++ b/src/modules/loyalty/api/loyalty.service.ts
+@@ -1,4 +1,9 @@
+ import type {
++  CustomerLoyaltyLedgerItem,
++  CustomerLoyaltyLedgerPage,
++  CustomerLoyaltySummary,
++  LoyaltyLedgerFilters,
++  LoyaltyAdjustmentPayload,
+   LoyaltySettings,
+   LoyaltySettingsUpdatePayload,
+   LoyaltySettingsVersion,
+@@ -10,7 +15,13 @@ import type {
+   RawLoyaltySettingsVersion,
+   RawLoyaltyVersionValues,
+   RawLoyaltyVersionsResponse,
++  RawCustomerLoyaltyLedgerItem,
++  RawCustomerLoyaltyLedgerResponse,
++  RawCustomerLoyaltySummary,
++  RawCustomerLoyaltySummaryResponse,
++  RawLoyaltyAdjustmentPayload,
+ } from '@/modules/loyalty/types/loyalty.types'
++import { serializeLoyaltyLedgerFilters } from '@/modules/loyalty/utils/loyalty-ledger'
+ import { $http } from '@/utils/http'
+ 
+ function requirePositiveInteger(value: number, field: string): number {
+@@ -37,6 +48,11 @@ function requireFiniteNumber(value: number, field: string): number {
+   return value
+ }
+ 
++function requireInteger(value: number, field: string): number {
++  if (!Number.isSafeInteger(value)) throw new Error(`${field} is unavailable`)
++  return value
++}
++
+ function requireDecimalString(value: string, field: string): string {
+   if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value.trim())) {
+     throw new Error(`${field} is unavailable`)
+@@ -49,6 +65,48 @@ function normalizeBoolean(value: boolean | 0 | 1, field: string): boolean {
+   return value === true || value === 1
+ }
+ 
++function requireString(value: string, field: string): string {
++  if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} is unavailable`)
++  return value.trim()
++}
++
++function normalizeCustomerId(value: number): number {
++  return requirePositiveInteger(value, 'Customer')
++}
++
++export function normalizeCustomerLoyaltySummary(raw: RawCustomerLoyaltySummary): CustomerLoyaltySummary {
++  return {
++    available: requireNonNegativeInteger(raw.available, 'Available points'),
++    pending: requireNonNegativeInteger(raw.pending, 'Pending points'),
++    held: requireNonNegativeInteger(raw.held, 'Held points'),
++    expiringSoon: raw.expiring_soon
++      ? {
++          points: requireNonNegativeInteger(raw.expiring_soon.points, 'Expiring points'),
++          expiresAt: normalizeNullableString(raw.expiring_soon.expires_at, 'Expiry date'),
++        }
++      : null,
++    isBlocked: normalizeBoolean(raw.is_blocked, 'Customer loyalty blocked state'),
++  }
++}
++
++export function normalizeCustomerLoyaltyLedgerItem(raw: RawCustomerLoyaltyLedgerItem): CustomerLoyaltyLedgerItem {
++  return {
++    id: requirePositiveInteger(raw.id, 'Ledger entry'),
++    createdAt: requireString(raw.created_at, 'Ledger date'),
++    type: requireString(raw.type, 'Ledger type'),
++    label: requireString(raw.label, 'Ledger label'),
++    bucket: requireString(raw.bucket, 'Ledger bucket'),
++    points: requireInteger(raw.points, 'Ledger points'),
++    lotExpiresAt: normalizeNullableString(raw.lot_expires_at, 'Lot expiry'),
++    actorType: normalizeNullableString(raw.actor_type, 'Actor type'),
++    actorName: normalizeNullableString(raw.actor_name, 'Actor name'),
++    reason: normalizeNullableString(raw.reason, 'Reason'),
++    reasonLabel: normalizeNullableString(raw.reason_label, 'Reason label'),
++    note: normalizeNullableString(raw.note, 'Internal note'),
++    order: raw.order,
++  }
++}
++
+ function normalizeVersionValues(raw: RawLoyaltyVersionValues): LoyaltyVersionValues {
+   return {
+     isEnabled: normalizeBoolean(raw.is_enabled, 'Loyalty enabled state'),
+@@ -109,6 +167,16 @@ export function serializeLoyaltySettingsUpdate(payload: LoyaltySettingsUpdatePay
+   }
+ }
+ 
++export function serializeLoyaltyAdjustment(payload: LoyaltyAdjustmentPayload): RawLoyaltyAdjustmentPayload {
++  return {
++    type: payload.type,
++    points: payload.points,
++    reason: payload.reason,
++    note: payload.note,
++    notify_customer: payload.notifyCustomer,
++  }
++}
++
+ export const loyaltyService = {
+   async getSettings(signal?: AbortSignal): Promise<LoyaltySettings> {
+     const response = await $http.get<RawLoyaltySettingsResponse>({
+@@ -141,4 +209,43 @@ export const loyaltyService = {
+       meta: response.data.meta,
+     }
+   },
++
++  async getCustomerSummary(customerId: number, signal?: AbortSignal): Promise<CustomerLoyaltySummary> {
++    const id = normalizeCustomerId(customerId)
++    const response = await $http.get<RawCustomerLoyaltySummaryResponse>({
++      url: `/dashboard/customers/${id}/loyalty`,
++      signal,
++      suppressErrorNotification: true,
++    })
++    return normalizeCustomerLoyaltySummary(response.data.data)
++  },
++
++  async getCustomerLedger(
++    customerId: number,
++    filters: LoyaltyLedgerFilters,
++    signal?: AbortSignal
++  ): Promise<CustomerLoyaltyLedgerPage> {
++    const id = normalizeCustomerId(customerId)
++    const response = await $http.get<RawCustomerLoyaltyLedgerResponse>({
++      url: `/dashboard/customers/${id}/loyalty/ledger`,
++      query: serializeLoyaltyLedgerFilters(filters),
++      signal,
++      suppressErrorNotification: true,
++    })
++    return {
++      items: response.data.data.map(normalizeCustomerLoyaltyLedgerItem),
++      meta: response.data.meta,
++    }
++  },
++
++  async adjustCustomerPoints(customerId: number, payload: LoyaltyAdjustmentPayload): Promise<CustomerLoyaltySummary> {
++    const id = normalizeCustomerId(customerId)
++    const response = await $http.post<RawCustomerLoyaltySummaryResponse>({
++      url: `/dashboard/customers/${id}/loyalty/adjustments`,
++      data: serializeLoyaltyAdjustment(payload),
++      suppressSuccessNotification: true,
++      suppressErrorNotification: true,
++    })
++    return normalizeCustomerLoyaltySummary(response.data.data)
++  },
+ }
+diff --git a/src/modules/loyalty/locale/ar.json b/src/modules/loyalty/locale/ar.json
+index c7e964f..8771f90 100644
+--- a/src/modules/loyalty/locale/ar.json
++++ b/src/modules/loyalty/locale/ar.json
+@@ -138,6 +138,88 @@
+     "feedback": {
+       "updated": "تم تحديث إعدادات الولاء.",
+       "updateError": "تعذر تحديث إعدادات الولاء."
++    },
++    "customer": {
++      "summary": {
++        "title": "ملخص النقاط",
++        "available": "النقاط المتاحة",
++        "pending": "النقاط المعلّقة",
++        "held": "النقاط المحجوزة",
++        "expiringSoon": "تنتهي قريبًا",
++        "unavailable": "غير متاح",
++        "expiresAt": "تنتهي في {{date}}",
++        "frozen": "مجمّد"
++      },
++      "filters": {
++        "title": "تصفية سجل النقاط",
++        "type": "نوع العملية",
++        "allTypes": "كل الأنواع الموثقة",
++        "from": "التاريخ من",
++        "to": "التاريخ إلى",
++        "clear": "مسح عوامل التصفية",
++        "completeRange": "اختر تاريخي البداية والنهاية لتطبيق النطاق الزمني.",
++        "invalidRange": "أدخل نطاقًا زمنيًا صالحًا يبدأ في تاريخ يسبق تاريخ النهاية أو يساويه."
++      },
++      "ledger": {
++        "title": "سجل النقاط",
++        "total_zero": "لا توجد عمليات",
++        "total_one": "عملية واحدة",
++        "total_two": "عمليتان",
++        "total_few": "{{count}} عمليات",
++        "total_many": "{{count}} عملية",
++        "total_other": "{{count}} عملية",
++        "unavailable": "غير متاح",
++        "orderAvailable": "تفاصيل الطلب متوفرة",
++        "waitingForDates": "أكمل النطاق الزمني",
++        "waitingForDatesDescription": "سيتم تحميل السجل بعد اختيار تاريخين صالحين.",
++        "emptyTitle": "لا توجد عمليات في السجل",
++        "emptyDescription": "لا توجد عمليات تطابق عوامل التصفية الحالية.",
++        "types": {
++          "adjustCredit": "إضافة يدوية"
++        },
++        "fields": {
++          "date": "التاريخ والوقت",
++          "transaction": "العملية",
++          "points": "النقاط",
++          "bucket": "الرصيد",
++          "order": "الطلب المرتبط",
++          "expiry": "انتهاء الدفعة",
++          "actor": "المنفّذ",
++          "reason": "السبب"
++        }
++      },
++      "adjustment": {
++        "action": "تعديل النقاط",
++        "title": "تعديل نقاط الولاء",
++        "description": "أنشئ إضافة أو خصمًا مسجلاً بالاعتماد على رصيد الولاء الحالي للعميل.",
++        "availableBalance": "الرصيد المتاح: {{available}} نقطة",
++        "availableUnavailable": "غير متاح",
++        "frozenHint": "هذا العميل مجمّد. يظل الخادم المرجع المعتمد لأهلية التعديل وسلوك الرصيد.",
++        "fields": {
++          "type": "نوع التعديل",
++          "points": "عدد النقاط",
++          "reason": "السبب",
++          "note": "ملاحظة داخلية",
++          "notifyCustomer": "طلب إرسال إشعار للعميل"
++        },
++        "types": { "credit": "إضافة", "debit": "خصم" },
++        "reasons": { "customerService": "خدمة العملاء", "other": "أخرى" },
++        "reasonPlaceholder": "اختر السبب",
++        "submit": "تطبيق التعديل",
++        "submitting": "جارٍ التطبيق…",
++        "cancel": "إلغاء",
++        "validation": {
++          "required": "هذا الحقل مطلوب.",
++          "integer": "أدخل عددًا صحيحًا دون كسور.",
++          "pointsRange": "يجب أن تكون النقاط بين 1 و100,000.",
++          "noteLength": "يجب أن تتراوح الملاحظة الداخلية بين 10 و250 حرفًا.",
++          "insufficientBalance": "لا يمكن أن يتجاوز الخصم الرصيد المتاح البالغ {{available}} نقطة."
++        },
++        "feedback": {
++          "success": "تم تعديل نقاط الولاء بنجاح.",
++          "error": "تعذر تعديل نقاط الولاء. راجع النموذج وحاول مرة أخرى."
++        }
++      }
+     }
+   }
+ }
+diff --git a/src/modules/loyalty/locale/en.json b/src/modules/loyalty/locale/en.json
+index b486f9d..d0903e2 100644
+--- a/src/modules/loyalty/locale/en.json
++++ b/src/modules/loyalty/locale/en.json
+@@ -122,6 +122,84 @@
+     "feedback": {
+       "updated": "Loyalty settings updated.",
+       "updateError": "Loyalty settings could not be updated."
++    },
++    "customer": {
++      "summary": {
++        "title": "Points summary",
++        "available": "Available points",
++        "pending": "Pending points",
++        "held": "Held points",
++        "expiringSoon": "Expiring soon",
++        "unavailable": "Unavailable",
++        "expiresAt": "Expires {{date}}",
++        "frozen": "Frozen"
++      },
++      "filters": {
++        "title": "Ledger filters",
++        "type": "Transaction type",
++        "allTypes": "All documented types",
++        "from": "From date",
++        "to": "To date",
++        "clear": "Clear filters",
++        "completeRange": "Select both the from and to dates to apply a date range.",
++        "invalidRange": "Enter a valid date range with the from date on or before the to date."
++      },
++      "ledger": {
++        "title": "Points ledger",
++        "total_one": "{{count}} transaction",
++        "total_other": "{{count}} transactions",
++        "unavailable": "Unavailable",
++        "orderAvailable": "Order details provided",
++        "waitingForDates": "Complete the date range",
++        "waitingForDatesDescription": "The ledger will load after both valid dates are selected.",
++        "emptyTitle": "No ledger transactions",
++        "emptyDescription": "No transactions match the current filters.",
++        "types": {
++          "adjustCredit": "Manual credit"
++        },
++        "fields": {
++          "date": "Date and time",
++          "transaction": "Transaction",
++          "points": "Points",
++          "bucket": "Bucket",
++          "order": "Related order",
++          "expiry": "Lot expiry",
++          "actor": "Actor",
++          "reason": "Reason"
++        }
++      },
++      "adjustment": {
++        "action": "Adjust points",
++        "title": "Adjust loyalty points",
++        "description": "Create an audited credit or debit using the customer's current loyalty balance.",
++        "availableBalance": "Available balance: {{available}} points",
++        "availableUnavailable": "Unavailable",
++        "frozenHint": "This customer is frozen. The backend remains authoritative for adjustment eligibility and balance behavior.",
++        "fields": {
++          "type": "Adjustment type",
++          "points": "Points",
++          "reason": "Reason",
++          "note": "Internal note",
++          "notifyCustomer": "Request customer notification"
++        },
++        "types": { "credit": "Credit", "debit": "Debit" },
++        "reasons": { "customerService": "Customer service", "other": "Other" },
++        "reasonPlaceholder": "Select a reason",
++        "submit": "Apply adjustment",
++        "submitting": "Applying…",
++        "cancel": "Cancel",
++        "validation": {
++          "required": "This field is required.",
++          "integer": "Enter a whole number.",
++          "pointsRange": "Points must be between 1 and 100,000.",
++          "noteLength": "The internal note must be between 10 and 250 characters.",
++          "insufficientBalance": "Debit cannot exceed the available balance of {{available}} points."
++        },
++        "feedback": {
++          "success": "Loyalty points adjusted successfully.",
++          "error": "Loyalty points could not be adjusted. Review the form and try again."
++        }
++      }
+     }
+   }
+ }
+diff --git a/src/modules/loyalty/queries/loyalty.keys.ts b/src/modules/loyalty/queries/loyalty.keys.ts
+index ef7517d..08f15fc 100644
+--- a/src/modules/loyalty/queries/loyalty.keys.ts
++++ b/src/modules/loyalty/queries/loyalty.keys.ts
+@@ -1,6 +1,14 @@
++import type { LoyaltyLedgerFilters } from '../types/loyalty.types'
++
+ export const loyaltyKeys = {
+   all: ['loyalty'] as const,
+   settings: () => [...loyaltyKeys.all, 'settings'] as const,
+   histories: () => [...loyaltyKeys.all, 'settings-history'] as const,
+   history: (perPage: number) => [...loyaltyKeys.histories(), { perPage }] as const,
++  customers: () => [...loyaltyKeys.all, 'customers'] as const,
++  customer: (customerId: number) => [...loyaltyKeys.customers(), customerId] as const,
++  customerSummary: (customerId: number) => [...loyaltyKeys.customer(customerId), 'summary'] as const,
++  customerLedgers: (customerId: number) => [...loyaltyKeys.customer(customerId), 'ledger'] as const,
++  customerLedger: (customerId: number, filters: LoyaltyLedgerFilters) =>
++    [...loyaltyKeys.customerLedgers(customerId), filters] as const,
+ }
+diff --git a/src/modules/loyalty/types/loyalty.types.ts b/src/modules/loyalty/types/loyalty.types.ts
+index db57699..cc20ae8 100644
+--- a/src/modules/loyalty/types/loyalty.types.ts
++++ b/src/modules/loyalty/types/loyalty.types.ts
+@@ -121,3 +121,99 @@ export type LoyaltyVersionsPage = {
+   items: LoyaltySettingsVersion[]
+   meta: DashboardPaginationMeta
+ }
++
++export type CustomerLoyaltySummary = {
++  available: number
++  pending: number
++  held: number
++  expiringSoon: { points: number; expiresAt: string | null } | null
++  isBlocked: boolean
++}
++
++export type RawCustomerLoyaltySummary = {
++  available: number
++  pending: number
++  held: number
++  expiring_soon: { points: number; expires_at: string | null } | null
++  is_blocked: boolean | 0 | 1
++}
++
++export type RawCustomerLoyaltySummaryResponse = {
++  success: boolean
++  message: string
++  data: RawCustomerLoyaltySummary
++}
++
++export type LoyaltyLedgerFilters = {
++  type: 'adjust_credit' | null
++  from: string
++  to: string
++}
++
++export type CustomerLoyaltyLedgerItem = {
++  id: number
++  createdAt: string
++  type: string
++  label: string
++  bucket: string
++  points: number
++  lotExpiresAt: string | null
++  actorType: string | null
++  actorName: string | null
++  reason: string | null
++  reasonLabel: string | null
++  note: string | null
++  order: unknown | null
++}
++
++export type RawCustomerLoyaltyLedgerItem = {
++  id: number
++  created_at: string
++  type: string
++  label: string
++  bucket: string
++  points: number
++  lot_expires_at: string | null
++  actor_type: string | null
++  actor_name: string | null
++  reason: string | null
++  reason_label: string | null
++  note: string | null
++  order: unknown | null
++}
++
++export type RawCustomerLoyaltyLedgerResponse = {
++  success: boolean
++  message: string
++  data: RawCustomerLoyaltyLedgerItem[]
++  meta: DashboardPaginationMeta
++}
++
++export type CustomerLoyaltyLedgerPage = {
++  items: CustomerLoyaltyLedgerItem[]
++  meta: DashboardPaginationMeta
++}
++
++export type LoyaltyAdjustmentType = 'credit' | 'debit'
++export type LoyaltyAdjustmentReason = 'customer_service' | 'other'
++
++export type LoyaltyAdjustmentFormValues = {
++  type: LoyaltyAdjustmentType
++  points: number | ''
++  reason: LoyaltyAdjustmentReason | ''
++  note: string
++  notifyCustomer: boolean
++}
++
++export type LoyaltyAdjustmentPayload = Omit<LoyaltyAdjustmentFormValues, 'points' | 'reason'> & {
++  points: number
++  reason: LoyaltyAdjustmentReason
++}
++
++export type RawLoyaltyAdjustmentPayload = {
++  type: LoyaltyAdjustmentType
++  points: number
++  reason: LoyaltyAdjustmentReason
++  note: string
++  notify_customer: boolean
++}
+diff --git a/src/modules/orders/__tests__/orders.details-page.test.tsx b/src/modules/orders/__tests__/orders.details-page.test.tsx
+index e175888..98b1ab7 100644
+--- a/src/modules/orders/__tests__/orders.details-page.test.tsx
++++ b/src/modules/orders/__tests__/orders.details-page.test.tsx
+@@ -11,6 +11,12 @@ import { normalizeOrderDetail } from '../utils/order-normalizers'
+ import { ordersKeys } from '../queries/orders.keys'
+ import { renderOrders } from './test-utils'
+ import show from './order-dashboard-show.fixture.json'
++import cancelled123 from './order-123-cancelled.json'
++import confirmed145 from './order-145-confirmed.json'
++import processing145 from './order-145-processing.json'
++import shipped145 from './order-145-shipped.json'
++import delivered145 from './order-145-delivered.json'
++import returned145 from './order-145-returned.json'
+ 
+ const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
+ vi.mock('@/utils/http', () => ({ $http: http }))
+@@ -67,6 +73,95 @@ describe('production Order Details', () => {
+     service.mockRestore()
+   })
+ 
++  it('renders the exact nullable cancelled response without a parsing or runtime failure', async () => {
++    http.get.mockResolvedValue({ data: cancelled123 })
++    const service = vi.spyOn(ordersService, 'show')
++
++    const { client, container } = renderOrders(<OrderDetailPage />, '/dashboard/orders/123')
++
++    expect(await screen.findByRole('heading', { name: '#RF-10123', level: 1 })).toBeInTheDocument()
++    expect(service).toHaveBeenCalledExactlyOnceWith(123, expect.any(AbortSignal))
++    expect(http.get).toHaveBeenCalledExactlyOnceWith({
++      url: '/dashboard/orders/123',
++      signal: expect.any(AbortSignal),
++      suppressErrorNotification: true,
++    })
++    expect(client.getQueryData(ordersKeys.detail(123))).toEqual(normalizeOrderDetail(cancelled123.data))
++
++    const customer = within(screen.getByRole('region', { name: 'Customer' }))
++    expect(customer.getAllByText('+966553212125')).toHaveLength(2)
++    expect(customer.getByText('—')).toBeInTheDocument()
++    expect(customer.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument()
++
++    const payment = within(screen.getByRole('region', { name: 'Payment' }))
++    expect(payment.getByText('Failed')).toBeInTheDocument()
++    expect(payment.getByText('tap')).toBeInTheDocument()
++    expect(payment.getByText('chg_TS07A4020261804Ng0n2710965')).toBeInTheDocument()
++    expect(payment.getByText('—')).toBeInTheDocument()
++
++    expect(screen.getByText('No coupon applied')).toBeInTheDocument()
++    expect(screen.getByText('No loyalty earning is associated with this order.')).toBeInTheDocument()
++    expect(within(screen.getByRole('region', { name: 'Money summary' })).getByText('470.35 SAR')).toBeInTheDocument()
++    const history = within(screen.getByRole('region', { name: 'Status history' }))
++    expect(history.getByText('Initial status:')).toBeInTheDocument()
++    expect(history.getAllByText('System')).toHaveLength(2)
++    expect(history.getByText('Payment expired')).toBeInTheDocument()
++    expect(screen.queryByRole('button', { name: 'Update status' })).not.toBeInTheDocument()
++    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
++    expect(container).not.toHaveTextContent(/^(null|undefined)$/)
++    service.mockRestore()
++  })
++
++  it.each([
++    ['confirmed', 'Confirmed', confirmed145, 'Pending', null, 2, true],
++    ['processing', 'Processing', processing145, 'Pending', null, 3, true],
++    ['shipped', 'Shipped', shipped145, 'Pending', null, 4, true],
++    ['delivered', 'Delivered', delivered145, 'Pending', '2026-11-29T01:00:57+03:00', 5, true],
++    ['returned', 'Returned', returned145, 'Cancelled', '2026-11-29T01:00:57+03:00', 6, false],
++  ] as const)(
++    'renders the exact Order 145 %s lifecycle response',
++    async (_status, statusLabel, fixture, earnedStatus, availableOn, historyLength, hasTransition) => {
++      http.get.mockResolvedValue({ data: fixture })
++      const service = vi.spyOn(ordersService, 'show')
++
++      const { client } = renderOrders(<OrderDetailPage />, '/dashboard/orders/145')
++
++      expect(await screen.findByRole('heading', { name: '#RF-10145', level: 1 })).toBeInTheDocument()
++      expect(service).toHaveBeenCalledExactlyOnceWith(145, expect.any(AbortSignal))
++      expect(http.get).toHaveBeenCalledExactlyOnceWith({
++        url: '/dashboard/orders/145',
++        signal: expect.any(AbortSignal),
++        suppressErrorNotification: true,
++      })
++      expect(client.getQueryData(ordersKeys.detail(145))).toEqual(normalizeOrderDetail(fixture.data))
++      expect(screen.getAllByText(statusLabel).length).toBeGreaterThan(0)
++      expect(screen.getByText('Paid')).toBeInTheDocument()
++
++      const loyalty = within(screen.getByRole('region', { name: 'Loyalty earning' }))
++      expect(loyalty.getByText(earnedStatus)).toBeInTheDocument()
++      expect(loyalty.getByText('4,052')).toBeInTheDocument()
++      expect(loyalty.getByText('0.00 SAR')).toBeInTheDocument()
++      expect(loyalty.getByText('4,052.60 SAR')).toBeInTheDocument()
++      expect(loyalty.queryByText('Available points')).not.toBeInTheDocument()
++      if (availableOn) {
++        expect(loyalty.getByText(formatDateTime(availableOn, { locale: 'en' }))).toBeInTheDocument()
++      } else {
++        expect(loyalty.getAllByText('—')).toHaveLength(2)
++      }
++
++      expect(
++        within(screen.getByRole('region', { name: 'Money summary' })).getByText('4,052.60 SAR')
++      ).toBeInTheDocument()
++      expect(screen.getAllByText('A')).toHaveLength(2)
++      expect(within(screen.getByRole('region', { name: 'Status history' })).getByRole('list').children).toHaveLength(
++        historyLength
++      )
++      expect(screen.queryByRole('button', { name: 'Update status' }) !== null).toBe(hasTransition)
++      expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
++      service.mockRestore()
++    }
++  )
++
+   it.each(['0', '-1', 'abc', '1.5', '1e2', '9007199254740992'])(
+     'handles invalid ID %s without any query or API request',
+     (id) => {
+diff --git a/src/modules/orders/__tests__/orders.index-contract.test.ts b/src/modules/orders/__tests__/orders.index-contract.test.ts
+index f4f21b9..ebce9b0 100644
+--- a/src/modules/orders/__tests__/orders.index-contract.test.ts
++++ b/src/modules/orders/__tests__/orders.index-contract.test.ts
+@@ -17,7 +17,7 @@ describe('Orders Index nullable email contract', () => {
+     expect(http.get).toHaveBeenCalledTimes(1)
+   })
+ 
+-  it('still rejects missing or malformed email and retains the Details contract', () => {
++  it('still rejects missing or malformed email while accepting documented null emails', () => {
+     for (const email of [undefined, 123, {}, []]) {
+       expect(
+         rawOrderListItemSchema.safeParse({ ...fixture.data[0], customer: { ...fixture.data[0].customer, email } })
+@@ -26,6 +26,11 @@ describe('Orders Index nullable email contract', () => {
+     }
+     expect(
+       rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email: null } }).success
+-    ).toBe(false)
++    ).toBe(true)
++    for (const email of [undefined, 123, {}, []]) {
++      expect(
++        rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email } }).success
++      ).toBe(false)
++    }
+   })
+ })
+diff --git a/src/modules/orders/__tests__/orders.service.test.ts b/src/modules/orders/__tests__/orders.service.test.ts
+index c102fa6..32dd778 100644
+--- a/src/modules/orders/__tests__/orders.service.test.ts
++++ b/src/modules/orders/__tests__/orders.service.test.ts
+@@ -10,6 +10,12 @@ import show from './order-detail.fixture.json'
+ import index from './orders-index.fixture.json'
+ import statuses from './statuses.fixture.json'
+ import dashboardShow from './order-dashboard-show.fixture.json'
++import cancelled123 from './order-123-cancelled.json'
++import confirmed145 from './order-145-confirmed.json'
++import processing145 from './order-145-processing.json'
++import shipped145 from './order-145-shipped.json'
++import delivered145 from './order-145-delivered.json'
++import returned145 from './order-145-returned.json'
+ import { cancelledOrder20, confirmedOrder18, processingOrder19 } from './order-detail-runtime.fixtures'
+ 
+ const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
+@@ -38,6 +44,104 @@ describe('real Orders read contracts', () => {
+     expect((await ordersService.updateStatus(208, 'confirmed')).detail).toEqual(detail)
+   })
+ 
++  it('normalizes the exact nullable cancelled Show response without fabricating optional data', async () => {
++    http.get.mockResolvedValue({ data: cancelled123 })
++
++    const detail = await ordersService.show(123)
++
++    expect(detail).toMatchObject({
++      id: 123,
++      status: 'cancelled',
++      customer: { name: '', email: null, phone: '+966553212125' },
++      coupon: null,
++      loyalty: null,
++      payment: { method: 'tap', status: 'failed', paidAt: null },
++      allowedTransitions: [],
++    })
++    expect(detail.money).toEqual({
++      subtotal: '260.00',
++      discountTotal: '0.00',
++      shippingFee: '149.00',
++      personalizationTotal: '0.00',
++      giftWrapFee: '0.00',
++      taxableAmount: '409.00',
++      vat: { rate: '15.00', amount: '61.35' },
++      total: '470.35',
++      currency: 'SAR',
++    })
++    expect(detail.statusHistory).toEqual([
++      expect.objectContaining({ fromStatus: null, actorId: null, actorName: null, actorType: 'system' }),
++      expect.objectContaining({ fromStatus: 'new', actorId: null, actorName: null, actorType: 'system' }),
++    ])
++    expect(http.get).toHaveBeenCalledExactlyOnceWith({
++      url: '/dashboard/orders/123',
++      signal: undefined,
++      suppressErrorNotification: true,
++    })
++  })
++
++  it.each([
++    ['confirmed', confirmed145, 'pending', null, ['processing', 'cancelled'], 2],
++    ['processing', processing145, 'pending', null, ['shipped', 'cancelled'], 3],
++    ['shipped', shipped145, 'pending', null, ['delivered'], 4],
++    ['delivered', delivered145, 'pending', '2026-11-29T01:00:57+03:00', ['returned'], 5],
++    ['returned', returned145, 'cancelled', '2026-11-29T01:00:57+03:00', [], 6],
++  ] as const)(
++    'normalizes the exact Order 145 %s lifecycle response',
++    async (status, fixture, earnedStatus, availableOn, allowedTransitions, historyLength) => {
++      http.get.mockResolvedValue({ data: fixture })
++
++      const detail = await ordersService.show(145)
++
++      expect(detail).toMatchObject({
++        id: 145,
++        status,
++        customer: { name: '', email: null, phone: '+966552122332' },
++        money: {
++          subtotal: '3520.00',
++          personalizationTotal: '4.00',
++          taxableAmount: '3524.00',
++          vat: { rate: '15.00', amount: '528.60' },
++          total: '4052.60',
++        },
++        payment: { method: 'card', status: 'paid', reference: 'chg_TS01A3020262154s3RR1311020' },
++        allowedTransitions: [...allowedTransitions],
++        loyalty: {
++          pointsEarned: 4052,
++          earnedStatus,
++          availableOn,
++          returnWindowDays: 15,
++          pointsRedeemed: 0,
++          amountApplied: '0.00',
++          amountDue: '4052.60',
++          valuePerPoint: null,
++          pointsReturned: 0,
++          amountPerPoint: '1.00',
++          ruleVersionId: 5,
++        },
++      })
++      expect(detail.items[1].personalization).toEqual({ text: 'A', language: 'en', fee: '1.00' })
++      expect(detail.statusHistory).toHaveLength(historyLength)
++      expect(http.get).toHaveBeenCalledExactlyOnceWith({
++        url: '/dashboard/orders/145',
++        signal: undefined,
++        suppressErrorNotification: true,
++      })
++    }
++  )
++
++  it('rejects malformed required loyalty fields without weakening the order contract', () => {
++    for (const loyalty of [
++      { ...confirmed145.data.loyalty, points_earned: -1 },
++      { ...confirmed145.data.loyalty, available_on: 123 },
++      { ...confirmed145.data.loyalty, amount_due: 4052.6 },
++      { ...confirmed145.data.loyalty, value_per_point: '0.05' },
++      { ...confirmed145.data.loyalty, rule_version_id: 0 },
++    ]) {
++      expect(() => normalizeOrderDetail({ ...confirmed145.data, loyalty })).toThrow()
++    }
++  })
++
+   it('rejects absent, malformed or conflicting VAT amounts rather than inventing an accounting value', () => {
+     for (const money of [
+       { ...dashboardShow.data.money, vat_amount: undefined },
+@@ -128,6 +232,7 @@ describe('real Orders read contracts', () => {
+         currency: 'SAR',
+       },
+       coupon: null,
++      loyalty: null,
+       payment: {
+         method: 'card',
+         status: 'paid',
+diff --git a/src/modules/orders/components/OrderDetailsLayout.tsx b/src/modules/orders/components/OrderDetailsLayout.tsx
+index 4d36cf8..9f506fc 100644
+--- a/src/modules/orders/components/OrderDetailsLayout.tsx
++++ b/src/modules/orders/components/OrderDetailsLayout.tsx
+@@ -9,6 +9,7 @@ import { OrderMoneySummary } from './OrderMoneySummary'
+ import { OrderPaymentSections } from './OrderPaymentSections'
+ import { OrderGiftSection } from './OrderGiftSection'
+ import { OrderStatusHistory } from './OrderStatusHistory'
++import { OrderLoyaltySection } from './OrderLoyaltySection'
+ 
+ /** Share all major page geometry between loaded data and primitive placeholders. */
+ export function OrderDetailsLayout({ order, refreshing = false }: { order?: OrderDetail; refreshing?: boolean }) {
+@@ -27,6 +28,7 @@ export function OrderDetailsLayout({ order, refreshing = false }: { order?: Orde
+           <OrderMoneySummary order={order} />
+         </div>
+         <OrderPaymentSections order={order} />
++        <OrderLoyaltySection order={order} />
+         <OrderGiftSection order={order} />
+         <OrderStatusHistory order={order} />
+         <OrderDetailsSection title={t('orders.details.metadata')}>
+diff --git a/src/modules/orders/components/OrderPartySections.tsx b/src/modules/orders/components/OrderPartySections.tsx
+index f4729e6..d2bd66f 100644
+--- a/src/modules/orders/components/OrderPartySections.tsx
++++ b/src/modules/orders/components/OrderPartySections.tsx
+@@ -27,7 +27,7 @@ export function OrderPartySections({ order }: { order?: OrderDetail }) {
+                 '—'
+               ),
+             ],
+-            [t('orders.email'), customer?.email.trim() || '—'],
++            [t('orders.email'), customer?.email?.trim() || '—'],
+             [t('orders.phone'), customer?.phone.trim() || '—'],
+           ]}
+         />
+diff --git a/src/modules/orders/locale/ar.json b/src/modules/orders/locale/ar.json
+index 92a074a..2e619a3 100644
+--- a/src/modules/orders/locale/ar.json
++++ b/src/modules/orders/locale/ar.json
+@@ -75,6 +75,25 @@
+       "language": "\u0627\u0644\u0644\u063a\u0629",
+       "fee": "\u0627\u0644\u0631\u0633\u0648\u0645"
+     },
++    "loyalty": {
++      "title": "\u0643\u0633\u0628 \u0627\u0644\u0648\u0644\u0627\u0621",
++      "unavailable": "\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u0642\u0627\u0637 \u0648\u0644\u0627\u0621 \u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628.",
++      "earnedStatus": "\u062d\u0627\u0644\u0629 \u0627\u0644\u0643\u0633\u0628",
++      "pointsEarned": "\u0627\u0644\u0646\u0642\u0627\u0637 \u0627\u0644\u0645\u0643\u062a\u0633\u0628\u0629",
++      "availableOn": "\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0625\u062a\u0627\u062d\u0629",
++      "returnWindowDays": "\u0645\u062f\u0629 \u0627\u0644\u0625\u0631\u062c\u0627\u0639 (\u0628\u0627\u0644\u0623\u064a\u0627\u0645)",
++      "pointsRedeemed": "\u0627\u0644\u0646\u0642\u0627\u0637 \u0627\u0644\u0645\u0633\u062a\u0628\u062f\u0644\u0629",
++      "amountApplied": "\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0645\u0637\u0628\u0642",
++      "amountDue": "\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0645\u0633\u062a\u062d\u0642",
++      "valuePerPoint": "\u0642\u064a\u0645\u0629 \u0627\u0644\u0646\u0642\u0637\u0629",
++      "pointsReturned": "\u0627\u0644\u0646\u0642\u0627\u0637 \u0627\u0644\u0645\u0639\u0627\u062f\u0629",
++      "amountPerPoint": "\u0627\u0644\u0645\u0628\u0644\u063a \u0644\u0643\u0644 \u0646\u0642\u0637\u0629",
++      "ruleVersion": "\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0642\u0627\u0639\u062f\u0629",
++      "status": {
++        "pending": "\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631",
++        "cancelled": "\u0645\u0644\u063a\u0649"
++      }
++    },
+     "gift": {
+       "anonymous": "هدية مجهولة المرسل",
+       "message": "رسالة الهدية",
+@@ -116,7 +135,7 @@
+       "paymentFailed": "فشل الدفع",
+       "pendingVerification": "بانتظار التحقق"
+     },
+-    "paymentStatus": { "paid": "مدفوع", "pending": "قيد الانتظار" },
++    "paymentStatus": { "paid": "مدفوع", "pending": "قيد الانتظار", "failed": "فشل الدفع" },
+     "values": { "guest": "زائر", "registered": "مسجل", "system": "النظام", "admin": "مسؤول", "card": "بطاقة" }
+   }
+ }
+diff --git a/src/modules/orders/locale/en.json b/src/modules/orders/locale/en.json
+index 94713ef..3d58783 100644
+--- a/src/modules/orders/locale/en.json
++++ b/src/modules/orders/locale/en.json
+@@ -75,6 +75,22 @@
+       "language": "Language",
+       "fee": "Fee"
+     },
++    "loyalty": {
++      "title": "Loyalty earning",
++      "unavailable": "No loyalty earning is associated with this order.",
++      "earnedStatus": "Earning status",
++      "pointsEarned": "Points earned",
++      "availableOn": "Available on",
++      "returnWindowDays": "Return window (days)",
++      "pointsRedeemed": "Points redeemed",
++      "amountApplied": "Amount applied",
++      "amountDue": "Amount due",
++      "valuePerPoint": "Value per point",
++      "pointsReturned": "Points returned",
++      "amountPerPoint": "Amount per point",
++      "ruleVersion": "Rule version",
++      "status": { "pending": "Pending", "cancelled": "Cancelled" }
++    },
+     "gift": {
+       "anonymous": "Anonymous",
+       "message": "Gift message",
+@@ -116,7 +132,7 @@
+       "paymentFailed": "Payment failed",
+       "pendingVerification": "Pending verification"
+     },
+-    "paymentStatus": { "paid": "Paid", "pending": "Pending" },
++    "paymentStatus": { "paid": "Paid", "pending": "Pending", "failed": "Failed" },
+     "values": { "guest": "Guest", "registered": "Registered", "system": "System", "admin": "Admin", "card": "Card" }
+   }
+ }
+diff --git a/src/modules/orders/schemas/order.schema.ts b/src/modules/orders/schemas/order.schema.ts
+index 88b3805..e70b956 100644
+--- a/src/modules/orders/schemas/order.schema.ts
++++ b/src/modules/orders/schemas/order.schema.ts
+@@ -6,6 +6,7 @@ const count = z.number().int().nonnegative().safe()
+ const decimal = z.string().regex(/^\d+(?:\.\d+)?$/)
+ const nullableText = z.string().nullable().catch(null)
+ const customer = z.object({ type: text, name: z.string(), email: z.string(), phone: z.string() })
++const orderCustomer = customer.extend({ email: z.string().nullable() })
+ const warehouse = z.object({ id, name: text }).nullable()
+ const identity = {
+   id,
+@@ -46,10 +47,24 @@ const rawOrderItemPersonalizationSchema = z.object({
+   fee: decimal,
+ })
+ 
++const rawOrderLoyaltySchema = z.object({
++  points_earned: count,
++  earned_status: text,
++  available_on: z.string().nullable(),
++  return_window_days: count,
++  points_redeemed: count,
++  amount_applied: decimal,
++  amount_due: decimal,
++  value_per_point: z.number().finite().nonnegative().nullable(),
++  points_returned: count,
++  amount_per_point: decimal,
++  rule_version_id: id,
++})
++
+ export const rawOrderStatusSchema = z.object({ value: text, label: text, customer_status: text })
+ export const rawOrderListItemSchema = z.object({
+   ...identity,
+-  customer: customer.extend({ email: z.string().nullable() }),
++  customer: orderCustomer,
+   items_count: count,
+   total: decimal,
+   currency: text,
+@@ -73,6 +88,7 @@ export const rawOrderGiftSchema = z.object({
+ })
+ export const rawOrderDetailSchema = z.object({
+   ...identity,
++  customer: orderCustomer,
+   shipping_address: z
+     .object({
+       recipient_name: z.string(),
+@@ -127,6 +143,10 @@ export const rawOrderDetailSchema = z.object({
+       }
+     }),
+   coupon: z.unknown(),
++  loyalty: rawOrderLoyaltySchema
++    .nullable()
++    .optional()
++    .transform((value) => value ?? null),
+   payment: z.object({ method: text, status: text, reference: nullableText, paid_at: nullableText }),
+   status_history: z.array(
+     z.object({
+diff --git a/src/modules/orders/types/order.types.ts b/src/modules/orders/types/order.types.ts
+index 88d2adc..01e8129 100644
+--- a/src/modules/orders/types/order.types.ts
++++ b/src/modules/orders/types/order.types.ts
+@@ -53,6 +53,19 @@ export type OrderMoney = {
+   total: string
+   currency: string
+ }
++export type OrderLoyalty = {
++  pointsEarned: number
++  earnedStatus: string
++  availableOn: string | null
++  returnWindowDays: number
++  pointsRedeemed: number
++  amountApplied: string
++  amountDue: string
++  valuePerPoint: number | null
++  pointsReturned: number
++  amountPerPoint: string
++  ruleVersionId: number
++}
+ export type OrderGift = {
+   isAnonymous: boolean
+   message: string | null
+@@ -79,6 +92,7 @@ export type OrderDetail = Omit<OrderIdentity, 'customer'> & {
+   items: OrderItem[]
+   money: OrderMoney
+   coupon: unknown
++  loyalty: OrderLoyalty | null
+   payment: { method: string; status: string; reference: string | null; paidAt: string | null }
+   statusHistory: {
+     fromStatus: string | null
+diff --git a/src/modules/orders/utils/order-normalizers.ts b/src/modules/orders/utils/order-normalizers.ts
+index a3f106b..7cdd8d9 100644
+--- a/src/modules/orders/utils/order-normalizers.ts
++++ b/src/modules/orders/utils/order-normalizers.ts
+@@ -73,6 +73,21 @@ export function normalizeOrderDetail(value: unknown): OrderDetail {
+       currency: money.currency,
+     },
+     coupon: raw.coupon,
++    loyalty: raw.loyalty
++      ? {
++          pointsEarned: raw.loyalty.points_earned,
++          earnedStatus: raw.loyalty.earned_status,
++          availableOn: raw.loyalty.available_on,
++          returnWindowDays: raw.loyalty.return_window_days,
++          pointsRedeemed: raw.loyalty.points_redeemed,
++          amountApplied: raw.loyalty.amount_applied,
++          amountDue: raw.loyalty.amount_due,
++          valuePerPoint: raw.loyalty.value_per_point,
++          pointsReturned: raw.loyalty.points_returned,
++          amountPerPoint: raw.loyalty.amount_per_point,
++          ruleVersionId: raw.loyalty.rule_version_id,
++        }
++      : null,
+     payment: {
+       method: raw.payment.method,
+       status: raw.payment.status,
+diff --git a/src/modules/orders/utils/order-presentation.ts b/src/modules/orders/utils/order-presentation.ts
+index 5478bc0..c5c1708 100644
+--- a/src/modules/orders/utils/order-presentation.ts
++++ b/src/modules/orders/utils/order-presentation.ts
+@@ -20,7 +20,7 @@ export function orderStatusLabel(value: string, definitions: OrderStatusDefiniti
+     : definitions.find((item) => item.value === value)?.label || humanizeOrderValue(value)
+ }
+ export function paymentLabel(value: string, t: TFunction) {
+-  return value === 'paid' || value === 'pending' ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
++  return ['paid', 'pending', 'failed'].includes(value) ? t(`orders.paymentStatus.${value}`) : humanizeOrderValue(value)
+ }
+ export function customerLabel(customer: OrderListItem['customer'], unavailable: string) {
+   return [customer.name, customer.email, customer.phone].find((value) => value?.trim()) || unavailable
+diff --git a/docs/frontend/loyality/BACKEND_HANDOFF.md b/docs/frontend/loyality/BACKEND_HANDOFF.md
+new file mode 100644
+index 0000000..aa7d3d4
+--- /dev/null
++++ b/docs/frontend/loyality/BACKEND_HANDOFF.md
+@@ -0,0 +1,22 @@
++# Loyalty Backend Handoff
++
++| Priority | Missing capability / verification  | Requirement                         | Current frontend behavior and API evidence                                                                                         | Exact request                                                                                                                                                          | Blocks                                  |
++| -------- | ---------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
++| P0       | Guest claim days                   | Settings field specification        | Field is absent from settings GET, PUT, and history. The UI does not fabricate it.                                                 | Add a documented `0..365` field to current settings, save, and version values. Define `0` semantics.                                                                   | Guest-claim setting                     |
++| P0       | Never-expiring points              | Settings field specification        | `validity_months` is documented only as an integer; null/no-expiry behavior is unknown. The UI exposes finite validity only.       | Define GET/PUT/history representation and warning-days behavior for never-expiring points.                                                                             | No-expiry option                        |
++| P0       | Atomic debit/security invariants   | Customer AC-01 and financial safety | UI rejects a debit above the last known available balance, but concurrent safety cannot be client-enforced.                        | Verify endpoint authorization, transactional nonnegative debit, immutable ledger/audit creation, and idempotency/replay behavior. Document validation response fields. | Safe production adjustment verification |
++| P0       | Adjustment order link              | Customer story field                | POST has no order field and ledger `order` is null in all examples. The UI sends no invented field.                                | Add/document an optional order identifier, ownership validation, and the non-null ledger order response shape.                                                         | Related-order control and link          |
++| P1       | Remaining reason codes             | Adjustment reason list              | Only `customer_service` and `other` are documented and displayed.                                                                  | Publish official codes and labels for order-problem compensation and balance-error correction.                                                                         | Two reason choices                      |
++| P1       | Ledger types and pagination        | Ledger filters/pagination           | Only documented filters (`type`, `from`, `to`) are sent. Pagination meta exists, but request args and full enum are undocumented.  | Publish all event/filter enums, sort order, date inclusivity/time zone, and supported `page`/`per_page` parameters.                                                    | Full filters and pagination controls    |
++| P1       | CSV export                         | Customer ledger flow                | No export endpoint exists; frontend intentionally does not export only the visible page.                                           | Provide a current-filter export endpoint or approve/document a bounded all-pages strategy.                                                                             | CSV export                              |
++| P1       | Expiring-soon semantics            | Summary                             | Null is shown as unavailable; a returned object is shown without adding it to balances.                                            | Define empty/null forms and what `expires_at` means when multiple lots qualify.                                                                                        | Exact expiry explanation                |
++| P1       | Deleted/blocked customers          | Customer AS-01/AS-02                | Frozen status is displayed and adjustment submission is allowed to reach backend. Deleted-customer shape is unknown.               | Document anonymized deleted-customer response and adjustment prohibition; verify blocked adjustments and frozen redemption semantics.                                  | Deleted-customer read-only UX           |
++| P1       | Notification delivery              | Customer AC-04                      | Frontend sends `notify_customer`; success copy confirms the adjustment, not delivery.                                              | Define synchronous/queued delivery semantics and failure reporting.                                                                                                    | Delivery confirmation                   |
++| P1       | Settings concurrency and lifecycle | Settings AC-02/03/05, AS-03         | Latest `version_id`, explicit disable confirmation, and conflict-preserving UI are implemented. Samples do not prove server rules. | Verify stale-version rejection, first-launch permanence, disable effects, re-enable behavior, and historical non-recalculation.                                        | Backend acceptance evidence             |
++| P1       | Earning/expiry math                | Settings AC-01/04                   | Preview uses documented nominal math; client validation uses documented ranges.                                                    | Define earned-point rounding/precision, calendar-month warning comparison, and credit-lot expiry calculation.                                                          | Exact parity for edge cases             |
++| P1       | History pagination/sorting         | Settings history                    | UI fetches history only when active using the documented `per_page=20`.                                                            | Document `page`, sorting guarantee, and stable pagination behavior.                                                                                                    | Multi-page history                      |
++| P2       | High-return warning decision       | Proposed Settings AS-01             | Not implemented because the story marks it proposed and no request flag exists.                                                    | Confirm or reject the product requirement and threshold behavior.                                                                                                      | Optional warning UX                     |
++
++The existing Laravel validation envelope is sufficient and is already reused; a new generic error contract is not requested.
++
++Authorization is backend-owned. The frontend intentionally adds no RBAC, capability hooks, or control-visibility rules and relies on the existing standard 401/403 handling.
+diff --git a/docs/frontend/loyality/reviews/FINAL_QA_REVIEW.md b/docs/frontend/loyality/reviews/FINAL_QA_REVIEW.md
+new file mode 100644
+index 0000000..5379002
+--- /dev/null
++++ b/docs/frontend/loyality/reviews/FINAL_QA_REVIEW.md
+@@ -0,0 +1,48 @@
++# Final Loyalty Quality Review
++
++## Scope
++
++Independent cross-role review of the Order Details compatibility fix and Loyalty Settings, Customer Points/Ledger, and Manual Adjustments slices.
++
++## Review outcome
++
++- **Senior frontend:** Existing services, forms, query keys, query boundaries, API errors, i18n, and UI primitives are reused. Summary and ledger state remain independent; mutation reconciliation is exact and customer-scoped. No new effects, dependencies, broad invalidation, or optimistic financial state were added.
++- **E-commerce domain:** Available, pending, held, expiring, and cancelled earning states remain distinct. Nullable financial context is not converted to zero. Manual debits use positive input and never optimistically create a negative balance; backend responses remain authoritative.
++- **UI/UX:** English LTR and Arabic RTL, localized labels, mobile dialog sizing, pending/disabled states, inline errors, keyboard controls, and trigger-focus restoration are covered. Nullable values use explicit unavailable placeholders.
++- **Product:** All behavior supported by the six documented endpoints is delivered. Missing settings, pagination, export, order linking, and lifecycle guarantees are classified rather than simulated. Authorization remains backend-owned.
++- **QA:** Happy paths, validation, Laravel/network failures, null shapes, six real order lifecycles, request counts, filter preservation, cache isolation, cache reconciliation, duplicate submissions, accessibility, and direction are covered by focused tests.
++
++## Validation results
++
++- `vitest run src/modules/loyalty src/modules/customers/pages/CustomerLoyaltyPage.test.tsx src/modules/customers/pages/CustomerDetailPage.test.tsx`: 11 files, 67 tests passed.
++- `vitest run src/modules/orders`: 9 files, 132 tests passed.
++- Phase 3 focused suite: 4 files, 38 tests passed.
++- Scoped ESLint across affected loyalty, customer, and order source/test files: passed.
++- Prettier check across affected source, fixtures, locales, and review docs: passed.
++- `tsc --noEmit`: passed.
++- `vite build`: passed; existing size warnings remain for chunks above 500 kB.
++- `git diff --check`: passed; Git emitted line-ending conversion warnings only.
++
++## Known issues and risks
++
++- Backend endpoint authorization and standard 401/403 responses require integration verification; no frontend RBAC or control-visibility layer is required.
++- Financial concurrency, audit/lot creation, notification delivery, launch permanence, disable semantics, and historical non-recalculation require backend integration verification.
++- Full ledger/history pagination, full type/reason enums, CSV export, related orders, deleted customers, guest claims, and never-expiring points remain contract gaps.
++- Automated coverage did not execute an authenticated browser session or any real financial mutation.
++- Production build size warnings predate and are outside this focused change; no global chunking refactor was attempted.
++
++## Manual smoke checklist
++
++1. Open Loyalty Settings in English and Arabic; verify local preview, disable confirmation, save conflict behavior, and deferred History fetch.
++2. Direct-link to a customer with `?tab=points`; verify no Orders request, summary/ledger independence, URL filters, Back/Forward, and mobile/RTL layouts.
++3. Open Adjust Points by keyboard; exercise credit, debit, validation, failed request retry, pending lock, success refresh, URL preservation, and focus return.
++4. Verify backend-denied users receive the existing standard 401/403 Laravel error handling.
++5. Open each supplied RF-10123/RF-10145 lifecycle response and verify nullable customer/loyalty/history fields, personalization, totals, transitions, and cancelled earning presentation.
++
++## Files changed
++
++The working tree contains the reviewed order compatibility, Phase 2, and Phase 3 source/tests plus the reports under this directory and `BACKEND_HANDOFF.md`. Existing review artifacts `order-details-compatibility-fix.diff` and `loyalty-phase-2-review.diff` remain unmodified.
++
++## Remaining work
++
++Human code review, the manual smoke checklist, and backend responses to `BACKEND_HANDOFF.md`. Autonomous completion is not production approval.
+diff --git a/docs/frontend/loyality/reviews/ORDER_DETAILS_FIX_REVIEW.md b/docs/frontend/loyality/reviews/ORDER_DETAILS_FIX_REVIEW.md
+new file mode 100644
+index 0000000..48de9ab
+--- /dev/null
++++ b/docs/frontend/loyality/reviews/ORDER_DETAILS_FIX_REVIEW.md
+@@ -0,0 +1,35 @@
++# Order Details Compatibility Review
++
++## Scope
++
++Compatibility of Order Details with six real HTTP 200 responses for Orders RF-10123 and RF-10145.
++
++## Implementation summary
++
++- Corrected the detail customer contract to accept a nullable email and guarded its presentation.
++- Added strict typed preservation and localized presentation of order loyalty earning data.
++- Preserved nested VAT, taxable amount, personalization, status history, and transition data.
++- Added localized failed-payment presentation without changing request or cache behavior.
++
++## Files changed
++
++Order schemas, types, normalizer, presentation components/locales, focused tests, six exact JSON fixtures, and the generated `order-details-compatibility-fix.diff` review artifact.
++
++## Test results
++
++- `vitest run src/modules/orders`: 9 files, 132 tests passed.
++- Scoped ESLint, Prettier check, TypeScript build check, and `git diff --check`: passed.
++- All six repository fixtures semantically match the attached ZIP responses.
++
++## Known issues
++
++- No authenticated live-backend browser E2E was available; validation used the real responses through service, normalization, query-cache, and rendered-page paths.
++- Non-null `value_per_point` is typed from the documented numeric convention but is null in all supplied order fixtures.
++
++## Review outcome
++
++Checkpoint passed. Both original failure boundaries are fixed: Zod no longer rejects documented null email values, and the customer UI no longer calls `trim()` on null. No extra requests were introduced.
++
++## Remaining work
++
++Human browser smoke testing against an authenticated environment.
+diff --git a/docs/frontend/loyality/reviews/PHASE_2_REVIEW.md b/docs/frontend/loyality/reviews/PHASE_2_REVIEW.md
+new file mode 100644
+index 0000000..b8bc25e
+--- /dev/null
++++ b/docs/frontend/loyality/reviews/PHASE_2_REVIEW.md
+@@ -0,0 +1,38 @@
++# Phase 2 Customer Points and Ledger Review
++
++## Scope
++
++Source-level and regression review of Customer Details Points navigation, summary, read-only ledger, URL filters, query isolation, error independence, accessibility, RTL, and request counts.
++
++## Implementation summary
++
++- Confirmed URL-backed Overview/Points tabs, direct-link and Back/Forward behavior.
++- Confirmed ordinary Overview visits issue no loyalty requests and direct Points visits issue no customer-orders request.
++- Confirmed customer/filter-scoped query keys, supported server filters, independent summary/ledger boundaries, read-only ledger, and RTL-safe signed values.
++- Corrected one demonstrated issue: a nullable `expiring_soon` was displayed as a fabricated zero. It now displays a localized unavailable state.
++
++## Files changed
++
++- `src/modules/loyalty/components/CustomerLoyaltySummary.tsx`
++- `src/modules/loyalty/locale/en.json`
++- `src/modules/loyalty/locale/ar.json`
++- `src/modules/customers/pages/CustomerLoyaltyPage.test.tsx`
++
++## Test results
++
++- Focused Phase 2 suite: 3 files, 22 tests passed.
++- Changed-file ESLint and Prettier check: passed.
++
++## Known issues
++
++- Only `adjust_credit` is exposed as a ledger filter because it is the sole documented filter value.
++- Ledger pagination request parameters, non-null order shape, complete transaction enum, and CSV export remain undocumented.
++- Deleted-customer and notification behavior require backend verification.
++
++## Review outcome
++
++Checkpoint passed with the nullable expiring-soon correction. No critical regressions or duplicate-request paths remain in the reviewed implementation.
++
++## Remaining work
++
++Implement the documented manual adjustment workflow and verify its exact cache lifecycle.
+diff --git a/docs/frontend/loyality/reviews/PHASE_3_REVIEW.md b/docs/frontend/loyality/reviews/PHASE_3_REVIEW.md
+new file mode 100644
+index 0000000..a85fd37
+--- /dev/null
++++ b/docs/frontend/loyality/reviews/PHASE_3_REVIEW.md
+@@ -0,0 +1,57 @@
++# Phase 3 Manual Loyalty Adjustments Review
++
++## Scope
++
++Manual credit and debit adjustments from the existing Customer Details Points workspace, limited to the documented adjustment contract.
++
++## Implementation summary
++
++- Added a localized, responsive adjustment dialog using the existing form and Radix dialog components.
++- Supports the documented `credit`/`debit` types, `customer_service`/`other` reasons, integer points from 1 to 100,000, a 10–250 character internal note, and an opt-in customer notification request.
++- Shows the authoritative available balance and frozen-customer context. A known over-balance debit is rejected locally; the backend remains authoritative when the balance is unavailable or changes concurrently.
++- Serializes the exact API request shape and preserves note content while validating its trimmed character count.
++- Prevents re-entrant submissions, retains form state on failure, maps Laravel validation errors, and restores focus to the trigger on close.
++- On success, writes the returned summary to the exact customer cache and invalidates only that customer's active ledger queries. It does not optimistically change financial data or fabricate ledger rows.
++
++## Files changed
++
++- `src/modules/loyalty/types/loyalty.types.ts`
++- `src/modules/loyalty/api/loyalty.service.ts`
++- `src/modules/loyalty/api/loyalty.service.test.ts`
++- `src/modules/loyalty/schemas/loyalty-adjustment.schema.ts`
++- `src/modules/loyalty/schemas/loyalty-adjustment.schema.test.ts`
++- `src/modules/loyalty/hooks/useAdjustCustomerLoyalty.ts`
++- `src/modules/loyalty/hooks/useAdjustCustomerLoyalty.test.tsx`
++- `src/modules/loyalty/components/CustomerLoyaltyAdjustmentDialog.tsx`
++- `src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx`
++- `src/modules/loyalty/components/CustomerLoyaltySummary.tsx`
++- `src/modules/loyalty/locale/en.json`
++- `src/modules/loyalty/locale/ar.json`
++- `src/modules/customers/pages/CustomerLoyaltyPage.test.tsx`
++
++## Components reused
++
++Existing `Dialog`, `Button`, `FormWrapper`, radio, input, select, textarea, checkbox, Laravel validation mapping, API error helper, Axios client, TanStack Query client, query keys, toast, and i18n infrastructure.
++
++## Test results
++
++- Phase 3 focused suite: 4 files, 38 tests passed.
++- Changed-file ESLint and Prettier check: passed.
++- `tsc --noEmit`: passed.
++
++Coverage includes validation, exact serialization, credit/debit, notification default and opt-in, blocked-customer context, over-balance debit, Laravel/network failures, duplicate prevention, cache update, active/inactive ledger freshness, customer-isolated invalidation, URL-filter preservation, focus return, and English/Arabic direction.
++
++## Known issues
++
++- Only two reason codes are documented; the other two business reasons are not rendered or sent.
++- The API has no documented related-order field.
++- Notification delivery, credit-lot expiry, audit creation, atomic debit enforcement, and frozen-balance behavior are backend responsibilities not proved by the success envelope.
++- Deleted-customer response and adjustment eligibility are undocumented.
++
++## Review outcome
++
++Checkpoint passed. Supported financial behavior is conservative and backend-authoritative, cache reconciliation is customer-scoped, and no additional read requests or optimistic financial writes were introduced.
++
++## Remaining work
++
++Human browser smoke testing and backend clarification/verification recorded in `BACKEND_HANDOFF.md`.
+diff --git a/docs/frontend/loyality/reviews/PHASE_4_REVIEW.md b/docs/frontend/loyality/reviews/PHASE_4_REVIEW.md
+new file mode 100644
+index 0000000..4b4b47b
+--- /dev/null
++++ b/docs/frontend/loyality/reviews/PHASE_4_REVIEW.md
+@@ -0,0 +1,57 @@
++# Phase 4 Traceability and Handoff Review
++
++## Scope
++
++Trace the delivered loyalty slices against the supplied business stories and documented API contracts, without adding unsupported behavior.
++
++## Traceability checklist
++
++| Requirement                                                                                  | Classification                               | Evidence / disposition                                                            |
++| -------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------- |
++| Settings retrieval, supported fields, local 500 SAR preview, validation, latest-version save | Implemented and tested                       | Settings service, form schema/serialization, query/mutation tests                 |
++| Read-only immutable launch date                                                              | Implemented and tested                       | Response-only presentation and form tests                                         |
++| Disable explanation and `confirm_disable`                                                    | Implemented and tested                       | Confirmation dialog and serialization tests                                       |
++| Version history, initial version, before/after comparisons, deferred fetch                   | Implemented and tested                       | History tab tests; query enabled only for active history UI                       |
++| Conflict handling without discarding edits                                                   | Implemented and tested                       | Stale-version error path preserves form state                                     |
++| Settings endpoint authorization                                                              | Backend-only behavior requiring verification | Frontend relies on standard 401/403 handling and adds no RBAC or visibility rules |
++| Guest claim days                                                                             | Blocked by backend contract                  | No API field                                                                      |
++| Never-expiring points                                                                        | Blocked by backend contract                  | Representation and warning behavior unknown                                       |
++| High-return confirmation                                                                     | Explicitly out of scope                      | Product story labels it proposed                                                  |
++| Customer Points direct link and URL-backed Overview/Points tabs                              | Implemented and tested                       | Direct navigation, refresh semantics, Back/Forward and request-count tests        |
++| Available, pending, held, expiring-soon, frozen status                                       | Implemented and tested                       | Nullable summary handling; no fabricated or additive balances                     |
++| Read-only ledger, supported type/date filters, RTL signed points                             | Implemented and tested                       | Customer-scoped/filter-scoped query and rendering tests                           |
++| Full ledger pagination and CSV                                                               | Blocked by backend contract                  | Request parameters/export endpoint undocumented                                   |
++| Complete transaction filter enum and non-null order links                                    | Blocked by backend contract                  | Only `adjust_credit` and null order are evidenced                                 |
++| Manual credit/debit with supported reasons, note, notification request                       | Implemented and tested                       | Exact POST serialization and mutation tests                                       |
++| Client over-balance debit guidance                                                           | Implemented and tested                       | Uses known authoritative available summary; no optimistic update                  |
++| Atomic debit, credit lot, audit row, notification delivery                                   | Backend-only behavior requiring verification | Success response contains only updated summary                                    |
++| Blocked-customer adjustment                                                                  | Implemented but requires manual verification | Frozen context shown; backend decides eligibility and preserves freeze            |
++| Deleted-customer anonymized read-only state                                                  | Blocked by backend contract                  | No response or lifecycle contract supplied                                        |
++| Customer loyalty endpoint authorization                                                      | Backend-only behavior requiring verification | Backend owns authorization; existing Laravel 401/403 handling remains unchanged   |
++| Order Details six-response compatibility                                                     | Implemented and tested                       | Six real fixtures pass service, normalization, cache, and rendered-page coverage  |
++| Authenticated live browser workflows                                                         | Implemented but requires manual verification | Automated DOM/integration tests pass; no live financial mutation performed        |
++
++## Implementation summary
++
++No speculative Phase 4 product code was added. The consolidated backend handoff records exact missing contracts, current behavior, requested decisions, priority, and blocked product capability. Authorization remains entirely backend-owned.
++
++## Files changed
++
++- `docs/frontend/loyality/BACKEND_HANDOFF.md`
++- `docs/frontend/loyality/reviews/PHASE_4_REVIEW.md`
++
++## Test results
++
++Phase 4 is documentation-only. It relies on the executed checkpoint suites and the final audit recorded separately.
++
++## Known issues
++
++All partial or blocked requirements are listed in `BACKEND_HANDOFF.md`; none are represented as production-complete.
++
++## Review outcome
++
++Checkpoint passed. Supported requirements are traceable and unsupported behavior remains explicitly deferred.
++
++## Remaining work
++
++Final cross-role quality audit, complete validation pass, review-diff export, and human smoke testing.
+diff --git a/src/modules/customers/pages/CustomerLoyaltyPage.test.tsx b/src/modules/customers/pages/CustomerLoyaltyPage.test.tsx
+new file mode 100644
+index 0000000..c06f7f9
+--- /dev/null
++++ b/src/modules/customers/pages/CustomerLoyaltyPage.test.tsx
+@@ -0,0 +1,455 @@
++import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
++import { render, screen, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
++import { toast } from 'sonner'
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++
++import '@/config/i18'
++import i18n from '@/config/i18'
++import { customersService } from '@/modules/customers/api/customers.service'
++import CustomerDetailPage from '@/modules/customers/pages/CustomerDetailPage'
++import type { CustomerDetail, CustomerOrderListItem } from '@/modules/customers/types/customer.types'
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++import type { CustomerLoyaltyLedgerItem, CustomerLoyaltySummary } from '@/modules/loyalty/types/loyalty.types'
++import customerAr from '@/modules/customers/locale/ar.json'
++import loyaltyAr from '@/modules/loyalty/locale/ar.json'
++
++vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
++
++HTMLElement.prototype.hasPointerCapture = vi.fn(() => false)
++HTMLElement.prototype.setPointerCapture = vi.fn()
++HTMLElement.prototype.releasePointerCapture = vi.fn()
++Element.prototype.scrollIntoView = vi.fn()
++
++const customer = (id = 12): CustomerDetail => ({
++  id,
++  name: `Customer ${id}`,
++  email: `customer-${id}@example.com`,
++  phone: null,
++  firstName: 'Customer',
++  lastName: String(id),
++  termsAcceptedAt: null,
++  marketingOptIn: false,
++  status: 'active',
++  isBlocked: false,
++  blockedAt: null,
++  blockedReason: null,
++  addressesCount: 0,
++  createdAt: '2026-09-20T19:55:28+00:00',
++  updatedAt: '2026-09-20T19:55:28+00:00',
++})
++
++const summary: CustomerLoyaltySummary = {
++  available: 0,
++  pending: 0,
++  held: 0,
++  expiringSoon: null,
++  isBlocked: true,
++}
++
++const ledgerItem: CustomerLoyaltyLedgerItem = {
++  id: 116,
++  createdAt: '2026-11-13T17:25:44+03:00',
++  type: 'adjust_credit',
++  label: 'Manual adjustment',
++  bucket: 'available',
++  points: 5000,
++  lotExpiresAt: null,
++  actorType: 'admin',
++  actorName: null,
++  reason: null,
++  reasonLabel: null,
++  note: 'Internal loyalty note',
++  order: null,
++}
++
++function ordersPage(): PaginatedData<CustomerOrderListItem> {
++  return {
++    items: [],
++    paginate: {
++      current_page: 1,
++      total_pages: 1,
++      per_page: 15,
++      total: 0,
++      count: 0,
++      next_page_url: null,
++      prev_page_url: null,
++    },
++    extra: null,
++  }
++}
++
++function NavigationControls() {
++  const location = useLocation()
++  const navigate = useNavigate()
++  return (
++    <>
++      <output data-testid="location">{`${location.pathname}${location.search}`}</output>
++      <button type="button" onClick={() => navigate(-1)}>
++        Back
++      </button>
++      <button type="button" onClick={() => navigate(1)}>
++        Forward
++      </button>
++      <button type="button" onClick={() => navigate('/dashboard/customers/13?tab=points')}>
++        Customer 13
++      </button>
++    </>
++  )
++}
++
++function renderPage(entry = '/dashboard/customers/12') {
++  const client = new QueryClient({
++    defaultOptions: {
++      queries: { retry: false, staleTime: 5 * 60 * 1000, gcTime: Infinity, refetchOnMount: false },
++      mutations: { retry: false },
++    },
++  })
++  return {
++    client,
++    ...render(
++      <QueryClientProvider client={client}>
++        <MemoryRouter initialEntries={[entry]}>
++          <Routes>
++            <Route
++              path="/dashboard/customers/:id"
++              element={
++                <>
++                  <CustomerDetailPage />
++                  <NavigationControls />
++                </>
++              }
++            />
++          </Routes>
++        </MemoryRouter>
++      </QueryClientProvider>
++    ),
++  }
++}
++
++describe('Customer loyalty page', () => {
++  beforeEach(async () => {
++    vi.restoreAllMocks()
++    vi.stubGlobal(
++      'IntersectionObserver',
++      class {
++        observe() {}
++        unobserve() {}
++        disconnect() {}
++      }
++    )
++    vi.stubGlobal(
++      'ResizeObserver',
++      class {
++        observe() {}
++        unobserve() {}
++        disconnect() {}
++      }
++    )
++    await i18n.changeLanguage('en')
++    vi.spyOn(customersService, 'show').mockImplementation(async (id) => customer(id))
++    vi.spyOn(customersService, 'orders').mockResolvedValue(ordersPage())
++    vi.spyOn(loyaltyService, 'getCustomerSummary').mockResolvedValue(summary)
++    vi.spyOn(loyaltyService, 'getCustomerLedger').mockResolvedValue({
++      items: [ledgerItem],
++      meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++    })
++    vi.spyOn(loyaltyService, 'adjustCustomerPoints').mockResolvedValue({ ...summary, available: 50 })
++  })
++
++  afterEach(() => vi.unstubAllGlobals())
++
++  it('keeps Overview behavior and performs no loyalty requests', async () => {
++    renderPage()
++
++    expect(await screen.findByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
++    expect(await screen.findByText('No orders yet')).toBeInTheDocument()
++    expect(customersService.show).toHaveBeenCalledOnce()
++    expect(customersService.orders).toHaveBeenCalledOnce()
++    expect(loyaltyService.getCustomerSummary).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerLedger).not.toHaveBeenCalled()
++  })
++
++  it('falls back to Overview for an invalid tab value', async () => {
++    renderPage('/dashboard/customers/12?tab=invalid')
++
++    expect(await screen.findByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
++    expect(customersService.orders).toHaveBeenCalledOnce()
++    expect(loyaltyService.getCustomerSummary).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerLedger).not.toHaveBeenCalled()
++  })
++
++  it('opens Points directly without Orders and renders zero, frozen, and nullable ledger values', async () => {
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByRole('tab', { name: 'Points' })).toHaveAttribute('aria-selected', 'true')
++    expect(await screen.findByText('Frozen')).toBeInTheDocument()
++    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(3)
++    expect(screen.getAllByText('Unavailable').length).toBeGreaterThan(0)
++    expect(await screen.findByRole('table', { name: 'Points ledger' })).toBeInTheDocument()
++    expect(screen.getAllByText('+5,000')).not.toHaveLength(0)
++    expect(screen.getAllByText('Unavailable').length).toBeGreaterThan(0)
++    expect(screen.queryByRole('button', { name: /edit|delete/i })).not.toBeInTheDocument()
++    expect(customersService.orders).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerSummary).toHaveBeenCalledExactlyOnceWith(12, expect.any(AbortSignal))
++    expect(loyaltyService.getCustomerLedger).toHaveBeenCalledExactlyOnceWith(
++      12,
++      { type: null, from: '', to: '' },
++      expect.any(AbortSignal)
++    )
++  })
++
++  it('uses URL filters, avoids incomplete date requests, and preserves the Points tab', async () => {
++    renderPage('/dashboard/customers/12?tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30&page=4')
++
++    await waitFor(() =>
++      expect(loyaltyService.getCustomerLedger).toHaveBeenCalledWith(
++        12,
++        { type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' },
++        expect.any(AbortSignal)
++      )
++    )
++    expect(screen.getByTestId('location')).toHaveTextContent(
++      'tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30'
++    )
++  })
++
++  it('clears supported filters while preserving the Points tab', async () => {
++    const user = userEvent.setup()
++    renderPage('/dashboard/customers/12?tab=points&type=adjust_credit&from=2026-11-01&to=2026-11-30&page=4')
++    await screen.findByRole('table', { name: 'Points ledger' })
++
++    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
++    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/dashboard/customers/12?tab=points'))
++    await waitFor(() =>
++      expect(loyaltyService.getCustomerLedger).toHaveBeenLastCalledWith(
++        12,
++        { type: null, from: '', to: '' },
++        expect.any(AbortSignal)
++      )
++    )
++  })
++
++  it('does not request the ledger for an incomplete date range', async () => {
++    renderPage('/dashboard/customers/12?tab=points&from=2026-11-01')
++
++    expect(await screen.findByText('Complete the date range')).toBeInTheDocument()
++    expect(screen.getByRole('alert')).toHaveTextContent('Select both')
++    expect(loyaltyService.getCustomerLedger).not.toHaveBeenCalled()
++    expect(loyaltyService.getCustomerSummary).toHaveBeenCalledOnce()
++  })
++
++  it('supports Back/Forward without duplicate reads and isolates customer-scoped caches', async () => {
++    const user = userEvent.setup()
++    const { client } = renderPage()
++    await screen.findByRole('tab', { name: 'Overview' })
++
++    await user.click(screen.getByRole('tab', { name: 'Points' }))
++    await screen.findByRole('table', { name: 'Points ledger' })
++    await user.click(screen.getByRole('button', { name: 'Back' }))
++    await waitFor(() => expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true'))
++    await user.click(screen.getByRole('button', { name: 'Forward' }))
++    await waitFor(() => expect(screen.getByRole('tab', { name: 'Points' })).toHaveAttribute('aria-selected', 'true'))
++    expect(loyaltyService.getCustomerSummary).toHaveBeenCalledTimes(1)
++    expect(loyaltyService.getCustomerLedger).toHaveBeenCalledTimes(1)
++
++    await user.click(screen.getByRole('button', { name: 'Customer 13' }))
++    await waitFor(() => expect(loyaltyService.getCustomerSummary).toHaveBeenCalledWith(13, expect.any(AbortSignal)))
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(summary)
++    expect(client.getQueryData(loyaltyKeys.customerSummary(13))).toEqual(summary)
++  })
++
++  it('keeps a successful ledger visible when the summary fails', async () => {
++    vi.mocked(loyaltyService.getCustomerSummary).mockRejectedValue(new Error('summary failed'))
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
++    expect(await screen.findByRole('table', { name: 'Points ledger' })).toBeInTheDocument()
++    expect(screen.queryByText('summary failed')).not.toBeInTheDocument()
++  })
++
++  it('keeps the summary visible when the independent ledger request fails', async () => {
++    vi.mocked(loyaltyService.getCustomerLedger).mockRejectedValue(new Error('ledger failed'))
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByText('Frozen')).toBeInTheDocument()
++    expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
++    expect(screen.queryByText('ledger failed')).not.toBeInTheDocument()
++  })
++
++  it('renders an empty filtered ledger state', async () => {
++    vi.mocked(loyaltyService.getCustomerLedger).mockResolvedValue({
++      items: [],
++      meta: { current_page: 1, last_page: 1, per_page: 50, total: 0 },
++    })
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByText('No ledger transactions')).toBeInTheDocument()
++    expect(screen.getByText('No transactions match the current filters.')).toBeInTheDocument()
++  })
++
++  it('opens, validates, and closes the accessible adjustment dialog with notification off by default', async () => {
++    const user = userEvent.setup()
++    renderPage('/dashboard/customers/12?tab=points')
++    const trigger = await screen.findByRole('button', { name: 'Adjust points' })
++
++    await user.click(trigger)
++    expect(screen.getByRole('dialog', { name: 'Adjust loyalty points' })).toHaveAttribute('dir', 'ltr')
++    expect(screen.getByRole('radio', { name: 'Credit' })).toBeChecked()
++    expect(screen.getByRole('checkbox', { name: 'Request customer notification' })).not.toBeChecked()
++    expect(screen.getByText(/This customer is frozen/)).toBeInTheDocument()
++
++    await user.click(screen.getByRole('button', { name: 'Apply adjustment' }))
++    expect(await screen.findAllByText('This field is required.')).not.toHaveLength(0)
++    expect(loyaltyService.adjustCustomerPoints).not.toHaveBeenCalled()
++
++    await user.click(screen.getByRole('button', { name: 'Cancel' }))
++    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
++    expect(trigger).toHaveFocus()
++  })
++
++  it('submits a credit once, preserves URL filters, updates summary cache, and refreshes the active ledger', async () => {
++    const user = userEvent.setup()
++    const updated = { ...summary, available: 5000 }
++    vi.mocked(loyaltyService.adjustCustomerPoints).mockResolvedValue(updated)
++    const { client } = renderPage('/dashboard/customers/12?tab=points&type=adjust_credit')
++    await user.click(await screen.findByRole('button', { name: 'Adjust points' }))
++
++    await user.type(screen.getByRole('spinbutton', { name: 'Points' }), '5000')
++    await user.click(screen.getByRole('combobox', { name: 'Reason' }))
++    await user.click(await screen.findByRole('option', { name: 'Customer service' }))
++    await user.type(screen.getByRole('textbox', { name: 'Internal note' }), 'Test credit for loyalty QA')
++    await user.click(screen.getByRole('button', { name: 'Apply adjustment' }))
++
++    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++    expect(loyaltyService.adjustCustomerPoints).toHaveBeenCalledExactlyOnceWith(12, {
++      type: 'credit',
++      points: 5000,
++      reason: 'customer_service',
++      note: 'Test credit for loyalty QA',
++      notifyCustomer: false,
++    })
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(updated)
++    expect(screen.getByTestId('location')).toHaveTextContent('tab=points&type=adjust_credit')
++    await waitFor(() => expect(loyaltyService.getCustomerLedger).toHaveBeenCalledTimes(2))
++  })
++
++  it('submits a supported debit and includes an explicitly requested notification', async () => {
++    const user = userEvent.setup()
++    vi.mocked(loyaltyService.getCustomerSummary).mockResolvedValue({ ...summary, available: 100, isBlocked: false })
++    renderPage('/dashboard/customers/12?tab=points')
++    await user.click(await screen.findByRole('button', { name: 'Adjust points' }))
++    await user.click(screen.getByRole('radio', { name: 'Debit' }))
++    await user.type(screen.getByRole('spinbutton', { name: 'Points' }), '25')
++    await user.click(screen.getByRole('combobox', { name: 'Reason' }))
++    await user.click(await screen.findByRole('option', { name: 'Other' }))
++    await user.type(screen.getByRole('textbox', { name: 'Internal note' }), 'Correct customer balance')
++    await user.click(screen.getByRole('checkbox', { name: 'Request customer notification' }))
++    await user.click(screen.getByRole('button', { name: 'Apply adjustment' }))
++
++    await waitFor(() =>
++      expect(loyaltyService.adjustCustomerPoints).toHaveBeenCalledExactlyOnceWith(12, {
++        type: 'debit',
++        points: 25,
++        reason: 'other',
++        note: 'Correct customer balance',
++        notifyCustomer: true,
++      })
++    )
++  })
++
++  it('rejects an over-balance debit locally without changing the authoritative summary', async () => {
++    const user = userEvent.setup()
++    const available = { ...summary, available: 20, isBlocked: false }
++    vi.mocked(loyaltyService.getCustomerSummary).mockResolvedValue(available)
++    const { client } = renderPage('/dashboard/customers/12?tab=points')
++    await user.click(await screen.findByRole('button', { name: 'Adjust points' }))
++    await user.click(screen.getByRole('radio', { name: 'Debit' }))
++    await user.type(screen.getByRole('spinbutton', { name: 'Points' }), '21')
++    await user.click(screen.getByRole('combobox', { name: 'Reason' }))
++    await user.click(await screen.findByRole('option', { name: 'Other' }))
++    await user.type(screen.getByRole('textbox', { name: 'Internal note' }), 'Correct customer balance')
++    await user.click(screen.getByRole('button', { name: 'Apply adjustment' }))
++
++    expect(await screen.findByText(/Debit cannot exceed the available balance of 20 points/)).toBeInTheDocument()
++    expect(loyaltyService.adjustCustomerPoints).not.toHaveBeenCalled()
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(available)
++  })
++
++  it('preserves form input and cache after Laravel validation or network failure', async () => {
++    const user = userEvent.setup()
++    const existing = { ...summary, available: 100, isBlocked: false }
++    vi.mocked(loyaltyService.getCustomerSummary).mockResolvedValue(existing)
++    vi.mocked(loyaltyService.adjustCustomerPoints).mockRejectedValueOnce({
++      isAxiosError: true,
++      response: { status: 422, data: { errors: { points: ['Insufficient balance'] } } },
++    })
++    const { client } = renderPage('/dashboard/customers/12?tab=points')
++    await user.click(await screen.findByRole('button', { name: 'Adjust points' }))
++    await user.type(screen.getByRole('spinbutton', { name: 'Points' }), '25')
++    await user.click(screen.getByRole('combobox', { name: 'Reason' }))
++    await user.click(await screen.findByRole('option', { name: 'Other' }))
++    const note = screen.getByRole('textbox', { name: 'Internal note' })
++    await user.type(note, 'Correct customer balance')
++    await user.click(screen.getByRole('button', { name: 'Apply adjustment' }))
++
++    expect(await screen.findByRole('alert')).toHaveTextContent('Loyalty points could not be adjusted')
++    expect(screen.getByRole('spinbutton', { name: 'Points' })).toHaveValue(25)
++    expect(note).toHaveValue('Correct customer balance')
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(existing)
++
++    vi.mocked(loyaltyService.adjustCustomerPoints).mockRejectedValueOnce(new Error('offline'))
++    await user.click(screen.getByRole('button', { name: 'Apply adjustment' }))
++    expect(await screen.findByRole('alert')).toHaveTextContent('Loyalty points could not be adjusted')
++    expect(note).toHaveValue('Correct customer balance')
++    expect(toast.error).not.toHaveBeenCalled()
++  })
++
++  it('prevents duplicate submissions while an adjustment is pending', async () => {
++    const user = userEvent.setup()
++    let resolveAdjustment!: (value: CustomerLoyaltySummary) => void
++    vi.mocked(loyaltyService.adjustCustomerPoints).mockImplementation(
++      () => new Promise((resolve) => (resolveAdjustment = resolve))
++    )
++    renderPage('/dashboard/customers/12?tab=points')
++    await user.click(await screen.findByRole('button', { name: 'Adjust points' }))
++    await user.type(screen.getByRole('spinbutton', { name: 'Points' }), '10')
++    await user.click(screen.getByRole('combobox', { name: 'Reason' }))
++    await user.click(await screen.findByRole('option', { name: 'Other' }))
++    await user.type(screen.getByRole('textbox', { name: 'Internal note' }), 'Correct customer balance')
++    const submit = screen.getByRole('button', { name: 'Apply adjustment' })
++    await user.dblClick(submit)
++
++    expect(loyaltyService.adjustCustomerPoints).toHaveBeenCalledTimes(1)
++    expect(screen.getByRole('button', { name: 'Applying…' })).toBeDisabled()
++    resolveAdjustment({ ...summary, available: 10 })
++    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++  })
++
++  it('uses Arabic RTL labels, localized points, and expiry dates', async () => {
++    await i18n.changeLanguage('ar')
++    vi.mocked(loyaltyService.getCustomerSummary).mockResolvedValue({
++      available: 5127,
++      pending: 0,
++      held: 0,
++      expiringSoon: { points: 100, expiresAt: '2026-11-21T21:29:08+03:00' },
++      isBlocked: true,
++    })
++    renderPage('/dashboard/customers/12?tab=points')
++
++    expect(await screen.findByRole('tab', { name: customerAr.customers.detail.tabs.points })).toHaveAttribute(
++      'aria-selected',
++      'true'
++    )
++    expect(document.documentElement).toHaveAttribute('dir', 'rtl')
++    expect(await screen.findByText(loyaltyAr.loyalty.customer.summary.frozen)).toBeInTheDocument()
++    expect(screen.getAllByText('٥٬١٢٧')).not.toHaveLength(0)
++    expect(screen.getByText(/تنتهي في/)).toBeInTheDocument()
++    expect(screen.getAllByText('+٥٬٠٠٠').every((element) => element.closest('bdi')?.dir === 'ltr')).toBe(true)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: loyaltyAr.loyalty.customer.adjustment.action }))
++    expect(screen.getByRole('dialog')).toHaveAttribute('dir', 'rtl')
++  })
++})
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyAdjustmentDialog.tsx b/src/modules/loyalty/components/CustomerLoyaltyAdjustmentDialog.tsx
+new file mode 100644
+index 0000000..534d7c0
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyAdjustmentDialog.tsx
+@@ -0,0 +1,206 @@
++import { useRef, useState, type RefObject } from 'react'
++import { useFormContext, useWatch } from 'react-hook-form'
++import { useTranslation } from 'react-i18next'
++
++import { FormWrapper } from '@/components/core/FormWrapper'
++import { FormCheckbox, FormInput, FormSelect, FormTextArea } from '@/components/form'
++import { FormRadioInput } from '@/components/form/FormRadioInput'
++import { Button } from '@/components/ui/button'
++import {
++  Dialog,
++  DialogClose,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogTitle,
++} from '@/components/ui/dialog'
++import { useAdjustCustomerLoyalty } from '@/modules/loyalty/hooks/useAdjustCustomerLoyalty'
++import { createLoyaltyAdjustmentSchema } from '@/modules/loyalty/schemas/loyalty-adjustment.schema'
++import type {
++  CustomerLoyaltySummary,
++  LoyaltyAdjustmentFormValues,
++  LoyaltyAdjustmentPayload,
++} from '@/modules/loyalty/types/loyalty.types'
++import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
++import { getApiErrorMessage } from '@/utils/error/api-error.helpers'
++
++const defaultValues: LoyaltyAdjustmentFormValues = {
++  type: 'credit',
++  points: '',
++  reason: '',
++  note: '',
++  notifyCustomer: false,
++}
++
++function AdjustmentFields({ pending }: { pending: boolean }) {
++  const { t } = useTranslation()
++  const { control } = useFormContext<LoyaltyAdjustmentFormValues>()
++  const type = useWatch({ control, name: 'type' })
++  const reasons = [
++    { value: 'customer_service', label: t('loyalty.customer.adjustment.reasons.customerService') },
++    { value: 'other', label: t('loyalty.customer.adjustment.reasons.other') },
++  ]
++
++  return (
++    <>
++      <FormRadioInput
++        name="type"
++        label={t('loyalty.customer.adjustment.fields.type')}
++        options={[
++          { value: 'credit', label: t('loyalty.customer.adjustment.types.credit') },
++          { value: 'debit', label: t('loyalty.customer.adjustment.types.debit') },
++        ]}
++        disabled={pending}
++      />
++      <FormInput
++        name="points"
++        type="number"
++        min={1}
++        max={100000}
++        step={1}
++        inputMode="numeric"
++        label={t('loyalty.customer.adjustment.fields.points')}
++        required
++        disabled={pending}
++      />
++      <FormSelect
++        name="reason"
++        data={reasons}
++        valueKey="value"
++        labelKey="label"
++        label={t('loyalty.customer.adjustment.fields.reason')}
++        placeholder={t('loyalty.customer.adjustment.reasonPlaceholder')}
++        required
++        disabled={pending}
++      />
++      <FormTextArea
++        name="note"
++        label={t('loyalty.customer.adjustment.fields.note')}
++        minLength={10}
++        maxLength={250}
++        rows={4}
++        required
++        disabled={pending}
++      />
++      <FormCheckbox
++        name="notifyCustomer"
++        label={t('loyalty.customer.adjustment.fields.notifyCustomer')}
++        disabled={pending}
++      />
++      <DialogFooter>
++        <DialogClose asChild>
++          <Button type="button" variant="outline" disabled={pending}>
++            {t('loyalty.customer.adjustment.cancel')}
++          </Button>
++        </DialogClose>
++        <Button type="submit" variant={type === 'debit' ? 'destructive' : 'default'} disabled={pending}>
++          {t(pending ? 'loyalty.customer.adjustment.submitting' : 'loyalty.customer.adjustment.submit')}
++        </Button>
++      </DialogFooter>
++    </>
++  )
++}
++
++export function CustomerLoyaltyAdjustmentDialog({
++  customerId,
++  summary,
++  open,
++  onOpenChange,
++  triggerRef,
++}: {
++  customerId: number
++  summary?: CustomerLoyaltySummary
++  open: boolean
++  onOpenChange: (open: boolean) => void
++  triggerRef: RefObject<HTMLButtonElement | null>
++}) {
++  const { t, i18n } = useTranslation()
++  const mutation = useAdjustCustomerLoyalty(customerId)
++  const submissionLock = useRef(false)
++  const [error, setError] = useState<string | null>(null)
++  const available = summary?.available ?? null
++  const availableLabel =
++    available === null
++      ? t('loyalty.customer.adjustment.availableUnavailable')
++      : new Intl.NumberFormat(i18n.language.startsWith('ar') ? 'ar-EG' : 'en-GB').format(available)
++  const schema = createLoyaltyAdjustmentSchema(
++    {
++      required: t('loyalty.customer.adjustment.validation.required'),
++      integer: t('loyalty.customer.adjustment.validation.integer'),
++      pointsRange: t('loyalty.customer.adjustment.validation.pointsRange'),
++      noteLength: t('loyalty.customer.adjustment.validation.noteLength'),
++      insufficientBalance: t('loyalty.customer.adjustment.validation.insufficientBalance', {
++        available: availableLabel,
++      }),
++    },
++    available
++  )
++
++  return (
++    <Dialog
++      open={open}
++      onOpenChange={(nextOpen) => {
++        if (mutation.isPending) return
++        setError(null)
++        onOpenChange(nextOpen)
++      }}
++    >
++      <DialogContent
++        dir={i18n.dir()}
++        onCloseAutoFocus={(event) => {
++          event.preventDefault()
++          triggerRef.current?.focus()
++        }}
++      >
++        <DialogHeader>
++          <DialogTitle>{t('loyalty.customer.adjustment.title')}</DialogTitle>
++          <DialogDescription>{t('loyalty.customer.adjustment.description')}</DialogDescription>
++        </DialogHeader>
++        <p className="rounded-md bg-muted p-3 text-sm">
++          {t('loyalty.customer.adjustment.availableBalance', { available: availableLabel })}
++        </p>
++        {summary?.isBlocked ? (
++          <p className="text-sm text-warning-700">{t('loyalty.customer.adjustment.frozenHint')}</p>
++        ) : null}
++        <FormWrapper<LoyaltyAdjustmentFormValues>
++          key={String(open)}
++          defaultValues={defaultValues}
++          schema={schema}
++          className="space-y-4"
++          submissionDisabled={mutation.isPending}
++          onSubmit={async (values, methods) => {
++            if (submissionLock.current || mutation.isPending) return
++            if (typeof values.points !== 'number' || !values.reason) return
++            submissionLock.current = true
++            setError(null)
++            try {
++              const payload: LoyaltyAdjustmentPayload = {
++                type: values.type,
++                points: values.points,
++                reason: values.reason,
++                note: values.note,
++                notifyCustomer: values.notifyCustomer,
++              }
++              await mutation.mutateAsync(payload)
++              methods.reset(defaultValues)
++              onOpenChange(false)
++            } catch (failure) {
++              setError(getApiErrorMessage(failure, t('loyalty.customer.adjustment.feedback.error')))
++              applyApiValidationErrors(failure, methods.setError, { notify_customer: 'notifyCustomer' })
++            } finally {
++              submissionLock.current = false
++            }
++          }}
++        >
++          {error ? (
++            <p role="alert" className="text-sm text-destructive">
++              {error}
++            </p>
++          ) : null}
++          <AdjustmentFields pending={mutation.isPending} />
++        </FormWrapper>
++      </DialogContent>
++    </Dialog>
++  )
++}
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyFilters.tsx b/src/modules/loyalty/components/CustomerLoyaltyFilters.tsx
+new file mode 100644
+index 0000000..613a7fb
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyFilters.tsx
+@@ -0,0 +1,68 @@
++import { useTranslation } from 'react-i18next'
++
++import FilterSelect from '@/components/filters/FilterSelect'
++import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
++
++export function CustomerLoyaltyFilters({ filters }: { filters: LoyaltyLedgerFilters }) {
++  const { t } = useTranslation()
++  const { forwardAddQuery, forwardDeleteQuery } = useQuery()
++  const dateState = getLoyaltyLedgerDateState(filters)
++  const dateErrorId = dateState === 'valid' ? undefined : 'loyalty-ledger-date-error'
++  const types = [{ value: 'adjust_credit', label: t('loyalty.customer.ledger.types.adjustCredit') }]
++  const updateDate = (name: 'from' | 'to', value: string) =>
++    forwardAddQuery({ [name]: value }, { resetQueryNames: ['page'] })
++
++  return (
++    <DashboardCard padding="lg" className="space-y-4">
++      <div className="flex flex-wrap items-center justify-between gap-3">
++        <h2 className="text-lg font-semibold">{t('loyalty.customer.filters.title')}</h2>
++        <Button
++          type="button"
++          variant="ghost"
++          disabled={!filters.type && !filters.from && !filters.to}
++          onClick={() => forwardDeleteQuery(['type', 'from', 'to'], { resetQueryNames: ['page'] })}
++        >
++          {t('loyalty.customer.filters.clear')}
++        </Button>
++      </div>
++      <div className="grid gap-4 md:grid-cols-3">
++        <FilterSelect
++          name="type"
++          label={t('loyalty.customer.filters.type')}
++          placeholder={t('loyalty.customer.filters.allTypes')}
++          data={types}
++          valueKey="value"
++          labelKey="label"
++          resetQueryNamesOnChange={['page']}
++          resetQueryNamesOnClear
++        />
++        {(['from', 'to'] as const).map((name) => (
++          <div key={name}>
++            <Label className="mb-2 text-foreground" htmlFor={`loyalty-ledger-${name}`}>
++              {t(`loyalty.customer.filters.${name}`)}
++            </Label>
++            <Input
++              id={`loyalty-ledger-${name}`}
++              type="date"
++              value={filters[name]}
++              aria-invalid={dateState !== 'valid'}
++              aria-describedby={dateErrorId}
++              onChange={(event) => updateDate(name, event.target.value)}
++            />
++          </div>
++        ))}
++      </div>
++      {dateErrorId ? (
++        <p id={dateErrorId} role="alert" className="text-sm text-destructive">
++          {t(`loyalty.customer.filters.${dateState === 'incomplete' ? 'completeRange' : 'invalidRange'}`)}
++        </p>
++      ) : null}
++    </DashboardCard>
++  )
++}
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyLedger.tsx b/src/modules/loyalty/components/CustomerLoyaltyLedger.tsx
+new file mode 100644
+index 0000000..de00d2e
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyLedger.tsx
+@@ -0,0 +1,216 @@
++import { BookOpenText, CalendarClock } from 'lucide-react'
++import { useTranslation } from 'react-i18next'
++
++import {
++  ResponsiveDataDesktop,
++  ResponsiveDataFact,
++  ResponsiveDataLayout,
++  ResponsiveDataMobileCard,
++  ResponsiveDataMobileCards,
++  ResponsiveDataTable,
++  ResponsiveDataTableCell,
++  ResponsiveDataTableRow,
++} from '@/components/shared/data-display/ResponsiveDataLayout'
++import { EmptyState } from '@/components/shared/empty-state'
++import { QueryStateBoundary } from '@/components/shared/query-state'
++import { Skeleton } from '@/components/ui/skeleton'
++import { useCustomerLoyaltyLedger } from '@/modules/loyalty/hooks/useCustomerLoyaltyLedger'
++import type { CustomerLoyaltyLedgerItem, LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
++import { formatDateTime, resolveAppLocale, type AppLocale } from '@/utils/date/date.helpers'
++
++function LedgerSkeleton() {
++  return (
++    <div className="space-y-3 p-5">
++      <Skeleton className="h-16 w-full" />
++      <Skeleton className="h-16 w-full" />
++      <Skeleton className="h-16 w-full" />
++    </div>
++  )
++}
++
++function LedgerDate({ value, unavailable, locale }: { value: string | null; unavailable: string; locale: AppLocale }) {
++  const label = value ? formatDateTime(value, { locale }) : ''
++  return value && label ? <time dateTime={value}>{label}</time> : <span>{unavailable}</span>
++}
++
++function signedPoints(value: number, language: string) {
++  const number = new Intl.NumberFormat(language.startsWith('ar') ? 'ar-EG' : 'en-GB')
++  const sign = value > 0 ? '+' : value < 0 ? '−' : ''
++  return `${sign}${number.format(Math.abs(value))}`
++}
++
++function orderLabel(order: unknown | null, available: string, unavailable: string) {
++  return order === null ? unavailable : available
++}
++
++function LedgerDesktop({ items }: { items: CustomerLoyaltyLedgerItem[] }) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const unavailable = t('loyalty.customer.ledger.unavailable')
++  const columns = [
++    { id: 'date', header: t('loyalty.customer.ledger.fields.date') },
++    { id: 'transaction', header: t('loyalty.customer.ledger.fields.transaction') },
++    { id: 'points', header: t('loyalty.customer.ledger.fields.points') },
++    { id: 'bucket', header: t('loyalty.customer.ledger.fields.bucket') },
++    { id: 'order', header: t('loyalty.customer.ledger.fields.order') },
++    { id: 'expiry', header: t('loyalty.customer.ledger.fields.expiry') },
++    { id: 'actor', header: t('loyalty.customer.ledger.fields.actor') },
++    { id: 'reason', header: t('loyalty.customer.ledger.fields.reason') },
++  ]
++  return (
++    <ResponsiveDataDesktop>
++      <ResponsiveDataTable columns={columns} aria-label={t('loyalty.customer.ledger.title')}>
++        {items.map((item) => (
++          <ResponsiveDataTableRow key={item.id}>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              <LedgerDate value={item.createdAt} unavailable={unavailable} locale={locale} />
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="min-w-52 whitespace-normal">
++              <p className="font-medium">{item.label || item.type}</p>
++              <p className="text-xs text-content-muted">
++                <bdi>{item.type}</bdi>
++              </p>
++              {item.note ? (
++                <p className="mt-1 line-clamp-2 max-w-64 text-xs text-content-secondary" title={item.note}>
++                  {item.note}
++                </p>
++              ) : null}
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell>
++              <bdi dir="ltr" className="font-semibold">
++                {signedPoints(item.points, i18n.language)}
++              </bdi>
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell>
++              <bdi>{item.bucket}</bdi>
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell>
++              {orderLabel(item.order, t('loyalty.customer.ledger.orderAvailable'), unavailable)}
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              <LedgerDate value={item.lotExpiresAt} unavailable={unavailable} locale={locale} />
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              {item.actorName || item.actorType || unavailable}
++            </ResponsiveDataTableCell>
++            <ResponsiveDataTableCell className="whitespace-normal">
++              {item.reasonLabel || item.reason || unavailable}
++            </ResponsiveDataTableCell>
++          </ResponsiveDataTableRow>
++        ))}
++      </ResponsiveDataTable>
++    </ResponsiveDataDesktop>
++  )
++}
++
++function LedgerMobile({ items }: { items: CustomerLoyaltyLedgerItem[] }) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const unavailable = t('loyalty.customer.ledger.unavailable')
++  return (
++    <ResponsiveDataMobileCards>
++      {items.map((item) => (
++        <ResponsiveDataMobileCard
++          key={item.id}
++          title={item.label || item.type}
++          subtitle={<LedgerDate value={item.createdAt} unavailable={unavailable} locale={locale} />}
++          facts={
++            <>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.points')}>
++                <bdi dir="ltr">{signedPoints(item.points, i18n.language)}</bdi>
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.bucket')}>
++                <bdi>{item.bucket}</bdi>
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.order')}>
++                {orderLabel(item.order, t('loyalty.customer.ledger.orderAvailable'), unavailable)}
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.expiry')}>
++                <LedgerDate value={item.lotExpiresAt} unavailable={unavailable} locale={locale} />
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.actor')}>
++                {item.actorName || item.actorType || unavailable}
++              </ResponsiveDataFact>
++              <ResponsiveDataFact label={t('loyalty.customer.ledger.fields.reason')}>
++                {item.reasonLabel || item.reason || unavailable}
++              </ResponsiveDataFact>
++            </>
++          }
++          footer={
++            item.note ? (
++              <p className="line-clamp-2 text-xs text-content-secondary" title={item.note}>
++                {item.note}
++              </p>
++            ) : undefined
++          }
++        />
++      ))}
++    </ResponsiveDataMobileCards>
++  )
++}
++
++export function CustomerLoyaltyLedger({ customerId, filters }: { customerId: number; filters: LoyaltyLedgerFilters }) {
++  const { t } = useTranslation()
++  const dateState = getLoyaltyLedgerDateState(filters)
++  const query = useCustomerLoyaltyLedger(customerId, filters, true)
++  const items = query.data?.items ?? []
++  const header = (
++    <div className="min-w-0 space-y-1">
++      <h2 className="text-lg font-semibold">{t('loyalty.customer.ledger.title')}</h2>
++      <p className="text-sm text-content-muted">
++        {t('loyalty.customer.ledger.total', { count: query.data?.meta.total ?? items.length })}
++      </p>
++    </div>
++  )
++
++  if (dateState !== 'valid') {
++    return (
++      <ResponsiveDataLayout
++        header={header}
++        isEmpty
++        empty={
++          <EmptyState
++            icon={<CalendarClock />}
++            title={t('loyalty.customer.ledger.waitingForDates')}
++            description={t('loyalty.customer.ledger.waitingForDatesDescription')}
++          />
++        }
++      >
++        {null}
++      </ResponsiveDataLayout>
++    )
++  }
++
++  return (
++    <QueryStateBoundary
++      loadingFallback={
++        <ResponsiveDataLayout header={header} isEmpty={false} empty={null} isLoading loading={<LedgerSkeleton />}>
++          {null}
++        </ResponsiveDataLayout>
++      }
++      isLoading={query.isLoading}
++      isLoadingError={query.isError && !query.data}
++      isRefetchError={query.isRefetchError}
++      isPaused={query.isPaused}
++      isFetching={query.isFetching}
++      hasData={Boolean(query.data)}
++      onRetry={query.refetch}
++    >
++      <ResponsiveDataLayout
++        header={header}
++        isEmpty={items.length === 0}
++        empty={
++          <EmptyState
++            icon={<BookOpenText />}
++            title={t('loyalty.customer.ledger.emptyTitle')}
++            description={t('loyalty.customer.ledger.emptyDescription')}
++          />
++        }
++      >
++        <LedgerDesktop items={items} />
++        <LedgerMobile items={items} />
++      </ResponsiveDataLayout>
++    </QueryStateBoundary>
++  )
++}
+diff --git a/src/modules/loyalty/components/CustomerLoyaltySummary.tsx b/src/modules/loyalty/components/CustomerLoyaltySummary.tsx
+new file mode 100644
+index 0000000..8b7cc96
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltySummary.tsx
+@@ -0,0 +1,88 @@
++import { Snowflake } from 'lucide-react'
++import { useTranslation } from 'react-i18next'
++
++import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
++import { QueryStateBoundary } from '@/components/shared/query-state'
++import { Badge } from '@/components/ui/badge'
++import { Skeleton } from '@/components/ui/skeleton'
++import type { useCustomerLoyalty } from '@/modules/loyalty/hooks/useCustomerLoyalty'
++import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
++
++function SummarySkeleton() {
++  return (
++    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
++      {Array.from({ length: 4 }, (_, index) => (
++        <DashboardCard key={index} padding="lg" className="space-y-3">
++          <Skeleton className="h-4 w-28" />
++          <Skeleton className="h-8 w-20" />
++        </DashboardCard>
++      ))}
++    </div>
++  )
++}
++
++export function CustomerLoyaltySummary({ query }: { query: ReturnType<typeof useCustomerLoyalty> }) {
++  const { t, i18n } = useTranslation()
++  const locale = resolveAppLocale(i18n.language)
++  const number = new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-GB')
++  const summary = query.data
++  const expiry = summary?.expiringSoon?.expiresAt
++
++  return (
++    <section aria-labelledby="customer-loyalty-summary-title" className="space-y-3">
++      <div className="flex flex-wrap items-center gap-3">
++        <h2 id="customer-loyalty-summary-title" className="text-lg font-semibold">
++          {t('loyalty.customer.summary.title')}
++        </h2>
++        {summary?.isBlocked ? (
++          <Badge variant="warning">
++            <Snowflake aria-hidden />
++            {t('loyalty.customer.summary.frozen')}
++          </Badge>
++        ) : null}
++      </div>
++      <QueryStateBoundary
++        loadingFallback={<SummarySkeleton />}
++        isLoading={query.isLoading}
++        isLoadingError={query.isError && !summary}
++        isRefetchError={query.isRefetchError}
++        isPaused={query.isPaused}
++        isFetching={query.isFetching}
++        hasData={Boolean(summary)}
++        onRetry={query.refetch}
++      >
++        {summary ? (
++          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
++            {(
++              [
++                ['available', summary.available],
++                ['pending', summary.pending],
++                ['held', summary.held],
++              ] as const
++            ).map(([key, value]) => (
++              <DashboardCard key={key} padding="lg" className="min-w-0 space-y-2">
++                <h3 className="text-sm font-medium text-content-secondary">{t(`loyalty.customer.summary.${key}`)}</h3>
++                <bdi className="block text-2xl font-semibold text-content-primary">{number.format(value)}</bdi>
++              </DashboardCard>
++            ))}
++            <DashboardCard padding="lg" className="min-w-0 space-y-2">
++              <h3 className="text-sm font-medium text-content-secondary">
++                {t('loyalty.customer.summary.expiringSoon')}
++              </h3>
++              <bdi className="block text-2xl font-semibold text-content-primary">
++                {summary.expiringSoon
++                  ? number.format(summary.expiringSoon.points)
++                  : t('loyalty.customer.summary.unavailable')}
++              </bdi>
++              {expiry ? (
++                <p className="text-xs text-content-muted">
++                  {t('loyalty.customer.summary.expiresAt', { date: formatDateTime(expiry, { locale }) })}
++                </p>
++              ) : null}
++            </DashboardCard>
++          </div>
++        ) : null}
++      </QueryStateBoundary>
++    </section>
++  )
++}
+diff --git a/src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx b/src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx
+new file mode 100644
+index 0000000..a85f4be
+--- /dev/null
++++ b/src/modules/loyalty/components/CustomerLoyaltyWorkspace.tsx
+@@ -0,0 +1,38 @@
++import { useRef, useState } from 'react'
++import { useTranslation } from 'react-i18next'
++import { Button } from '@/components/ui/button'
++import { useCustomerLoyalty } from '@/modules/loyalty/hooks/useCustomerLoyalty'
++import { useQuery } from '@/store/queryContext/useQueryContext'
++import { readLoyaltyLedgerFilters } from '@/modules/loyalty/utils/loyalty-ledger'
++import { CustomerLoyaltyAdjustmentDialog } from './CustomerLoyaltyAdjustmentDialog'
++import { CustomerLoyaltyFilters } from './CustomerLoyaltyFilters'
++import { CustomerLoyaltyLedger } from './CustomerLoyaltyLedger'
++import { CustomerLoyaltySummary } from './CustomerLoyaltySummary'
++
++export function CustomerLoyaltyWorkspace({ customerId }: { customerId: number }) {
++  const { t } = useTranslation()
++  const { forwardQuery } = useQuery()
++  const [adjustmentOpen, setAdjustmentOpen] = useState(false)
++  const adjustmentTriggerRef = useRef<HTMLButtonElement>(null)
++  const filters = readLoyaltyLedgerFilters(forwardQuery)
++  const summaryQuery = useCustomerLoyalty(customerId, true)
++  return (
++    <div className="space-y-5">
++      <div className="flex justify-end">
++        <Button ref={adjustmentTriggerRef} onClick={() => setAdjustmentOpen(true)}>
++          {t('loyalty.customer.adjustment.action')}
++        </Button>
++      </div>
++      <CustomerLoyaltySummary query={summaryQuery} />
++      <CustomerLoyaltyFilters filters={filters} />
++      <CustomerLoyaltyLedger customerId={customerId} filters={filters} />
++      <CustomerLoyaltyAdjustmentDialog
++        customerId={customerId}
++        summary={summaryQuery.data}
++        open={adjustmentOpen}
++        onOpenChange={setAdjustmentOpen}
++        triggerRef={adjustmentTriggerRef}
++      />
++    </div>
++  )
++}
+diff --git a/src/modules/loyalty/hooks/useAdjustCustomerLoyalty.test.tsx b/src/modules/loyalty/hooks/useAdjustCustomerLoyalty.test.tsx
+new file mode 100644
+index 0000000..32c1c3c
+--- /dev/null
++++ b/src/modules/loyalty/hooks/useAdjustCustomerLoyalty.test.tsx
+@@ -0,0 +1,178 @@
++import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
++import { act, renderHook, waitFor } from '@testing-library/react'
++import type { PropsWithChildren } from 'react'
++import { toast } from 'sonner'
++import { afterEach, describe, expect, it, vi } from 'vitest'
++
++import '@/config/i18'
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { useAdjustCustomerLoyalty } from '@/modules/loyalty/hooks/useAdjustCustomerLoyalty'
++import { useCustomerLoyaltyLedger } from '@/modules/loyalty/hooks/useCustomerLoyaltyLedger'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++import type {
++  CustomerLoyaltyLedgerPage,
++  CustomerLoyaltySummary,
++  LoyaltyAdjustmentPayload,
++} from '@/modules/loyalty/types/loyalty.types'
++
++vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
++
++const updated: CustomerLoyaltySummary = {
++  available: 600,
++  pending: 2,
++  held: 3,
++  expiringSoon: null,
++  isBlocked: false,
++}
++
++const filters = { type: null, from: '', to: '' } as const
++const payload: LoyaltyAdjustmentPayload = {
++  type: 'credit',
++  points: 500,
++  reason: 'other',
++  note: 'Customer recovery credit',
++  notifyCustomer: false,
++}
++
++function ledgerPage(id: number): CustomerLoyaltyLedgerPage {
++  return {
++    items: [
++      {
++        id,
++        createdAt: '2026-11-14T12:00:00+03:00',
++        type: 'adjust_credit',
++        label: 'Manual adjustment',
++        bucket: 'available',
++        points: 500,
++        lotExpiresAt: null,
++        actorType: 'admin',
++        actorName: null,
++        reason: 'other',
++        reasonLabel: null,
++        note: 'Customer recovery credit',
++        order: null,
++      },
++    ],
++    meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 },
++  }
++}
++
++function createClient() {
++  return new QueryClient({
++    defaultOptions: {
++      queries: { retry: false, staleTime: 5 * 60 * 1000, gcTime: Infinity, refetchOnMount: false },
++      mutations: { retry: false },
++    },
++  })
++}
++
++function createWrapper(client: QueryClient) {
++  return function Wrapper({ children }: PropsWithChildren) {
++    return <QueryClientProvider client={client}>{children}</QueryClientProvider>
++  }
++}
++
++describe('customer loyalty adjustment cache lifecycle', () => {
++  afterEach(() => vi.restoreAllMocks())
++
++  it('sets only the exact summary and invalidates only that customer ledger scope', async () => {
++    vi.spyOn(loyaltyService, 'adjustCustomerPoints').mockResolvedValue(updated)
++    const client = createClient()
++    const invalidate = vi.spyOn(client, 'invalidateQueries')
++    client.setQueryData(loyaltyKeys.customerSummary(13), { ...updated, available: 13 })
++    const wrapper = createWrapper(client)
++    const { result } = renderHook(() => useAdjustCustomerLoyalty(12), { wrapper })
++
++    await act(() => result.current.mutateAsync(payload))
++
++    expect(loyaltyService.adjustCustomerPoints).toHaveBeenCalledExactlyOnceWith(12, payload)
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(updated)
++    expect(client.getQueryData(loyaltyKeys.customerSummary(13))).toEqual({ ...updated, available: 13 })
++    expect(invalidate).toHaveBeenCalledExactlyOnceWith({
++      queryKey: loyaltyKeys.customerLedgers(12),
++      refetchType: 'active',
++    })
++  })
++
++  it('refreshes one active customer ledger once without touching another customer ledger', async () => {
++    vi.spyOn(loyaltyService, 'adjustCustomerPoints').mockResolvedValue(updated)
++    const getLedger = vi
++      .spyOn(loyaltyService, 'getCustomerLedger')
++      .mockImplementation(async (customerId) => ledgerPage(customerId === 12 ? 12 : 13))
++    const client = createClient()
++    const wrapper = createWrapper(client)
++    const customer12 = renderHook(() => useCustomerLoyaltyLedger(12, filters, true), { wrapper })
++    const customer13 = renderHook(() => useCustomerLoyaltyLedger(13, filters, true), { wrapper })
++    const mutation = renderHook(() => useAdjustCustomerLoyalty(12), { wrapper })
++
++    await waitFor(() => {
++      expect(customer12.result.current.isSuccess).toBe(true)
++      expect(customer13.result.current.isSuccess).toBe(true)
++    })
++    await act(() => mutation.result.current.mutateAsync(payload))
++
++    expect(getLedger.mock.calls.filter(([customerId]) => customerId === 12)).toHaveLength(2)
++    expect(getLedger.mock.calls.filter(([customerId]) => customerId === 13)).toHaveLength(1)
++    expect(customer12.result.current.data).toEqual(ledgerPage(12))
++    expect(customer13.result.current.data).toEqual(ledgerPage(13))
++  })
++
++  it('marks an inactive ledger stale and refreshes it once when Points reopens', async () => {
++    let resolveAdjustment!: (summary: CustomerLoyaltySummary) => void
++    vi.spyOn(loyaltyService, 'adjustCustomerPoints').mockImplementation(
++      () => new Promise((resolve) => (resolveAdjustment = resolve))
++    )
++    const getLedger = vi
++      .spyOn(loyaltyService, 'getCustomerLedger')
++      .mockResolvedValueOnce(ledgerPage(1))
++      .mockResolvedValueOnce(ledgerPage(2))
++    const client = createClient()
++    const wrapper = createWrapper(client)
++    const ledger = renderHook(() => useCustomerLoyaltyLedger(12, filters, true), { wrapper })
++    const mutation = renderHook(() => useAdjustCustomerLoyalty(12), { wrapper })
++
++    await waitFor(() => expect(ledger.result.current.data).toEqual(ledgerPage(1)))
++    let adjustment!: Promise<CustomerLoyaltySummary>
++    act(() => {
++      adjustment = mutation.result.current.mutateAsync(payload)
++    })
++    await waitFor(() => expect(loyaltyService.adjustCustomerPoints).toHaveBeenCalledOnce())
++    ledger.unmount()
++    resolveAdjustment(updated)
++    await act(() => adjustment)
++
++    expect(getLedger).toHaveBeenCalledTimes(1)
++    expect(client.getQueryState(loyaltyKeys.customerLedger(12, filters))?.isInvalidated).toBe(true)
++
++    const reopened = renderHook(() => useCustomerLoyaltyLedger(12, filters, true), { wrapper })
++    await waitFor(() => expect(reopened.result.current.data).toEqual(ledgerPage(2)))
++    expect(getLedger).toHaveBeenCalledTimes(2)
++    expect(client.getQueryState(loyaltyKeys.customerLedger(12, filters))?.isInvalidated).toBe(false)
++  })
++
++  it('does not change cached financial data on failure', async () => {
++    const existing = { ...updated, available: 100 }
++    vi.spyOn(loyaltyService, 'adjustCustomerPoints').mockRejectedValue(new Error('failed'))
++    const client = createClient()
++    client.setQueryData(loyaltyKeys.customerSummary(12), existing)
++    const invalidate = vi.spyOn(client, 'invalidateQueries')
++    const wrapper = createWrapper(client)
++    const { result } = renderHook(() => useAdjustCustomerLoyalty(12), { wrapper })
++
++    await expect(
++      act(() =>
++        result.current.mutateAsync({
++          type: 'debit',
++          points: 10,
++          reason: 'customer_service',
++          note: 'Correct customer balance',
++          notifyCustomer: false,
++        })
++      )
++    ).rejects.toThrow('failed')
++
++    expect(client.getQueryData(loyaltyKeys.customerSummary(12))).toEqual(existing)
++    expect(invalidate).not.toHaveBeenCalled()
++    expect(toast.error).not.toHaveBeenCalled()
++  })
++})
+diff --git a/src/modules/loyalty/hooks/useAdjustCustomerLoyalty.ts b/src/modules/loyalty/hooks/useAdjustCustomerLoyalty.ts
+new file mode 100644
+index 0000000..1482033
+--- /dev/null
++++ b/src/modules/loyalty/hooks/useAdjustCustomerLoyalty.ts
+@@ -0,0 +1,25 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { useTranslation } from 'react-i18next'
++import { toast } from 'sonner'
++
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++import type { LoyaltyAdjustmentPayload } from '@/modules/loyalty/types/loyalty.types'
++
++export function useAdjustCustomerLoyalty(customerId: number) {
++  const queryClient = useQueryClient()
++  const { t } = useTranslation()
++
++  return useMutation({
++    retry: false,
++    mutationFn: (payload: LoyaltyAdjustmentPayload) => loyaltyService.adjustCustomerPoints(customerId, payload),
++    onSuccess: async (summary) => {
++      queryClient.setQueryData(loyaltyKeys.customerSummary(customerId), summary)
++      await queryClient.invalidateQueries({
++        queryKey: loyaltyKeys.customerLedgers(customerId),
++        refetchType: 'active',
++      })
++      toast.success(t('loyalty.customer.adjustment.feedback.success'))
++    },
++  })
++}
+diff --git a/src/modules/loyalty/hooks/useCustomerLoyalty.ts b/src/modules/loyalty/hooks/useCustomerLoyalty.ts
+new file mode 100644
+index 0000000..63335e1
+--- /dev/null
++++ b/src/modules/loyalty/hooks/useCustomerLoyalty.ts
+@@ -0,0 +1,13 @@
++import { useQuery } from '@tanstack/react-query'
++
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++
++export function useCustomerLoyalty(customerId: number, enabled: boolean) {
++  return useQuery({
++    queryKey: loyaltyKeys.customerSummary(customerId),
++    queryFn: ({ signal }) => loyaltyService.getCustomerSummary(customerId, signal),
++    enabled,
++    retry: false,
++  })
++}
+diff --git a/src/modules/loyalty/hooks/useCustomerLoyaltyLedger.ts b/src/modules/loyalty/hooks/useCustomerLoyaltyLedger.ts
+new file mode 100644
+index 0000000..587cc4d
+--- /dev/null
++++ b/src/modules/loyalty/hooks/useCustomerLoyaltyLedger.ts
+@@ -0,0 +1,18 @@
++import { useQuery } from '@tanstack/react-query'
++
++import { loyaltyService } from '@/modules/loyalty/api/loyalty.service'
++import { loyaltyKeys } from '@/modules/loyalty/queries/loyalty.keys'
++import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++import { getLoyaltyLedgerDateState } from '@/modules/loyalty/utils/loyalty-ledger'
++
++export function useCustomerLoyaltyLedger(customerId: number, filters: LoyaltyLedgerFilters, enabled: boolean) {
++  return useQuery({
++    queryKey: loyaltyKeys.customerLedger(customerId, filters),
++    queryFn: ({ signal }) => loyaltyService.getCustomerLedger(customerId, filters, signal),
++    enabled: enabled && getLoyaltyLedgerDateState(filters) === 'valid',
++    retry: false,
++    // The global client disables mount refetches. An adjustment can invalidate
++    // this query after its observer unmounts, so refresh stale history on reopen.
++    refetchOnMount: true,
++  })
++}
+diff --git a/src/modules/loyalty/schemas/loyalty-adjustment.schema.test.ts b/src/modules/loyalty/schemas/loyalty-adjustment.schema.test.ts
+new file mode 100644
+index 0000000..d1b2fca
+--- /dev/null
++++ b/src/modules/loyalty/schemas/loyalty-adjustment.schema.test.ts
+@@ -0,0 +1,51 @@
++import { describe, expect, it } from 'vitest'
++
++import { createLoyaltyAdjustmentSchema } from './loyalty-adjustment.schema'
++
++const schema = (available: number | null = 100) =>
++  createLoyaltyAdjustmentSchema(
++    {
++      required: 'required',
++      integer: 'integer',
++      pointsRange: 'range',
++      noteLength: 'note',
++      insufficientBalance: 'insufficient',
++    },
++    available
++  )
++
++const valid = {
++  type: 'credit',
++  points: 10,
++  reason: 'customer_service',
++  note: 'A valid internal note',
++  notifyCustomer: false,
++}
++
++describe('loyalty adjustment validation', () => {
++  it('accepts documented credit and debit values without changing the note', async () => {
++    await expect(schema().validate(valid)).resolves.toEqual(valid)
++    await expect(schema().validate({ ...valid, type: 'debit', points: 100, reason: 'other' })).resolves.toMatchObject({
++      type: 'debit',
++      points: 100,
++      reason: 'other',
++    })
++  })
++
++  it.each([0, -1, 1.5, 100001])('rejects invalid points %s', async (points) => {
++    await expect(schema().validate({ ...valid, points })).rejects.toThrow()
++  })
++
++  it('rejects unsupported reasons and notes outside 10-250 trimmed characters', async () => {
++    await expect(schema().validate({ ...valid, reason: 'refund' })).rejects.toThrow('required')
++    await expect(schema().validate({ ...valid, note: ' short ' })).rejects.toThrow('note')
++    await expect(schema().validate({ ...valid, note: 'x'.repeat(251) })).rejects.toThrow('note')
++  })
++
++  it('blocks a known over-balance debit but leaves unknown balance authority to the backend', async () => {
++    await expect(schema(100).validate({ ...valid, type: 'debit', points: 101 })).rejects.toThrow('insufficient')
++    await expect(schema(null).validate({ ...valid, type: 'debit', points: 101 })).resolves.toMatchObject({
++      points: 101,
++    })
++  })
++})
+diff --git a/src/modules/loyalty/schemas/loyalty-adjustment.schema.ts b/src/modules/loyalty/schemas/loyalty-adjustment.schema.ts
+new file mode 100644
+index 0000000..70c586a
+--- /dev/null
++++ b/src/modules/loyalty/schemas/loyalty-adjustment.schema.ts
+@@ -0,0 +1,43 @@
++import * as yup from 'yup'
++
++import type { LoyaltyAdjustmentFormValues } from '@/modules/loyalty/types/loyalty.types'
++
++export type LoyaltyAdjustmentValidationMessages = {
++  required: string
++  integer: string
++  pointsRange: string
++  noteLength: string
++  insufficientBalance: string
++}
++
++export function createLoyaltyAdjustmentSchema(
++  messages: LoyaltyAdjustmentValidationMessages,
++  availablePoints: number | null
++) {
++  return yup.object<LoyaltyAdjustmentFormValues>({
++    type: yup.mixed<'credit' | 'debit'>().oneOf(['credit', 'debit'], messages.required).required(messages.required),
++    points: yup
++      .number()
++      .transform((value, originalValue) => (originalValue === '' || originalValue === null ? Number.NaN : value))
++      .typeError(messages.required)
++      .required(messages.required)
++      .integer(messages.integer)
++      .min(1, messages.pointsRange)
++      .max(100000, messages.pointsRange)
++      .test('available-balance', messages.insufficientBalance, function (value) {
++        return this.parent.type !== 'debit' || availablePoints === null || value <= availablePoints
++      }),
++    reason: yup
++      .mixed<'customer_service' | 'other'>()
++      .oneOf(['customer_service', 'other'], messages.required)
++      .required(messages.required),
++    note: yup
++      .string()
++      .required(messages.required)
++      .test('note-length', messages.noteLength, (value) => {
++        const length = value?.trim().length ?? 0
++        return length >= 10 && length <= 250
++      }),
++    notifyCustomer: yup.boolean().required(messages.required).defined(),
++  })
++}
+diff --git a/src/modules/loyalty/utils/loyalty-ledger.test.ts b/src/modules/loyalty/utils/loyalty-ledger.test.ts
+new file mode 100644
+index 0000000..95ac55a
+--- /dev/null
++++ b/src/modules/loyalty/utils/loyalty-ledger.test.ts
+@@ -0,0 +1,25 @@
++import { describe, expect, it } from 'vitest'
++
++import { getLoyaltyLedgerDateState, readLoyaltyLedgerFilters, serializeLoyaltyLedgerFilters } from './loyalty-ledger'
++
++describe('loyalty ledger filters', () => {
++  it('accepts only the documented type and complete valid date ranges', () => {
++    expect(readLoyaltyLedgerFilters({ type: 'unknown', from: '2026-11-01', to: '2026-11-30' })).toEqual({
++      type: null,
++      from: '2026-11-01',
++      to: '2026-11-30',
++    })
++    expect(getLoyaltyLedgerDateState({ type: null, from: '2026-11-01', to: '' })).toBe('incomplete')
++    expect(getLoyaltyLedgerDateState({ type: null, from: '2026-12-01', to: '2026-11-30' })).toBe('invalid')
++    expect(getLoyaltyLedgerDateState({ type: null, from: '2026-11-01', to: '2026-11-30' })).toBe('valid')
++  })
++
++  it('never serializes incomplete date ranges or unsupported values', () => {
++    expect(serializeLoyaltyLedgerFilters({ type: null, from: '2026-11-01', to: '' })).toEqual({})
++    expect(serializeLoyaltyLedgerFilters({ type: 'adjust_credit', from: '2026-11-01', to: '2026-11-30' })).toEqual({
++      type: 'adjust_credit',
++      from: '2026-11-01',
++      to: '2026-11-30',
++    })
++  })
++})
+diff --git a/src/modules/loyalty/utils/loyalty-ledger.ts b/src/modules/loyalty/utils/loyalty-ledger.ts
+new file mode 100644
+index 0000000..664d4bf
+--- /dev/null
++++ b/src/modules/loyalty/utils/loyalty-ledger.ts
+@@ -0,0 +1,37 @@
++import type { QueryRecord } from '@/store/queryContext/types'
++import { isValidDateInput } from '@/utils/date/date.helpers'
++import type { LoyaltyLedgerFilters } from '@/modules/loyalty/types/loyalty.types'
++
++const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
++
++export const emptyLoyaltyLedgerFilters: LoyaltyLedgerFilters = { type: null, from: '', to: '' }
++
++export function readLoyaltyLedgerFilters(query: QueryRecord): LoyaltyLedgerFilters {
++  return {
++    type: query?.type === 'adjust_credit' ? 'adjust_credit' : null,
++    from: query?.from ?? '',
++    to: query?.to ?? '',
++  }
++}
++
++export function getLoyaltyLedgerDateState(filters: LoyaltyLedgerFilters): 'valid' | 'incomplete' | 'invalid' {
++  if (!filters.from && !filters.to) return 'valid'
++  if (!filters.from || !filters.to) return 'incomplete'
++  if (
++    !DATE_PATTERN.test(filters.from) ||
++    !DATE_PATTERN.test(filters.to) ||
++    !isValidDateInput(filters.from) ||
++    !isValidDateInput(filters.to) ||
++    filters.from > filters.to
++  ) {
++    return 'invalid'
++  }
++  return 'valid'
++}
++
++export function serializeLoyaltyLedgerFilters(filters: LoyaltyLedgerFilters) {
++  return {
++    ...(filters.type ? { type: filters.type } : {}),
++    ...(filters.from && filters.to ? { from: filters.from, to: filters.to } : {}),
++  }
++}
+diff --git a/src/modules/orders/__tests__/order-123-cancelled.json b/src/modules/orders/__tests__/order-123-cancelled.json
+new file mode 100644
+index 0000000..668efae
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-123-cancelled.json
+@@ -0,0 +1,91 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 123,
++    "order_number": "RF-10123",
++    "display_number": "#RF-10123",
++    "status": "cancelled",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966553212125"
++    },
++    "shipping_address": {
++      "recipient_name": "sdfdsfsdf",
++      "recipient_phone": "0556764321",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "نمار",
++      "street_details": "الرون"
++    },
++    "items": [
++      {
++        "id": 187,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-wmz-4710",
++        "variant_attributes": {
++          "size": "50"
++        },
++        "quantity": 1,
++        "unit_price": "260.00",
++        "discount_amount": "0.00",
++        "line_total": "260.00"
++      }
++    ],
++    "money": {
++      "subtotal": "260.00",
++      "discount_total": "0.00",
++      "shipping_fee": "149.00",
++      "personalization_total": "0.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "409.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "61.35"
++      },
++      "total": "470.35",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "tap",
++      "status": "failed",
++      "reference": "chg_TS07A4020261804Ng0n2710965",
++      "paid_at": null
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-10-27T21:04:40+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "cancelled",
++        "note": "Payment expired",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-10-27T22:30:25+03:00"
++      }
++    ],
++    "allowed_transitions": [],
++    "loyalty": null,
++    "placed_at": "2026-10-27T21:04:40+03:00",
++    "cancelled_at": "2026-10-27T22:30:25+03:00",
++    "created_at": "2026-10-27T21:04:40+03:00",
++    "updated_at": "2026-10-27T22:30:25+03:00"
++  }
++}
+diff --git a/src/modules/orders/__tests__/order-145-confirmed.json b/src/modules/orders/__tests__/order-145-confirmed.json
+new file mode 100644
+index 0000000..553c3bb
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-confirmed.json
+@@ -0,0 +1,120 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "confirmed",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      }
++    ],
++    "allowed_transitions": ["processing", "cancelled"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": null,
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T00:55:47+03:00"
++  }
++}
+diff --git a/src/modules/orders/__tests__/order-145-delivered.json b/src/modules/orders/__tests__/order-145-delivered.json
+new file mode 100644
+index 0000000..bb69088
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-delivered.json
+@@ -0,0 +1,147 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "delivered",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      },
++      {
++        "from_status": "processing",
++        "to_status": "shipped",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:17+03:00"
++      },
++      {
++        "from_status": "shipped",
++        "to_status": "delivered",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:57+03:00"
++      }
++    ],
++    "allowed_transitions": ["returned"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": "2026-11-29T01:00:57+03:00",
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T01:00:57+03:00"
++  }
++}
+diff --git a/src/modules/orders/__tests__/order-145-processing.json b/src/modules/orders/__tests__/order-145-processing.json
+new file mode 100644
+index 0000000..f2d6163
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-processing.json
+@@ -0,0 +1,129 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "processing",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      }
++    ],
++    "allowed_transitions": ["shipped", "cancelled"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": null,
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T00:59:31+03:00"
++  }
++}
+diff --git a/src/modules/orders/__tests__/order-145-returned.json b/src/modules/orders/__tests__/order-145-returned.json
+new file mode 100644
+index 0000000..f87da56
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-returned.json
+@@ -0,0 +1,156 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "returned",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      },
++      {
++        "from_status": "processing",
++        "to_status": "shipped",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:17+03:00"
++      },
++      {
++        "from_status": "shipped",
++        "to_status": "delivered",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:57+03:00"
++      },
++      {
++        "from_status": "delivered",
++        "to_status": "returned",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:01:24+03:00"
++      }
++    ],
++    "allowed_transitions": [],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "cancelled",
++      "available_on": "2026-11-29T01:00:57+03:00",
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T01:01:24+03:00"
++  }
++}
+diff --git a/src/modules/orders/__tests__/order-145-shipped.json b/src/modules/orders/__tests__/order-145-shipped.json
+new file mode 100644
+index 0000000..0343c9f
+--- /dev/null
++++ b/src/modules/orders/__tests__/order-145-shipped.json
+@@ -0,0 +1,138 @@
++{
++  "success": true,
++  "message": "Order retrieved successfully",
++  "data": {
++    "id": 145,
++    "order_number": "RF-10145",
++    "display_number": "#RF-10145",
++    "status": "shipped",
++    "customer": {
++      "type": "registered",
++      "name": "",
++      "email": null,
++      "phone": "+966552122332"
++    },
++    "shipping_address": {
++      "recipient_name": "maged elshafey",
++      "recipient_phone": "0556545543",
++      "city": {
++        "id": 1,
++        "name": "الرياض"
++      },
++      "district": "بدر",
++      "street_details": "الهايشة"
++    },
++    "items": [
++      {
++        "id": 233,
++        "product_name": "عطر مسك أبيض",
++        "variant_sku": "RAF-dcb-3089363",
++        "variant_attributes": {
++          "size": "100"
++        },
++        "quantity": 6,
++        "unit_price": "500.00",
++        "discount_amount": "0.00",
++        "line_total": "3000.00"
++      },
++      {
++        "id": 234,
++        "product_name": "الورد الزجاجية المضيئة",
++        "variant_sku": "RAF-dcb-3086332198765",
++        "variant_attributes": {
++          "length": "40cm"
++        },
++        "quantity": 4,
++        "unit_price": "130.00",
++        "discount_amount": "0.00",
++        "personalization": {
++          "text": "A",
++          "language": "en",
++          "fee": "1.00"
++        },
++        "line_total": "524.00"
++      }
++    ],
++    "money": {
++      "subtotal": "3520.00",
++      "discount_total": "0.00",
++      "shipping_fee": "0.00",
++      "personalization_total": "4.00",
++      "gift_wrap_fee": "0.00",
++      "taxable_amount": "3524.00",
++      "vat": {
++        "rate": "15.00",
++        "amount": "528.60"
++      },
++      "total": "4052.60",
++      "currency": "SAR"
++    },
++    "coupon": null,
++    "payment": {
++      "method": "card",
++      "status": "paid",
++      "reference": "chg_TS01A3020262154s3RR1311020",
++      "paid_at": "2026-11-14T00:55:47+03:00"
++    },
++    "warehouse": {
++      "id": 6,
++      "name": "محزن الرياض"
++    },
++    "status_history": [
++      {
++        "from_status": null,
++        "to_status": "new",
++        "note": "Order placed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:54:29+03:00"
++      },
++      {
++        "from_status": "new",
++        "to_status": "confirmed",
++        "note": "Payment confirmed",
++        "actor_type": "system",
++        "actor_id": null,
++        "actor_name": null,
++        "created_at": "2026-11-14T00:55:47+03:00"
++      },
++      {
++        "from_status": "confirmed",
++        "to_status": "processing",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T00:59:31+03:00"
++      },
++      {
++        "from_status": "processing",
++        "to_status": "shipped",
++        "note": null,
++        "actor_type": "admin",
++        "actor_id": 1,
++        "actor_name": "Super Admin",
++        "created_at": "2026-11-14T01:00:17+03:00"
++      }
++    ],
++    "allowed_transitions": ["delivered"],
++    "loyalty": {
++      "points_earned": 4052,
++      "earned_status": "pending",
++      "available_on": null,
++      "return_window_days": 15,
++      "points_redeemed": 0,
++      "amount_applied": "0.00",
++      "amount_due": "4052.60",
++      "value_per_point": null,
++      "points_returned": 0,
++      "amount_per_point": "1.00",
++      "rule_version_id": 5
++    },
++    "placed_at": "2026-11-14T00:54:29+03:00",
++    "cancelled_at": null,
++    "created_at": "2026-11-14T00:54:29+03:00",
++    "updated_at": "2026-11-14T01:00:17+03:00"
++  }
++}
+diff --git a/src/modules/orders/components/OrderLoyaltySection.tsx b/src/modules/orders/components/OrderLoyaltySection.tsx
+new file mode 100644
+index 0000000..beddbb5
+--- /dev/null
++++ b/src/modules/orders/components/OrderLoyaltySection.tsx
+@@ -0,0 +1,49 @@
++import { useTranslation } from 'react-i18next'
++import { Badge } from '@/components/ui/badge'
++import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
++import type { OrderDetail } from '../types/order.types'
++import { humanizeOrderValue, orderMoneyLabel } from '../utils/order-presentation'
++import { OrderDetailsFacts, OrderDetailsSection } from './OrderDetailsSection'
++
++export function OrderLoyaltySection({ order }: { order?: OrderDetail }) {
++  const { t, i18n } = useTranslation()
++  const loyalty = order?.loyalty
++  const currency = order?.money.currency
++  const numbers = new Intl.NumberFormat(resolveAppLocale(i18n.language))
++  const status = loyalty?.earnedStatus
++  const statusLabel = status
++    ? ['pending', 'cancelled'].includes(status)
++      ? t(`orders.loyalty.status.${status}`)
++      : humanizeOrderValue(status)
++    : '—'
++  const money = (value: string | null | undefined) =>
++    value != null && currency ? orderMoneyLabel(value, currency, i18n.language) : '—'
++
++  return (
++    <OrderDetailsSection title={t('orders.loyalty.title')}>
++      {order && !loyalty ? <p className="text-sm text-muted-foreground">{t('orders.loyalty.unavailable')}</p> : null}
++      <OrderDetailsFacts
++        loading={!order}
++        facts={[
++          [t('orders.loyalty.earnedStatus'), status ? <Badge variant="outline">{statusLabel}</Badge> : '—'],
++          [t('orders.loyalty.pointsEarned'), loyalty ? numbers.format(loyalty.pointsEarned) : '—'],
++          [
++            t('orders.loyalty.availableOn'),
++            formatDateTime(loyalty?.availableOn, { locale: resolveAppLocale(i18n.language) }) || '—',
++          ],
++          [t('orders.loyalty.returnWindowDays'), loyalty ? numbers.format(loyalty.returnWindowDays) : '—'],
++          [t('orders.loyalty.pointsRedeemed'), loyalty ? numbers.format(loyalty.pointsRedeemed) : '—'],
++          [t('orders.loyalty.amountApplied'), money(loyalty?.amountApplied)],
++          [t('orders.loyalty.amountDue'), money(loyalty?.amountDue)],
++          [
++            t('orders.loyalty.valuePerPoint'),
++            loyalty?.valuePerPoint != null ? money(String(loyalty.valuePerPoint)) : '—',
++          ],
++          [t('orders.loyalty.pointsReturned'), loyalty ? numbers.format(loyalty.pointsReturned) : '—'],
++          [t('orders.loyalty.amountPerPoint'), money(loyalty?.amountPerPoint)],
++          [t('orders.loyalty.ruleVersion'), loyalty ? numbers.format(loyalty.ruleVersionId) : '—'],
++        ]}
++      />
++    </OrderDetailsSection>
++  )
++}
