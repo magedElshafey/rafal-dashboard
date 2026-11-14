@@ -1,0 +1,103 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 147,
+    "order_number": "RF-10147",
+    "display_number": "#RF-10147",
+    "status": "confirmed",
+    "customer": {
+      "type": "registered",
+      "name": "",
+      "email": null,
+      "phone": "+966554343232"
+    },
+    "shipping_address": {
+      "recipient_name": "abdullah",
+      "recipient_phone": "0554343232",
+      "city": {
+        "id": 1,
+        "name": "الرياض"
+      },
+      "district": "5 squar",
+      "street_details": "5 home on street 4"
+    },
+    "items": [
+      {
+        "id": 236,
+        "product_name": "عطر مسك أبيض",
+        "variant_sku": "RAF-wmz-4710",
+        "variant_attributes": {
+          "size": "50"
+        },
+        "quantity": 7,
+        "unit_price": "260.00",
+        "discount_amount": "0.00",
+        "line_total": "1820.00"
+      }
+    ],
+    "money": {
+      "subtotal": "1820.00",
+      "discount_total": "0.00",
+      "shipping_fee": "0.00",
+      "personalization_total": "0.00",
+      "gift_wrap_fee": "0.00",
+      "taxable_amount": "1820.00",
+      "vat": {
+        "rate": "15.00",
+        "amount": "273.00"
+      },
+      "total": "2093.00",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "tap",
+      "status": "paid",
+      "reference": "chg_TS04A4120261044y9T61411101",
+      "paid_at": "2026-11-14T13:54:00+03:00"
+    },
+    "warehouse": {
+      "id": 6,
+      "name": "محزن الرياض"
+    },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T13:44:40+03:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "confirmed",
+        "note": "Payment confirmed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T13:54:00+03:00"
+      }
+    ],
+    "allowed_transitions": ["processing", "cancelled"],
+    "loyalty": {
+      "points_earned": 2088,
+      "earned_status": "pending",
+      "available_on": null,
+      "return_window_days": 15,
+      "points_redeemed": 100,
+      "amount_applied": "5.00",
+      "amount_due": "2088.00",
+      "value_per_point": "0.0500",
+      "points_returned": 0,
+      "amount_per_point": "1.00",
+      "rule_version_id": 5
+    },
+    "placed_at": "2026-11-14T13:44:40+03:00",
+    "cancelled_at": null,
+    "created_at": "2026-11-14T13:44:40+03:00",
+    "updated_at": "2026-11-14T13:54:00+03:00"
+  }
+}

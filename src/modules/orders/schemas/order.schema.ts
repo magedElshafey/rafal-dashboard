@@ -55,7 +55,7 @@ const rawOrderLoyaltySchema = z.object({
   points_redeemed: count,
   amount_applied: decimal,
   amount_due: decimal,
-  value_per_point: z.number().finite().nonnegative().nullable(),
+  value_per_point: z.union([z.number().finite().nonnegative(), decimal]).nullable(),
   points_returned: count,
   amount_per_point: decimal,
   rule_version_id: id,

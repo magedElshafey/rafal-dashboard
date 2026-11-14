@@ -17,6 +17,7 @@ import processing145 from './order-145-processing.json'
 import shipped145 from './order-145-shipped.json'
 import delivered145 from './order-145-delivered.json'
 import returned145 from './order-145-returned.json'
+import confirmed147 from './order-147-confirmed.json'
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
 vi.mock('@/utils/http', () => ({ $http: http }))
@@ -28,6 +29,29 @@ beforeEach(async () => {
 })
 
 describe('production Order Details', () => {
+  it('parses and renders RF-10147 with a decimal-string loyalty value per point', async () => {
+    http.get.mockResolvedValue({ data: confirmed147 })
+
+    const { client } = renderOrders(<OrderDetailPage />, '/dashboard/orders/147')
+
+    expect(await screen.findByRole('heading', { name: '#RF-10147', level: 1 })).toBeInTheDocument()
+    expect(client.getQueryData(ordersKeys.detail(147))).toEqual(normalizeOrderDetail(confirmed147.data))
+    const loyalty = within(screen.getByRole('region', { name: 'Loyalty earning' }))
+    expect(loyalty.getByText('Pending')).toBeInTheDocument()
+    expect(loyalty.getByText('2,088')).toBeInTheDocument()
+    expect(loyalty.getByText('0.0500 SAR')).toBeInTheDocument()
+    expect(loyalty.getByText('—')).toBeInTheDocument()
+    const customer = within(screen.getByRole('region', { name: 'Customer' }))
+    expect(customer.getAllByText('+966554343232')).toHaveLength(2)
+    expect(customer.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByTestId('query-state-loading-error')).not.toBeInTheDocument()
+    expect(http.get).toHaveBeenCalledExactlyOnceWith({
+      url: '/dashboard/orders/147',
+      signal: expect.any(AbortSignal),
+      suppressErrorNotification: true,
+    })
+  })
+
   it('renders the confirmed dashboard aggregate with one Show request and the canonical key', async () => {
     const service = vi.spyOn(ordersService, 'show')
     const { client, container } = renderOrders(<OrderDetailPage />, '/dashboard/orders/208')

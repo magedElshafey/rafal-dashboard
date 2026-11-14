@@ -61,7 +61,7 @@ export type OrderLoyalty = {
   pointsRedeemed: number
   amountApplied: string
   amountDue: string
-  valuePerPoint: number | null
+  valuePerPoint: number | string | null
   pointsReturned: number
   amountPerPoint: string
   ruleVersionId: number

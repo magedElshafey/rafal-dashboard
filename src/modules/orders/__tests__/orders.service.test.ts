@@ -135,7 +135,7 @@ describe('real Orders read contracts', () => {
       { ...confirmed145.data.loyalty, points_earned: -1 },
       { ...confirmed145.data.loyalty, available_on: 123 },
       { ...confirmed145.data.loyalty, amount_due: 4052.6 },
-      { ...confirmed145.data.loyalty, value_per_point: '0.05' },
+      { ...confirmed145.data.loyalty, value_per_point: 'not-money' },
       { ...confirmed145.data.loyalty, rule_version_id: 0 },
     ]) {
       expect(() => normalizeOrderDetail({ ...confirmed145.data, loyalty })).toThrow()
