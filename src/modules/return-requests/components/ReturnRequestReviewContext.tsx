@@ -48,7 +48,9 @@ export function ReturnRequestRelationships({ request }: { request?: ReturnReques
         t('returnRequests.workspace.customerFallback', { id: request.user.id })
       )
     : ''
-  const customerFacts: [string, string][] = [[t('returnRequests.fields.email'), request?.user.email.trim() || '—']]
+  const customerFacts: [string, string][] = [
+    [t('returnRequests.fields.email'), request?.user.email.trim() || t('returnRequests.unavailable')],
+  ]
   if (!request || customerName) customerFacts.unshift([t('returnRequests.fields.name'), customerName || ''])
   return (
     <div className="grid min-w-0 gap-5 md:grid-cols-2 lg:col-span-12">

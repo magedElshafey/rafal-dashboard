@@ -27,6 +27,7 @@ function ReturnRequestsContent() {
   const query = useReturnRequests(filters)
   const [showFilterValidation, setShowFilterValidation] = useState(false)
   const requests = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
+  const invalidPages = query.data?.pages.filter((page) => page.invalidRows.length > 0) ?? []
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
     onLoadMore: query.fetchNextPage,
@@ -60,10 +61,25 @@ function ReturnRequestsContent() {
         hasData={Boolean(query.data)}
         onRetry={query.refetch}
       >
+        {invalidPages.length > 0 ? (
+          <div role="alert" className="rounded-md border p-4">
+            <p>{t('returnRequests.invalidRows')}</p>
+            <ul>
+              {invalidPages.flatMap((page) =>
+                page.invalidRows.map((issue) => (
+                  <li key={`${page.paginate.current_page}-${issue.row}`}>
+                    {t('returnRequests.invalidRowDiagnostic', { page: page.paginate.current_page, row: issue.row })}{' '}
+                    <bdi>{issue.fields.join(', ')}</bdi>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        ) : null}
         <TableProvider name="return-requests" data={requests} isLoading={query.isLoading} refetch={query.refetch}>
           <ResponsiveDataLayout
             header={<h2 className="font-semibold">{t('returnRequests.listTitle', { count: requests.length })}</h2>}
-            isEmpty={requests.length === 0}
+            isEmpty={requests.length === 0 && invalidPages.length === 0}
             empty={<EmptyState title={t('returnRequests.empty')} description={t('returnRequests.emptyDescription')} />}
           >
             <ReturnRequestsList requests={requests} />

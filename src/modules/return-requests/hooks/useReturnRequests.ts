@@ -1,7 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
 import { ordersKeys } from '@/modules/orders/queries/orders.keys'
 import { returnRequestsService } from '../api/return-requests.service'
 import { returnRequestsKeys } from '../queries/return-requests.keys'
@@ -10,9 +9,11 @@ import type { ReturnRequestsFilters } from '../types/return-request.types'
 import { emptyReturnRequestsFilters, validReturnRequestsDateRange } from '../utils/return-request-filters'
 
 export function useReturnRequests(filters: ReturnRequestsFilters = emptyReturnRequestsFilters) {
-  return useInfinitePaginatedQuery({
+  return useInfiniteQuery({
     queryKey: returnRequestsKeys.list(filters),
-    queryFn: (page, signal) => returnRequestsService.list(filters, page, signal),
+    queryFn: ({ pageParam, signal }) => returnRequestsService.list(filters, pageParam, signal),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: validReturnRequestsDateRange(filters),
     retry: false,
   })

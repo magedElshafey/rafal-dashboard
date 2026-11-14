@@ -14,7 +14,7 @@ export function ReturnRequestDecisionPanel({ request, disabled }: { request?: Re
   const admin = request?.decidedByAdmin
   const actor = admin
     ? returnRequestIdentityLabel(admin.name, admin.email, t('returnRequests.workspace.adminFallback', { id: admin.id }))
-    : '—'
+    : t('returnRequests.unavailable')
   return (
     <ReturnRequestDetailsSection
       title={t(
@@ -57,7 +57,7 @@ export function ReturnRequestDecisionPanel({ request, disabled }: { request?: Re
             <div>
               <dt className="text-sm text-muted-foreground">{t('returnRequests.fields.decisionNote')}</dt>
               <dd className="mt-1 whitespace-pre-wrap">
-                <bdi>{request.decisionNote?.trim() ? request.decisionNote : '—'}</bdi>
+                <bdi>{request.decisionNote?.trim() ? request.decisionNote : t('returnRequests.unavailable')}</bdi>
               </dd>
             </div>
             <div>
@@ -75,7 +75,8 @@ export function ReturnRequestDecisionPanel({ request, disabled }: { request?: Re
               <dt className="text-sm text-muted-foreground">{t('returnRequests.fields.decidedAt')}</dt>
               <dd className="mt-1">
                 <time dateTime={request.decidedAt ?? undefined}>
-                  {formatDateTime(request.decidedAt, { locale: resolveAppLocale(i18n.language) }) || '—'}
+                  {formatDateTime(request.decidedAt, { locale: resolveAppLocale(i18n.language) }) ||
+                    t('returnRequests.unavailable')}
                 </time>
               </dd>
             </div>

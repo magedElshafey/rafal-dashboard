@@ -11,7 +11,8 @@ import { ReturnRequestDetailsFacts, ReturnRequestDetailsSection } from './Return
 
 export function ReturnRequestAudit({ request }: { request?: ReturnRequest }) {
   const { t, i18n } = useTranslation()
-  const date = (value?: string | null) => formatDateTime(value, { locale: resolveAppLocale(i18n.language) }) || '—'
+  const date = (value?: string | null) =>
+    formatDateTime(value, { locale: resolveAppLocale(i18n.language) }) || t('returnRequests.unavailable')
   const admin = request?.decidedByAdmin
   const decided = isReturnRequestDecided(request?.status)
   return (

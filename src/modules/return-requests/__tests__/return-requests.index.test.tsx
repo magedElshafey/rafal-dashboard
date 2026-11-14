@@ -6,6 +6,7 @@ import { formatDateTime } from '@/utils/date/date.helpers'
 import ReturnRequestsPage from '../pages/ReturnRequestsPage'
 import { returnRequestsKeys } from '../queries/return-requests.keys'
 import ordersIndex from '../../orders/__tests__/orders-index.fixture.json'
+import mixed from './return-requests-mixed.fixture.json'
 import index from './return-requests-index.fixture.json'
 import nullCommentIndex from './return-requests-index-null-comment.fixture.json'
 import { installDomMocks, renderReturnRequests } from './test-utils'
@@ -44,6 +45,31 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Return Requests Index', () => {
+  it.each(['en', 'ar'])('renders all seven mixed rows and localized missing values (%s)', async (language) => {
+    await i18n.changeLanguage(language)
+    http.get.mockResolvedValue({ data: mixed })
+    const { container } = renderReturnRequests(<ReturnRequestsPage />)
+    await screen.findAllByText('RF-10001')
+    for (const row of mixed.data) expect(screen.getAllByText(row.order.order_number)).toHaveLength(2)
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(7)
+    expect(screen.getAllByText(i18n.t('returnRequests.unavailable')).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+  it.each([false, true])(
+    'warns about invalid rows without a crash or misleading empty state (all invalid: %s)',
+    async (allInvalid) => {
+      http.get.mockResolvedValue({
+        data: {
+          ...mixed,
+          data: allInvalid ? [{ ...mixed.data[0], id: 0 }] : [mixed.data[0], { ...mixed.data[1], id: 0 }],
+        },
+      })
+      renderReturnRequests(<ReturnRequestsPage />)
+      expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t('returnRequests.invalidRows'))
+      expect(screen.queryByText('No return requests')).not.toBeInTheDocument()
+      if (!allInvalid) expect(screen.getAllByText('RF-10001')).toHaveLength(2)
+    }
+  )
   it.each(['en', 'ar'])(
     'renders the real nullable-comment response successfully in both views (%s)',
     async (language) => {

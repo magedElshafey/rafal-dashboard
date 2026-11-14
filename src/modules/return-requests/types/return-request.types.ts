@@ -26,7 +26,9 @@ export type ReturnRequest = {
 
 export type ReturnRequestsIndex = {
   items: ReturnRequest[]
-  meta: { currentPage: number; perPage: number }
+  paginate: { current_page: number; per_page: number; total_pages?: number; total?: number }
+  nextPage: number | undefined
+  invalidRows: { row: number; fields: string[] }[]
 }
 
 export type ReturnRequestDecisionAction = 'approve' | 'reject'

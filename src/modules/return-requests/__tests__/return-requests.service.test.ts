@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { returnRequestsService } from '../api/return-requests.service'
 import { normalizeReturnRequest } from '../utils/return-request-normalizers'
+import mixed from './return-requests-mixed.fixture.json'
 import approved from './return-request-approved.fixture.json'
 import show from './return-request-show.fixture.json'
 import index from './return-requests-index.fixture.json'
@@ -13,6 +14,47 @@ vi.mock('@/utils/http', () => ({ $http: http }))
 beforeEach(() => vi.clearAllMocks())
 
 describe('Return Requests real read contracts', () => {
+  it('accepts seven mixed records with partial metadata and normalizes nullable display fields', async () => {
+    http.get.mockResolvedValue({ data: mixed })
+    const result = await returnRequestsService.list()
+    expect(result.items).toHaveLength(7)
+    expect(result.paginate).toEqual({ current_page: 1, per_page: 15 })
+    expect(result.nextPage).toBeUndefined()
+    expect(result.invalidRows).toEqual([])
+    expect(result.items[0]).toMatchObject({
+      user: { name: '', email: '' },
+      decidedByAdmin: null,
+      comment: null,
+      decisionNote: null,
+      decidedAt: null,
+    })
+    expect(result.items[1]).toMatchObject({ status: 'approved', decidedByAdmin: { id: 1 } })
+    expect(result.items[2]).toMatchObject({ status: 'rejected', decidedByAdmin: { id: 1 } })
+  })
+  it('isolates invalid identifiers with field-only diagnostics and uses raw page size for navigation', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        ...mixed,
+        data: [mixed.data[0], { ...mixed.data[1], id: 'private-invalid-value' }],
+        meta: { current_page: 1, per_page: 2 },
+      },
+    })
+    const result = await returnRequestsService.list()
+    expect(result.items).toHaveLength(1)
+    expect(result.invalidRows).toEqual([{ row: 2, fields: ['id'] }])
+    expect(result.nextPage).toBe(2)
+  })
+  it('preserves supplied totals and stops at the authoritative last page', async () => {
+    http.get.mockResolvedValue({ data: { ...mixed, meta: { current_page: 1, per_page: 7, last_page: 1, total: 7 } } })
+    expect(await returnRequestsService.list()).toMatchObject({
+      paginate: { total: 7, total_pages: 1 },
+      nextPage: undefined,
+    })
+  })
+  it('rejects failed envelopes instead of returning an empty list', async () => {
+    http.get.mockResolvedValue({ data: { ...mixed, success: false } })
+    await expect(returnRequestsService.list()).rejects.toThrow()
+  })
   it.each(['no comment', 'Damaged product', '', null])('preserves valid comment %j', (comment) => {
     expect(normalizeReturnRequest({ ...show.data, comment }).comment).toBe(comment)
   })
@@ -38,8 +80,7 @@ describe('Return Requests real read contracts', () => {
           updatedAt: '2026-10-04T21:58:28+00:00',
         },
       ],
-      paginate: { current_page: 1, per_page: 15, next_page_url: null },
-      extra: null,
+      paginate: { current_page: 1, per_page: 15 },
     })
   })
   it('parses the exact Index response and only confirmed partial pagination metadata', async () => {
@@ -70,7 +111,7 @@ describe('Return Requests real read contracts', () => {
       signal,
       suppressErrorNotification: true,
     })
-    expect(result.paginate).toMatchObject({ current_page: 1, per_page: 15, next_page_url: null })
+    expect(result.paginate).toMatchObject({ current_page: 1, per_page: 15 })
     expect(result.items).toEqual([
       {
         id: 31,

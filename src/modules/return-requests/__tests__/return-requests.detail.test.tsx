@@ -27,6 +27,22 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Return Request Show', () => {
+  it.each(['en', 'ar'])(
+    'renders null email, note, and decision date with localized placeholders (%s)',
+    async (language) => {
+      await i18n.changeLanguage(language)
+      canonical = {
+        ...approved,
+        data: { ...approved.data, user: { ...approved.data.user, email: null }, decided_at: null, decision_note: null },
+      }
+      renderReturnRequests(<ReturnRequestDetailPage />, '/dashboard/return-requests/31')
+      await screen.findByRole('heading', { name: i18n.t('returnRequests.requestTitle', { id: 31 }), level: 1 })
+      const summary = within(screen.getByRole('region', { name: i18n.t('returnRequests.workspace.decisionSummary') }))
+      expect(summary.getAllByText(i18n.t('returnRequests.unavailable')).length).toBeGreaterThanOrEqual(2)
+      const customer = within(screen.getByRole('region', { name: i18n.t('returnRequests.sections.customer') }))
+      expect(customer.getByText(i18n.t('returnRequests.unavailable'))).toBeInTheDocument()
+    }
+  )
   it.each(['en', 'ar'])('renders nullable comments with a localized fallback (%s)', async (language) => {
     await i18n.changeLanguage(language)
     canonical = { success: true, data: nullCommentIndex.data[0] }

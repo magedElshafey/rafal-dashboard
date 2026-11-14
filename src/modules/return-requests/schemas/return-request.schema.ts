@@ -2,33 +2,45 @@ import { z } from 'zod'
 
 const id = z.number().int().positive().safe()
 const text = z.string().trim().min(1)
-const nullableText = z.string().nullable()
+const nullableText = z
+  .string()
+  .nullish()
+  .transform((value) => value ?? null)
+const displayText = z
+  .string()
+  .nullish()
+  .transform((value) => value ?? '')
 
 const decidedAdminSchema = z.object({
   id,
-  name: z.string(),
-  email: z.string(),
+  name: displayText,
+  email: displayText,
 })
 
 export const rawReturnRequestSchema = z.object({
   id,
   order: z.object({ id, order_number: text, status: text }),
-  user: z.object({ id, name: z.string(), email: z.string() }),
+  user: z.object({ id, name: displayText, email: displayText }),
   status: text,
   reason: text,
-  reason_label: z.string(),
+  reason_label: displayText,
   comment: nullableText,
-  decision_note: nullableText.optional().transform((value) => value ?? null),
+  decision_note: nullableText,
   decided_by_admin: decidedAdminSchema
     .nullable()
     .optional()
     .transform((value) => value ?? null),
-  decided_at: nullableText.optional().transform((value) => value ?? null),
+  decided_at: nullableText,
   created_at: text,
   updated_at: text,
 })
 
-export const returnRequestsMetaSchema = z.object({ current_page: id, per_page: id })
+export const returnRequestsMetaSchema = z.object({
+  current_page: id,
+  per_page: id,
+  last_page: id.optional(),
+  total: z.number().int().nonnegative().safe().optional(),
+})
 
 export const returnRequestSuccessEnvelopeSchema = z.object({
   success: z.literal(true),

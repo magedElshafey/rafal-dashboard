@@ -220,7 +220,7 @@ describe('Return review workspace', () => {
     )
     if (user.name.trim()) expect(customer.getByText('Name').nextElementSibling).toHaveTextContent(user.name.trim())
     else expect(customer.queryByText('Name')).not.toBeInTheDocument()
-    expect(customer.getByText('Email').nextElementSibling).toHaveTextContent(user.email.trim() || '—')
+    expect(customer.getByText('Email').nextElementSibling).toHaveTextContent(user.email.trim() || 'Unavailable')
     if (user.email.trim()) expect(customer.getAllByText(user.email.trim())).toHaveLength(1)
     if (!user.name.trim() && !user.email.trim()) expect(customer.queryByText('Customer #1')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: `View customer ${label}` })).toHaveAttribute(
@@ -264,7 +264,7 @@ describe('Return review workspace', () => {
     [{ id: 1, name: ' Admin Name ', email: 'admin@example.com' }, 'Admin Name'],
     [{ id: 1, name: ' ', email: 'admin@example.com' }, 'admin@example.com'],
     [{ id: 1, name: ' ', email: ' ' }, 'Admin #1'],
-    [null, '—'],
+    [null, 'Unavailable'],
   ])('renders rejected summaries with available actor fallback and blank note', async (actor, label) => {
     http.get.mockResolvedValue({
       data: {
@@ -277,7 +277,7 @@ describe('Return review workspace', () => {
     const summary = within(screen.getByRole('region', { name: 'Decision summary' }))
     expect(summary.getByText('Rejected')).toBeInTheDocument()
     const note = summary.getByText('Decision Note').nextElementSibling
-    expect(note).toHaveTextContent('—')
+    expect(note).toHaveTextContent('Unavailable')
     expect(summary.getByText('Decided By').nextElementSibling).toHaveTextContent(label)
     expect(summary.getByText(formatDateTime(approved.data.decided_at, { locale: 'en' }))).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()

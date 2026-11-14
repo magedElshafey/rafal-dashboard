@@ -1,5 +1,7 @@
 {
   "returnRequests": {
+    "invalidRows": "تعذر عرض بعض طلبات الإرجاع بسبب بيانات غير صالحة. هذه القائمة غير مكتملة.",
+    "invalidRowDiagnostic": "الصفحة {{page}}، الصف {{row}} - الحقول غير الصالحة:",
     "direction": "rtl",
     "workspace": {
       "notFound": "طلب الإرجاع غير موجود",

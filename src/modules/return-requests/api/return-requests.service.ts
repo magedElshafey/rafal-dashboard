@@ -1,11 +1,17 @@
 import { z } from 'zod'
 import { $http } from '@/utils/http'
 import {
+  rawReturnRequestSchema,
   returnRequestFailureEnvelopeSchema,
   returnRequestIndexEnvelopeSchema,
   returnRequestSuccessEnvelopeSchema,
 } from '../schemas/return-request.schema'
-import type { ReturnRequest, ReturnRequestDecisionResult, ReturnRequestsFilters } from '../types/return-request.types'
+import type {
+  ReturnRequest,
+  ReturnRequestDecisionResult,
+  ReturnRequestsFilters,
+  ReturnRequestsIndex,
+} from '../types/return-request.types'
 import { ReturnRequestDecisionError } from '../utils/return-request-errors'
 import { emptyReturnRequestsFilters, serializeReturnRequestsFilters } from '../utils/return-request-filters'
 import { normalizeReturnRequest } from '../utils/return-request-normalizers'
@@ -27,7 +33,7 @@ export const returnRequestsService = {
     filters: ReturnRequestsFilters = emptyReturnRequestsFilters,
     page = 1,
     signal?: AbortSignal
-  ): Promise<PaginatedData<ReturnRequest>> {
+  ): Promise<ReturnRequestsIndex> {
     const response = await $http.get({
       url: '/dashboard/return-requests',
       query: { ...serializeReturnRequestsFilters(filters), page },
@@ -35,20 +41,29 @@ export const returnRequestsService = {
       suppressErrorNotification: true,
     })
     const envelope = returnRequestIndexEnvelopeSchema.parse(response.data)
-    const items = envelope.data.map(normalizeReturnRequest)
-    const hasNextPage = items.length === envelope.meta.per_page
+    const items: ReturnRequest[] = []
+    const invalidRows: ReturnRequestsIndex['invalidRows'] = []
+    envelope.data.forEach((row, index) => {
+      const parsed = rawReturnRequestSchema.safeParse(row)
+      if (parsed.success) items.push(normalizeReturnRequest(parsed.data))
+      else invalidRows.push({ row: index + 1, fields: parsed.error.issues.map((issue) => issue.path.join('.')) })
+    })
+    // A full raw page permits probing the next page when last_page is unavailable.
+    // Navigation state is separate from authoritative backend totals.
+    const hasNextPage =
+      envelope.meta.last_page !== undefined
+        ? envelope.meta.current_page < envelope.meta.last_page
+        : envelope.data.length === envelope.meta.per_page
     return {
       items,
       paginate: {
         current_page: envelope.meta.current_page,
-        total_pages: hasNextPage ? envelope.meta.current_page + 1 : envelope.meta.current_page,
         per_page: envelope.meta.per_page,
-        total: items.length,
-        count: items.length,
-        next_page_url: hasNextPage ? String(envelope.meta.current_page + 1) : null,
-        prev_page_url: envelope.meta.current_page > 1 ? String(envelope.meta.current_page - 1) : null,
+        ...(envelope.meta.last_page !== undefined ? { total_pages: envelope.meta.last_page } : {}),
+        ...(envelope.meta.total !== undefined ? { total: envelope.meta.total } : {}),
       },
-      extra: null,
+      nextPage: hasNextPage ? envelope.meta.current_page + 1 : undefined,
+      invalidRows,
     }
   },
   async show(id: number, signal?: AbortSignal) {

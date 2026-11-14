@@ -1,5 +1,7 @@
 {
   "returnRequests": {
+    "invalidRows": "Some return requests could not be displayed because their data is invalid. This list is incomplete.",
+    "invalidRowDiagnostic": "Page {{page}}, row {{row}} - invalid fields:",
     "direction": "ltr",
     "title": "Return Requests",
     "details": "Return Request Details",
