@@ -296,9 +296,10 @@ describe('Customer loyalty page', () => {
     const trigger = await screen.findByRole('button', { name: 'Adjust points' })
 
     await user.click(trigger)
-    expect(screen.getByRole('dialog', { name: 'Adjust loyalty points' }))
-      .toHaveAttribute('dir', 'ltr')
-      .toHaveClass('max-h-[calc(100dvh-2rem)]', 'overflow-y-auto')
+    const dialog = screen.getByRole('dialog', { name: 'Adjust loyalty points' })
+    expect(dialog).toHaveAttribute('dir', 'ltr')
+    expect(dialog.classList.contains('max-h-[calc(100dvh-2rem)]')).toBe(true)
+    expect(dialog.classList.contains('overflow-y-auto')).toBe(true)
     expect(screen.getByRole('radio', { name: 'Credit' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Request customer notification' })).not.toBeChecked()
     expect(screen.getByText(/This customer is frozen/)).toBeInTheDocument()
