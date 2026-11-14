@@ -1,0 +1,108 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 158,
+    "order_number": "RF-10158",
+    "display_number": "#RF-10158",
+    "status": "confirmed",
+    "customer": {
+      "type": "registered",
+      "name": "",
+      "email": "registered@example.test",
+      "phone": "+966555555555"
+    },
+    "shipping_address": {
+      "recipient_name": "علي محمد علي",
+      "recipient_phone": "0500001111",
+      "city": {
+        "id": 1,
+        "name": "الرياض"
+      },
+      "district": "حي العليا",
+      "street_details": "شارع واسع كله نخل"
+    },
+    "items": [
+      {
+        "id": 253,
+        "product_name": "الورد الزجاجية المضيئة",
+        "variant_sku": "RAF-dcb-30863321",
+        "variant_attributes": {
+          "lenth": "60 cm"
+        },
+        "quantity": 1,
+        "unit_price": "120.00",
+        "discount_amount": "0.00",
+        "personalization": {
+          "text": "j",
+          "language": "en",
+          "fee": "1.00"
+        },
+        "line_total": "121.00"
+      }
+    ],
+    "money": {
+      "subtotal": "120.00",
+      "discount_total": "0.00",
+      "shipping_fee": "15.00",
+      "personalization_total": "1.00",
+      "gift_wrap_fee": "0.00",
+      "taxable_amount": "136.00",
+      "vat": {
+        "rate": "15.00",
+        "amount": "20.40"
+      },
+      "total": "156.40",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "card",
+      "status": "paid",
+      "reference": "chg_TEST_ORDER_158",
+      "paid_at": "2026-11-14T23:08:02+03:00"
+    },
+    "warehouse": {
+      "id": 6,
+      "name": "مخزن الرياض"
+    },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T23:07:08+03:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "confirmed",
+        "note": "Payment confirmed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T23:08:02+03:00"
+      }
+    ],
+    "allowed_transitions": ["processing", "cancelled"],
+    "loyalty": {
+      "points_earned": 0,
+      "earned_status": null,
+      "available_on": null,
+      "return_window_days": 1,
+      "points_redeemed": 0,
+      "amount_applied": "0.00",
+      "amount_due": "156.40",
+      "value_per_point": null,
+      "points_returned": 0,
+      "amount_per_point": "150.00",
+      "rule_version_id": 13
+    },
+    "placed_at": "2026-11-14T23:07:08+03:00",
+    "cancelled_at": null,
+    "created_at": "2026-11-14T23:07:08+03:00",
+    "updated_at": "2026-11-14T23:08:02+03:00"
+  }
+}

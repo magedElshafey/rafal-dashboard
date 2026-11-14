@@ -1,0 +1,110 @@
+{
+  "success": true,
+  "message": "Order retrieved successfully",
+  "data": {
+    "id": 159,
+    "order_number": "RF-10159",
+    "display_number": "#RF-10159",
+    "status": "confirmed",
+    "customer": {
+      "type": "guest",
+      "name": "عبد الله بن عبد",
+      "email": "guest@example.test",
+      "phone": "0555555555"
+    },
+    "shipping_address": {
+      "recipient_name": "so I can contribute to",
+      "recipient_phone": "0555555555",
+      "city": {
+        "id": 1,
+        "name": "الرياض"
+      },
+      "district": "الرحمانية",
+      "street_details": "أحمد العسقلاني 7727"
+    },
+    "items": [
+      {
+        "id": 254,
+        "product_name": "سبحة حجر عين النمر الأزرق الطبيعي",
+        "variant_sku": "112012101012",
+        "variant_attributes": [],
+        "quantity": 1,
+        "unit_price": "640.00",
+        "discount_amount": "0.00",
+        "line_total": "640.00"
+      }
+    ],
+    "money": {
+      "subtotal": "640.00",
+      "discount_total": "0.00",
+      "shipping_fee": "149.00",
+      "personalization_total": "0.00",
+      "gift_wrap_fee": "0.00",
+      "taxable_amount": "789.00",
+      "vat": {
+        "rate": "15.00",
+        "amount": "118.35"
+      },
+      "total": "907.35",
+      "currency": "SAR"
+    },
+    "coupon": null,
+    "payment": {
+      "method": "card",
+      "status": "paid",
+      "reference": "chg_TEST_ORDER_159",
+      "paid_at": "2026-11-14T23:12:19+03:00"
+    },
+    "warehouse": {
+      "id": 6,
+      "name": "مخزن الرياض"
+    },
+    "status_history": [
+      {
+        "from_status": null,
+        "to_status": "new",
+        "note": "Order placed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T23:11:27+03:00"
+      },
+      {
+        "from_status": "new",
+        "to_status": "pending_verification",
+        "note": "Awaiting phone verification",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T23:11:27+03:00"
+      },
+      {
+        "from_status": "pending_verification",
+        "to_status": "confirmed",
+        "note": "Payment confirmed",
+        "actor_type": "system",
+        "actor_id": null,
+        "actor_name": null,
+        "created_at": "2026-11-14T23:12:19+03:00"
+      }
+    ],
+    "allowed_transitions": ["processing", "cancelled"],
+    "loyalty": {
+      "points_earned": 736,
+      "earned_status": null,
+      "available_on": null,
+      "return_window_days": 1,
+      "points_redeemed": 0,
+      "amount_applied": "0.00",
+      "amount_due": "907.35",
+      "value_per_point": null,
+      "points_returned": 0,
+      "amount_per_point": "1.00",
+      "rule_version_id": 14
+    },
+    "placed_at": "2026-11-14T23:11:27+03:00",
+    "cancelled_at": null,
+    "created_at": "2026-11-14T23:11:27+03:00",
+    "updated_at": "2026-11-14T23:12:19+03:00"
+  }
+}

@@ -55,7 +55,7 @@ export type OrderMoney = {
 }
 export type OrderLoyalty = {
   pointsEarned: number
-  earnedStatus: string
+  earnedStatus: string | null
   availableOn: string | null
   returnWindowDays: number
   pointsRedeemed: number

@@ -7,6 +7,23 @@ const decimal = z.string().regex(/^\d+(?:\.\d+)?$/)
 const nullableText = z.string().nullable().catch(null)
 const customer = z.object({ type: text, name: z.string(), email: z.string(), phone: z.string() })
 const orderCustomer = customer.extend({ email: z.string().nullable() })
+// Detail-only display fields may be absent; keep list and Gift contracts unchanged.
+const displayText = z
+  .string()
+  .nullish()
+  .transform((value) => value ?? '')
+  .catch(() => {
+    console.warn('Order details: invalid optional display text omitted')
+    return ''
+  })
+const detailCustomer = orderCustomer.extend({
+  name: displayText,
+  email: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? null),
+  phone: displayText,
+})
 const warehouse = z.object({ id, name: text }).nullable()
 const identity = {
   id,
@@ -49,13 +66,19 @@ const rawOrderItemPersonalizationSchema = z.object({
 
 const rawOrderLoyaltySchema = z.object({
   points_earned: count,
-  earned_status: text,
-  available_on: z.string().nullable(),
+  earned_status: nullableText.transform((value) => value?.trim() || null),
+  available_on: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? null),
   return_window_days: count,
   points_redeemed: count,
   amount_applied: decimal,
   amount_due: decimal,
-  value_per_point: z.union([z.number().finite().nonnegative(), decimal]).nullable(),
+  value_per_point: z
+    .union([z.number().finite().nonnegative(), decimal])
+    .nullish()
+    .transform((value) => value ?? null),
   points_returned: count,
   amount_per_point: decimal,
   rule_version_id: id,
@@ -88,22 +111,27 @@ export const rawOrderGiftSchema = z.object({
 })
 export const rawOrderDetailSchema = z.object({
   ...identity,
-  customer: orderCustomer,
+  display_number: displayText,
+  customer: detailCustomer,
   shipping_address: z
     .object({
-      recipient_name: z.string(),
-      recipient_phone: z.string(),
-      city: z.object({ id, name: text }).nullable(),
-      district: z.string(),
-      street_details: z.string(),
+      recipient_name: displayText,
+      recipient_phone: displayText,
+      city: z
+        .object({ id, name: displayText })
+        .nullish()
+        .transform((value) => value ?? null),
+      district: displayText,
+      street_details: displayText,
     })
-    .nullable(),
+    .nullish()
+    .transform((value) => value ?? null),
   items: z.array(
     z.object({
       id,
       product_name: text,
       variant_sku: text,
-      variant_attributes: attributesSchema,
+      variant_attributes: attributesSchema.nullish().transform((value) => value ?? {}),
       quantity: id,
       unit_price: decimal,
       discount_amount: decimal,
@@ -154,7 +182,7 @@ export const rawOrderDetailSchema = z.object({
       to_status: text,
       note: nullableText,
       actor_type: text,
-      actor_id: id.nullable(),
+      actor_id: id.nullish().transform((value) => value ?? null),
       actor_name: nullableText,
       created_at: text,
     })

@@ -27,7 +27,11 @@ describe('Orders Index nullable email contract', () => {
     expect(
       rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email: null } }).success
     ).toBe(true)
-    for (const email of [undefined, 123, {}, []]) {
+    expect(
+      rawOrderDetailSchema.parse({ ...detail.data, customer: { ...detail.data.customer, email: undefined } }).customer
+        .email
+    ).toBeNull()
+    for (const email of [123, {}, []]) {
       expect(
         rawOrderDetailSchema.safeParse({ ...detail.data, customer: { ...detail.data.customer, email } }).success
       ).toBe(false)
