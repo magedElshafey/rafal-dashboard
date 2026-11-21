@@ -2,6 +2,8 @@ import { resolveMapStyleUrl } from './map'
 
 const env = {
   API_BASE: import.meta.env.VITE_API_BASE_URL,
+  AFFILIATE_MOCK_API_BASE_URL: import.meta.env.VITE_AFFILIATE_MOCK_API_BASE_URL,
+  AFFILIATE_MOCK_TOKEN: import.meta.env.VITE_AFFILIATE_MOCK_TOKEN,
   // Temporary feature transport until the Laravel Products API is available locally.
 
   // Public, browser-safe MapLibre style JSON URL. Development defaults to OpenFreeMap Liberty.

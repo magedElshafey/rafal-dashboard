@@ -1,0 +1,80 @@
+{
+  "affiliates": {
+    "title": "Affiliates",
+    "description": "Create and manage affiliate accounts that promote Rafal with unique codes.",
+    "listTitle": "Affiliate accounts",
+    "total_one": "{{count}} affiliate",
+    "total_other": "{{count}} affiliates",
+    "loadingMore": "Loading more affiliates",
+    "fields": {
+      "affiliate": "Affiliate",
+      "name": "Full name",
+      "email": "Email address",
+      "mobile": "Saudi mobile number",
+      "platform": "Social platform",
+      "username": "Platform username",
+      "social": "Social account",
+      "contact": "Contact",
+      "code": "Affiliate code",
+      "status": "Status",
+      "createdAt": "Created"
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended"
+    },
+    "filters": {
+      "search": "Search affiliates",
+      "searchPlaceholder": "Search by name, email, mobile, or code",
+      "title": "Filter affiliates",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "clearStatus": "Clear status filter"
+    },
+    "empty": {
+      "title": "No affiliates yet",
+      "description": "Create the first affiliate account to begin the programme.",
+      "filteredTitle": "No matching affiliates",
+      "filteredDescription": "Try changing or clearing the current search and status filters."
+    },
+    "create": {
+      "title": "Create Affiliate",
+      "description": "Create an active affiliate account. The backend starts credential delivery after a successful save."
+    },
+    "form": {
+      "personalInformation": "Personal information",
+      "socialInformation": "Social media information",
+      "affiliateCode": "Affiliate code",
+      "namePlaceholder": "Enter the affiliate's full name",
+      "mobilePlaceholder": "05XXXXXXXX",
+      "emailPlaceholder": "name@example.com",
+      "platformPlaceholder": "For example, Instagram",
+      "usernamePlaceholder": "Enter the platform username",
+      "codePlaceholder": "For example, SARA42",
+      "codeDescription": "Use 4–20 English letters or numbers. Suggestions are not reserved and uniqueness is checked when saving.",
+      "suggestionLoading": "Generating an unreserved code suggestion…",
+      "suggestionError": "A code suggestion could not be generated. You can enter a code manually.",
+      "credentialsNotice": "Credentials are delivered by the backend. The dashboard never displays or stores an affiliate password."
+    },
+    "actions": {
+      "create": "Create Affiliate",
+      "cancel": "Cancel",
+      "close": "Close create affiliate drawer",
+      "retrySuggestion": "Try suggestion again"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "mobileInvalid": "Enter a valid Saudi mobile number.",
+      "codeInvalid": "Use 4–20 uppercase English letters or numbers only.",
+      "nameTooLong": "Full name must be 150 characters or fewer.",
+      "emailTooLong": "Email must be 254 characters or fewer.",
+      "platformTooLong": "Platform must be 50 characters or fewer.",
+      "usernameTooLong": "Username must be 100 characters or fewer."
+    },
+    "feedback": {
+      "created": "Affiliate created successfully. Credential delivery has been initiated by the backend.",
+      "createError": "The affiliate could not be created. Review the form and try again."
+    }
+  }
+}

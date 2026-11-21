@@ -39,6 +39,7 @@ export const Routes = {
   coupons: '/dashboard/coupons',
   aboutUs: '/dashboard/about-us',
   customers: '/dashboard/customers',
+  affiliates: '/dashboard/affiliates',
   customerDetail: '/dashboard/customers/:id',
   customerDetailPath: (id: number) => `/dashboard/customers/${id}`,
   reviews: '/dashboard/reviews',

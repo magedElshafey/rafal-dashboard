@@ -21,8 +21,10 @@ import {
   Mail,
   Star,
   Gift,
+  BadgePercent,
 } from 'lucide-react'
 
+import { isAffiliateFeatureEnabled } from '@/modules/affiliates/config/affiliate-feature'
 import { Routes } from '@/routes/routes'
 
 export type DashboardNavigationItem = {
@@ -45,6 +47,16 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
     icon: UserRound,
     match: 'prefix',
   },
+  ...(isAffiliateFeatureEnabled
+    ? [
+        {
+          to: Routes.affiliates,
+          labelKey: 'dashboard.sidebar.affiliates',
+          icon: BadgePercent,
+          match: 'prefix' as const,
+        },
+      ]
+    : []),
   {
     to: Routes.categories,
     labelKey: 'dashboard.sidebar.categories',

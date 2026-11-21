@@ -4,6 +4,7 @@ import type { RouteObject } from 'react-router'
 import { Navigate, Outlet } from 'react-router-dom'
 
 import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
+import { isAffiliateFeatureEnabled } from '@/modules/affiliates/config/affiliate-feature'
 import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
 import { Routes } from '@/routes/routes'
 
@@ -43,6 +44,7 @@ const TestimonialsPage = lazy(() => import('@/modules/testimonials/pages/Testimo
 const StaticPagesPage = lazy(() => import('@/modules/static-pages/pages/StaticPagesPage'))
 const StaticPageCreatePage = lazy(() => import('@/modules/static-pages/pages/StaticPageCreatePage'))
 const StaticPageEditPage = lazy(() => import('@/modules/static-pages/pages/StaticPageEditPage'))
+const AffiliatesPage = lazy(() => import('@/modules/affiliates/pages/AffiliatesPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -92,6 +94,7 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.coupons, Component: CouponsPage },
       { path: Routes.aboutUs, Component: AboutUsPage },
       { path: Routes.customers, Component: CustomersPage },
+      ...(isAffiliateFeatureEnabled ? [{ path: Routes.affiliates, Component: AffiliatesPage }] : []),
       { path: Routes.customerDetail, Component: CustomerDetailPage },
       { path: Routes.reviews, Component: ReviewsPage },
       { path: Routes.storeRatings, Component: StoreRatingsPage },
