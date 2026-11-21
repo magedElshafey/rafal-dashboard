@@ -17,7 +17,8 @@
       "contact": "Contact",
       "code": "Affiliate code",
       "status": "Status",
-      "createdAt": "Created"
+      "createdAt": "Created",
+      "updatedAt": "Last updated"
     },
     "status": {
       "active": "Active",
@@ -41,6 +42,45 @@
       "title": "Create Affiliate",
       "description": "Create an active affiliate account. The backend starts credential delivery after a successful save."
     },
+    "edit": {
+      "title": "Edit Affiliate",
+      "description": "Update profile information. Affiliate code and account status cannot be changed here."
+    },
+    "detail": {
+      "title": "Affiliate details",
+      "personal": "Personal information",
+      "social": "Social information",
+      "account": "Account information",
+      "notFoundTitle": "Affiliate not found",
+      "notFoundDescription": "This affiliate does not exist or is no longer available."
+    },
+    "activity": {
+      "title": "Management activity",
+      "description": "Profile and account-management changes recorded by the development API.",
+      "loading": "Loading management activity",
+      "emptyTitle": "No management activity",
+      "emptyDescription": "Management actions will appear here when they occur.",
+      "actor": "Development staff",
+      "notAvailable": "Not available",
+      "profile_updated": "Profile updated",
+      "status_suspended": "Affiliate suspended",
+      "status_reactivated": "Affiliate reactivated",
+      "password_reset_requested": "Password reset requested"
+    },
+    "confirm": {
+      "suspend": {
+        "title": "Suspend Affiliate?",
+        "description": "The Affiliate will be suspended and new code use or attribution will be affected. The account and history are preserved, and Affiliate Panel login is not prevented."
+      },
+      "reactivate": {
+        "title": "Reactivate Affiliate?",
+        "description": "The Affiliate's active status will be restored for new code use and attribution."
+      },
+      "resetPassword": {
+        "title": "Initiate password reset?",
+        "description": "The backend will queue an SMS credential-reset request. The Affiliate must change the password when required by the authentication flow."
+      }
+    },
     "form": {
       "personalInformation": "Personal information",
       "socialInformation": "Social media information",
@@ -58,8 +98,18 @@
     },
     "actions": {
       "create": "Create Affiliate",
+      "back": "Back to Affiliates",
+      "edit": "Edit",
+      "save": "Save changes",
+      "suspend": "Suspend Affiliate",
+      "suspendPending": "Suspending…",
+      "reactivate": "Reactivate Affiliate",
+      "reactivatePending": "Reactivating…",
+      "resetPassword": "Reset Password",
+      "resetPasswordPending": "Queuing reset…",
       "cancel": "Cancel",
       "close": "Close create affiliate drawer",
+      "closeEdit": "Close edit affiliate drawer",
       "retrySuggestion": "Try suggestion again"
     },
     "validation": {
@@ -74,7 +124,16 @@
     },
     "feedback": {
       "created": "Affiliate created successfully. Credential delivery has been initiated by the backend.",
-      "createError": "The affiliate could not be created. Review the form and try again."
+      "createError": "The affiliate could not be created. Review the form and try again.",
+      "updated": "Affiliate profile updated successfully.",
+      "updateError": "The Affiliate profile could not be updated. Review the form and try again.",
+      "suspend": "Affiliate suspended successfully.",
+      "suspendError": "The Affiliate could not be suspended. Try again.",
+      "reactivate": "Affiliate reactivated successfully.",
+      "reactivateError": "The Affiliate could not be reactivated. Try again.",
+      "resetPassword": "Password reset initiated. SMS delivery has been queued.",
+      "resetPasswordError": "The password reset could not be initiated. Try again.",
+      "statusConflict": "The Affiliate status already changed. The current details have been refreshed."
     }
   }
 }

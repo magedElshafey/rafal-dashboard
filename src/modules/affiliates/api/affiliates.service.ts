@@ -2,11 +2,20 @@ import axios, { type AxiosInstance } from 'axios'
 
 import { affiliateMockConfig, isAffiliateFeatureEnabled } from '@/modules/affiliates/config/affiliate-feature'
 import {
+  affiliateActivitySchema,
+  affiliatePasswordResetSchema,
   affiliateResponseSchema,
   affiliateSuggestionSchema,
   affiliatesIndexSchema,
 } from '@/modules/affiliates/schemas/affiliate-api.schema'
-import type { Affiliate, AffiliateFilters, CreateAffiliatePayload } from '@/modules/affiliates/types/affiliate.types'
+import type {
+  Affiliate,
+  AffiliateAuditEvent,
+  AffiliateFilters,
+  AffiliatePasswordReset,
+  CreateAffiliatePayload,
+  UpdateAffiliatePayload,
+} from '@/modules/affiliates/types/affiliate.types'
 import { emptyAffiliateFilters, serializeAffiliateFilters } from '@/modules/affiliates/utils/affiliate-filters'
 
 const AFFILIATES_PER_PAGE = 15
@@ -76,6 +85,57 @@ export const affiliatesService = {
     assertAffiliateFeatureEnabled()
     const response = await affiliateHttp.post('/dashboard/affiliates', payload)
     return toAffiliate(affiliateResponseSchema.parse(response.data).data)
+  },
+
+  async show(id: number, signal?: AbortSignal): Promise<Affiliate> {
+    assertAffiliateFeatureEnabled()
+    const response = await affiliateHttp.get(`/dashboard/affiliates/${id}`, { signal })
+    return toAffiliate(affiliateResponseSchema.parse(response.data).data)
+  },
+
+  async update(id: number, payload: UpdateAffiliatePayload): Promise<Affiliate> {
+    assertAffiliateFeatureEnabled()
+    const response = await affiliateHttp.patch(`/dashboard/affiliates/${id}`, payload)
+    return toAffiliate(affiliateResponseSchema.parse(response.data).data)
+  },
+
+  async suspend(id: number): Promise<Affiliate> {
+    assertAffiliateFeatureEnabled()
+    const response = await affiliateHttp.post(`/dashboard/affiliates/${id}/suspend`)
+    return toAffiliate(affiliateResponseSchema.parse(response.data).data)
+  },
+
+  async reactivate(id: number): Promise<Affiliate> {
+    assertAffiliateFeatureEnabled()
+    const response = await affiliateHttp.post(`/dashboard/affiliates/${id}/reactivate`)
+    return toAffiliate(affiliateResponseSchema.parse(response.data).data)
+  },
+
+  async resetPassword(id: number): Promise<AffiliatePasswordReset> {
+    assertAffiliateFeatureEnabled()
+    const response = await affiliateHttp.post(`/dashboard/affiliates/${id}/reset-password`)
+    const data = affiliatePasswordResetSchema.parse(response.data).data
+    return {
+      affiliateId: data.affiliate_id,
+      deliveryStatus: data.delivery_status,
+      channel: data.channel,
+      requiresPasswordChange: data.requires_password_change,
+      requestedAt: data.requested_at,
+    }
+  },
+
+  async activity(id: number, signal?: AbortSignal): Promise<AffiliateAuditEvent[]> {
+    assertAffiliateFeatureEnabled()
+    const response = await affiliateHttp.get(`/dashboard/affiliates/${id}/activity`, { signal })
+    return affiliateActivitySchema.parse(response.data).data.map((event) => ({
+      id: event.id,
+      affiliateId: event.affiliate_id,
+      action: event.action,
+      actor: event.actor,
+      previousState: event.previous_state,
+      newState: event.new_state,
+      createdAt: event.created_at,
+    }))
   },
 
   async suggestCode(signal?: AbortSignal) {

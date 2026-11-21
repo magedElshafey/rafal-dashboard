@@ -1,13 +1,17 @@
-# Affiliate dashboard slice (AFF-08 / partial AFF-09)
+# Affiliate dashboard management (AFF-08 / AFF-09)
 
 Implemented in the Staff Dashboard:
 
 - `/dashboard/affiliates` responsive Affiliate listing
+- `/dashboard/affiliates/:id` responsive Affiliate details and management history
 - URL-backed name/email/mobile/code search and status filtering
 - server-driven infinite pagination
 - create-Affiliate drawer with Saudi mobile, email, and code validation
 - unreserved code suggestion with protection for manually edited values
 - localized English/Arabic and RTL/LTR presentation
+- profile editing with partial PATCH payloads and read-only code/status
+- confirmed suspension, reactivation, and password-reset initiation
+- safe chronological management activity without raw audit JSON or employee claims
 
 ## Development mock
 
@@ -22,10 +26,20 @@ Restart Vite after changing environment variables. The route and sidebar entry a
 
 Contract: `E:/freelance/rafal/rafal-affiliate-mock-api/openapi.yaml` (Proposed — Pending Laravel Backend Confirmation).
 
+Management uses `GET/PATCH /dashboard/affiliates/:id`, the `suspend`, `reactivate`, and `reset-password` POST
+actions, and `GET /dashboard/affiliates/:id/activity`. Mutations invalidate only affected list, detail, and activity
+queries and use authoritative responses for visible profile state.
+
+Focused tests:
+
+```sh
+node node_modules/vitest/vitest.mjs run src/modules/affiliates
+```
+
 ## Known limitations
 
 - Laravel endpoints and effective staff permissions are not available. Production routing remains disabled.
 - The mock's authorization token is a development scenario selector, not production authorization.
 - A code suggestion is not reserved; the create endpoint remains authoritative for Affiliate/coupon collisions.
 - The successful response confirms account creation and backend initiation only, not actual SMS delivery.
-- Editing, details, status actions, reset password, performance, exports, applications, settings, and payouts are intentionally deferred.
+- Commission performance, orders, exports, applications, settings, payouts, code rotation, and analytics are intentionally deferred.

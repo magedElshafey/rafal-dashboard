@@ -138,6 +138,10 @@ describe('Affiliates page', () => {
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
 
     expect(await screen.findAllByText('Noura Al Harbi')).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: 'Noura Al Harbi' })[0]).toHaveAttribute(
+      'href',
+      '/dashboard/affiliates/101'
+    )
     expect(screen.getAllByText('Active')).toHaveLength(2)
     expect(screen.getAllByText('Suspended')).toHaveLength(2)
     expect(screen.getAllByText('+966501112233')).toHaveLength(2)

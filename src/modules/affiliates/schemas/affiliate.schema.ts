@@ -1,6 +1,6 @@
 import * as yup from 'yup'
 
-import type { AffiliateFormValues } from '@/modules/affiliates/types/affiliate.types'
+import type { AffiliateFormValues, AffiliateProfileFormValues } from '@/modules/affiliates/types/affiliate.types'
 
 export type AffiliateValidationMessages = {
   required: string
@@ -25,4 +25,10 @@ export function createAffiliateSchema(messages: AffiliateValidationMessages): yu
     username: yup.string().trim().required(messages.required).max(100, messages.usernameTooLong),
     code: yup.string().trim().required(messages.required).matches(AFFILIATE_CODE_PATTERN, messages.codeInvalid),
   })
+}
+
+export function createAffiliateProfileSchema(
+  messages: AffiliateValidationMessages
+): yup.ObjectSchema<AffiliateProfileFormValues> {
+  return createAffiliateSchema(messages).omit(['code'])
 }

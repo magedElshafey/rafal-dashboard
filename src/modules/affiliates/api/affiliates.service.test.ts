@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
+const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }))
 const createAxios = vi.hoisted(() => vi.fn(() => http))
 
 vi.mock('axios', () => ({ default: { create: createAxios } }))
@@ -27,6 +27,7 @@ const rawAffiliate = {
 beforeEach(() => {
   http.get.mockReset()
   http.post.mockReset()
+  http.patch.mockReset()
   createAxios.mockClear()
 })
 
@@ -87,5 +88,75 @@ describe('Affiliate mock service', () => {
     })
     await expect(affiliatesService.suggestCode()).resolves.toEqual({ code: 'RAF12AB34CD56', reserved: false })
     expect(http.get).toHaveBeenCalledWith('/dashboard/affiliates/code-suggestion', { signal: undefined })
+  })
+
+  it('reads and updates an Affiliate without sending immutable fields', async () => {
+    http.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: rawAffiliate } })
+    await expect(affiliatesService.show(101)).resolves.toMatchObject({ id: 101, code: 'NOURA25' })
+    expect(http.get).toHaveBeenCalledWith('/dashboard/affiliates/101', { signal: undefined })
+
+    http.patch.mockResolvedValueOnce({
+      data: { success: true, message: 'updated', data: { ...rawAffiliate, name: 'Noura Updated' } },
+    })
+    await affiliatesService.update(101, { name: 'Noura Updated' })
+    expect(http.patch).toHaveBeenCalledWith('/dashboard/affiliates/101', { name: 'Noura Updated' })
+    expect(JSON.stringify(http.patch.mock.calls)).not.toMatch(/code|status|created_at|password/i)
+  })
+
+  it('uses the status and password-reset management endpoints without request bodies', async () => {
+    http.post
+      .mockResolvedValueOnce({
+        data: { success: true, message: 'suspended', data: { ...rawAffiliate, status: 'suspended' } },
+      })
+      .mockResolvedValueOnce({ data: { success: true, message: 'active', data: rawAffiliate } })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          message: 'queued',
+          data: {
+            affiliate_id: 101,
+            delivery_status: 'queued',
+            channel: 'sms',
+            requires_password_change: true,
+            requested_at: '2026-11-21T10:00:00.000Z',
+          },
+        },
+      })
+
+    await affiliatesService.suspend(101)
+    await affiliatesService.reactivate(101)
+    await expect(affiliatesService.resetPassword(101)).resolves.toMatchObject({
+      affiliateId: 101,
+      deliveryStatus: 'queued',
+    })
+    expect(http.post.mock.calls).toEqual([
+      ['/dashboard/affiliates/101/suspend'],
+      ['/dashboard/affiliates/101/reactivate'],
+      ['/dashboard/affiliates/101/reset-password'],
+    ])
+  })
+
+  it('maps chronological activity without exposing a raw transport DTO', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [
+          {
+            id: '8bd918c9-1ad2-4d7a-8547-daec5d2f488f',
+            affiliate_id: 101,
+            action: 'profile_updated',
+            actor: { type: 'mock_staff', id: 'development-staff' },
+            previous_state: { name: 'Noura' },
+            new_state: { name: 'Noura Updated' },
+            created_at: '2026-11-21T10:00:00.000Z',
+          },
+        ],
+      },
+    })
+    await expect(affiliatesService.activity(101)).resolves.toMatchObject([
+      { affiliateId: 101, action: 'profile_updated', createdAt: '2026-11-21T10:00:00.000Z' },
+    ])
+    expect(http.get).toHaveBeenCalledWith('/dashboard/affiliates/101/activity', { signal: undefined })
   })
 })

@@ -40,3 +40,35 @@ export const affiliateSuggestionSchema = z.object({
   message: z.string(),
   data: z.object({ code: z.string().regex(/^[A-Z0-9]{4,20}$/), reserved: z.literal(false) }),
 })
+
+const auditStateSchema = z.record(z.unknown()).nullable()
+
+export const affiliateActivitySchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(
+    z
+      .object({
+        id: z.string().uuid(),
+        affiliate_id: z.number().int().positive(),
+        action: z.enum(['profile_updated', 'status_suspended', 'status_reactivated', 'password_reset_requested']),
+        actor: z.object({ type: z.literal('mock_staff'), id: z.literal('development-staff') }).strict(),
+        previous_state: auditStateSchema,
+        new_state: auditStateSchema,
+        created_at: z.string().datetime({ offset: true }),
+      })
+      .strict()
+  ),
+})
+
+export const affiliatePasswordResetSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    affiliate_id: z.number().int().positive(),
+    delivery_status: z.literal('queued'),
+    channel: z.literal('sms'),
+    requires_password_change: z.literal(true),
+    requested_at: z.string().datetime({ offset: true }),
+  }),
+})

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import {
   ResponsiveDataDesktop,
@@ -12,6 +13,7 @@ import {
 import { AffiliateStatusBadge } from '@/modules/affiliates/components/AffiliateStatusBadge'
 import type { Affiliate } from '@/modules/affiliates/types/affiliate.types'
 import { formatDate, resolveAppLocale } from '@/utils/date/date.helpers'
+import { Routes } from '@/routes/routes'
 
 export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[] }) {
   const { t, i18n } = useTranslation()
@@ -33,7 +35,11 @@ export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[
         <ResponsiveDataTable columns={columns} aria-label={t('affiliates.listTitle')}>
           {affiliates.map((affiliate) => (
             <ResponsiveDataTableRow key={affiliate.id}>
-              <ResponsiveDataTableCell className="min-w-44 font-medium">{affiliate.name}</ResponsiveDataTableCell>
+              <ResponsiveDataTableCell className="min-w-44 font-medium">
+                <Link className="underline-offset-4 hover:underline" to={Routes.affiliateDetailPath(affiliate.id)}>
+                  {affiliate.name}
+                </Link>
+              </ResponsiveDataTableCell>
               <ResponsiveDataTableCell className="min-w-56 space-y-1 normal-case">
                 <a className="block" dir="ltr" href={`mailto:${affiliate.email}`}>
                   {affiliate.email}
@@ -66,7 +72,11 @@ export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[
         {affiliates.map((affiliate) => (
           <ResponsiveDataMobileCard
             key={affiliate.id}
-            title={affiliate.name}
+            title={
+              <Link className="underline-offset-4 hover:underline" to={Routes.affiliateDetailPath(affiliate.id)}>
+                {affiliate.name}
+              </Link>
+            }
             subtitle={
               <a dir="ltr" href={`mailto:${affiliate.email}`}>
                 {affiliate.email}

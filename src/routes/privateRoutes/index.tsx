@@ -45,6 +45,7 @@ const StaticPagesPage = lazy(() => import('@/modules/static-pages/pages/StaticPa
 const StaticPageCreatePage = lazy(() => import('@/modules/static-pages/pages/StaticPageCreatePage'))
 const StaticPageEditPage = lazy(() => import('@/modules/static-pages/pages/StaticPageEditPage'))
 const AffiliatesPage = lazy(() => import('@/modules/affiliates/pages/AffiliatesPage'))
+const AffiliateDetailPage = lazy(() => import('@/modules/affiliates/pages/AffiliateDetailPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -94,7 +95,12 @@ export const PrivateRoutes: RouteObject[] = [
       { path: Routes.coupons, Component: CouponsPage },
       { path: Routes.aboutUs, Component: AboutUsPage },
       { path: Routes.customers, Component: CustomersPage },
-      ...(isAffiliateFeatureEnabled ? [{ path: Routes.affiliates, Component: AffiliatesPage }] : []),
+      ...(isAffiliateFeatureEnabled
+        ? [
+            { path: Routes.affiliates, Component: AffiliatesPage },
+            { path: Routes.affiliateDetail, Component: AffiliateDetailPage },
+          ]
+        : []),
       { path: Routes.customerDetail, Component: CustomerDetailPage },
       { path: Routes.reviews, Component: ReviewsPage },
       { path: Routes.storeRatings, Component: StoreRatingsPage },
