@@ -72,3 +72,23 @@ export const affiliatePasswordResetSchema = z.object({
     requested_at: z.string().datetime({ offset: true }),
   }),
 })
+
+export const affiliateSettingsResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z
+    .object({
+      program_enabled: z.boolean(),
+      applications_enabled: z.boolean(),
+      customer_discount_percentage: z.number().min(0).max(100),
+      affiliate_commission_percentage: z.number().min(0).max(100),
+      minimum_payout_amount: z.string().regex(/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/),
+      terms_page_reference: z
+        .string()
+        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+        .max(200),
+      version: z.number().int().positive(),
+      updated_at: z.string().datetime({ offset: true }),
+    })
+    .strict(),
+})

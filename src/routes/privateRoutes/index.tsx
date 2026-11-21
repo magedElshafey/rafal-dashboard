@@ -46,6 +46,7 @@ const StaticPageCreatePage = lazy(() => import('@/modules/static-pages/pages/Sta
 const StaticPageEditPage = lazy(() => import('@/modules/static-pages/pages/StaticPageEditPage'))
 const AffiliatesPage = lazy(() => import('@/modules/affiliates/pages/AffiliatesPage'))
 const AffiliateDetailPage = lazy(() => import('@/modules/affiliates/pages/AffiliateDetailPage'))
+const AffiliateSettingsPage = lazy(() => import('@/modules/affiliates/pages/AffiliateSettingsPage'))
 
 export const PrivateRoutes: RouteObject[] = [
   {
@@ -98,6 +99,7 @@ export const PrivateRoutes: RouteObject[] = [
       ...(isAffiliateFeatureEnabled
         ? [
             { path: Routes.affiliates, Component: AffiliatesPage },
+            { path: Routes.affiliateSettings, Component: AffiliateSettingsPage },
             { path: Routes.affiliateDetail, Component: AffiliateDetailPage },
           ]
         : []),

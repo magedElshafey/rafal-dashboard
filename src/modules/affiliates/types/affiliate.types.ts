@@ -53,6 +53,20 @@ export type AffiliatePasswordReset = {
   requestedAt: string
 }
 
+export type AffiliateSettings = {
+  programEnabled: boolean
+  applicationsEnabled: boolean
+  customerDiscountPercentage: number
+  affiliateCommissionPercentage: number
+  minimumPayoutAmount: string
+  termsPageReference: string
+  version: number
+  updatedAt: string
+}
+
+export type AffiliateSettingsFormValues = Omit<AffiliateSettings, 'version' | 'updatedAt'>
+export type UpdateAffiliateSettingsPayload = { version: number } & Partial<AffiliateSettingsFormValues>
+
 export type AffiliateCodeSuggestion = {
   code: string
   reserved: false

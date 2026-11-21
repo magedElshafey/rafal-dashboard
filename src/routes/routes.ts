@@ -40,6 +40,7 @@ export const Routes = {
   aboutUs: '/dashboard/about-us',
   customers: '/dashboard/customers',
   affiliates: '/dashboard/affiliates',
+  affiliateSettings: '/dashboard/affiliates/settings',
   affiliateDetail: '/dashboard/affiliates/:id',
   affiliateDetailPath: (id: number) => `/dashboard/affiliates/${id}`,
   customerDetail: '/dashboard/customers/:id',

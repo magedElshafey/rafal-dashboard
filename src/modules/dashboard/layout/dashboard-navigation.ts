@@ -22,6 +22,7 @@ import {
   Star,
   Gift,
   BadgePercent,
+  SlidersHorizontal,
 } from 'lucide-react'
 
 import { isAffiliateFeatureEnabled } from '@/modules/affiliates/config/affiliate-feature'
@@ -53,7 +54,13 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
           to: Routes.affiliates,
           labelKey: 'dashboard.sidebar.affiliates',
           icon: BadgePercent,
-          match: 'prefix' as const,
+          match: 'exact' as const,
+        },
+        {
+          to: Routes.affiliateSettings,
+          labelKey: 'dashboard.sidebar.affiliateSettings',
+          icon: SlidersHorizontal,
+          match: 'exact' as const,
         },
       ]
     : []),

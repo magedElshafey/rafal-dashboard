@@ -24,6 +24,17 @@ const rawAffiliate = {
   updated_at: '2026-11-10T09:30:00.000Z',
 }
 
+const rawSettings = {
+  program_enabled: true,
+  applications_enabled: true,
+  customer_discount_percentage: 10,
+  affiliate_commission_percentage: 10,
+  minimum_payout_amount: '100.00',
+  terms_page_reference: 'affiliate-terms',
+  version: 1,
+  updated_at: '2026-11-21T00:00:00.000Z',
+}
+
 beforeEach(() => {
   http.get.mockReset()
   http.post.mockReset()
@@ -158,5 +169,31 @@ describe('Affiliate mock service', () => {
       { affiliateId: 101, action: 'profile_updated', createdAt: '2026-11-21T10:00:00.000Z' },
     ])
     expect(http.get).toHaveBeenCalledWith('/dashboard/affiliates/101/activity', { signal: undefined })
+  })
+
+  it('reads and partially updates settings through the isolated transport', async () => {
+    http.get.mockResolvedValueOnce({ data: { success: true, message: 'ok', data: rawSettings } })
+    await expect(affiliatesService.getSettings()).resolves.toMatchObject({
+      programEnabled: true,
+      minimumPayoutAmount: '100.00',
+      version: 1,
+    })
+    expect(http.get).toHaveBeenCalledWith('/dashboard/affiliate-settings', { signal: undefined })
+
+    http.patch.mockResolvedValueOnce({
+      data: {
+        success: true,
+        message: 'updated',
+        data: { ...rawSettings, program_enabled: false, customer_discount_percentage: 12.5, version: 2 },
+      },
+    })
+    await expect(
+      affiliatesService.updateSettings({ version: 1, programEnabled: false, customerDiscountPercentage: 12.5 })
+    ).resolves.toMatchObject({ programEnabled: false, customerDiscountPercentage: 12.5, version: 2 })
+    expect(http.patch).toHaveBeenCalledWith('/dashboard/affiliate-settings', {
+      version: 1,
+      program_enabled: false,
+      customer_discount_percentage: 12.5,
+    })
   })
 })

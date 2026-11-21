@@ -134,6 +134,70 @@
       "resetPassword": "Password reset initiated. SMS delivery has been queued.",
       "resetPasswordError": "The password reset could not be initiated. Try again.",
       "statusConflict": "The Affiliate status already changed. The current details have been refreshed."
+    },
+    "settings": {
+      "title": "Affiliate Programme Settings",
+      "description": "Configure programme availability and proposed commercial rules.",
+      "updatedAt": "Last updated: {{date}}",
+      "mockNotice": "These settings are saved to the development Mock API. They are not currently enforced by the live storefront, applications, commissions, or payouts.",
+      "sections": {
+        "availability": {
+          "title": "Programme availability",
+          "description": "Control the stored availability flags for the programme and future applications."
+        },
+        "commercial": {
+          "title": "Commercial rules",
+          "description": "Store the proposed discount, commission, and payout thresholds without calculating transactions."
+        },
+        "legal": {
+          "title": "Legal and terms",
+          "description": "Reference a static-page slug for the proposed Affiliate terms."
+        }
+      },
+      "fields": {
+        "programEnabled": "Programme enabled",
+        "applicationsEnabled": "Applications enabled",
+        "customerDiscountPercentage": "Customer discount percentage",
+        "affiliateCommissionPercentage": "Affiliate commission percentage",
+        "minimumPayoutAmount": "Minimum payout amount",
+        "termsPageReference": "Affiliate terms page reference"
+      },
+      "help": {
+        "programEnabled": "Intended to control programme participation and code use once downstream enforcement exists.",
+        "applicationsEnabled": "Stores availability for a future Website application flow that is not implemented yet.",
+        "customerDiscountPercentage": "A value from 0 through 100. Checkout enforcement is not implemented.",
+        "affiliateCommissionPercentage": "A value from 0 through 100. The calculation base is not yet confirmed.",
+        "minimumPayoutAmount": "Enter a positive decimal amount. The production currency is not yet confirmed.",
+        "termsPageReference": "Enter a lowercase, single-segment static-page slug. The page is not verified automatically."
+      },
+      "actions": {
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard changes"
+      },
+      "values": {
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "validation": {
+        "required": "This field is required.",
+        "validNumber": "Enter a valid number.",
+        "percentageRange": "Enter a percentage from 0 through 100.",
+        "payoutFormat": "Enter a decimal amount without a currency symbol.",
+        "payoutPositive": "Minimum payout amount must be greater than zero.",
+        "termsSlug": "Use lowercase letters, numbers, and single hyphens only, up to 200 characters."
+      },
+      "conflict": {
+        "title": "Settings changed by another administrator",
+        "message": "Your draft was preserved. Review the latest saved values below before explicitly retrying your changes.",
+        "reloadError": "The latest settings could not be loaded. Your draft is still preserved.",
+        "reload": "Load latest settings",
+        "retry": "Retry my changes"
+      },
+      "feedback": {
+        "updated": "Affiliate programme settings updated successfully.",
+        "updateError": "The Affiliate programme settings could not be updated. Your draft was preserved."
+      }
     }
   }
 }
