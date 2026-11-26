@@ -1,3 +1,5 @@
+import { clearQueryClientAtAuthBoundary } from '@/lib/react-query/query-client'
+import { useAuth } from '@/store/auth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
 const gate = vi.hoisted(() => ({ enabled: true, payout: true, decision: false }))
@@ -26,12 +28,40 @@ const row = {
 const meta = { current_page: 1, last_page: 2, per_page: 25, total: 30, pending_count: 27 }
 const ok = (data: unknown) => ({ data: { success: true, message: 'Done', data } })
 beforeEach(() => {
+  useAuth.setState({
+    isAuthenticated: true,
+    token: 'synthetic-staff-token',
+    effectivePermissions: [
+      'affiliates.view',
+      'affiliates.manage',
+      'affiliates.settings.manage',
+      'affiliates.payouts.process',
+    ],
+  })
+  clearQueryClientAtAuthBoundary()
   vi.resetAllMocks()
   gate.enabled = true
   gate.payout = true
   gate.decision = false
 })
 describe('Documented review service subsets', () => {
+  it('blocks both decisions after an uncertain result until a successful fresh detail read', async () => {
+    gate.decision = true
+    http.post.mockRejectedValueOnce(new Error('network'))
+    await expect(affiliatePayoutsService.reject(7, 'A documented rejection reason')).rejects.toThrow('network')
+    await expect(
+      affiliatePayoutsService.paid(7, { transfer_reference: 'ABC', transferred_at: '2026-01-01' })
+    ).rejects.toThrow('Read payout')
+    expect(http.post).toHaveBeenCalledTimes(1)
+    http.get.mockRejectedValueOnce(new Error('offline'))
+    await expect(affiliatePayoutsService.show(7)).rejects.toThrow('offline')
+    await expect(affiliatePayoutsService.reject(7, 'A documented rejection reason')).rejects.toThrow('Read payout')
+    http.get.mockResolvedValue(ok({ payout: { id: 7, status: 'pending' }, warning: null }))
+    await affiliatePayoutsService.show(7)
+    http.post.mockResolvedValue(ok(null))
+    await affiliatePayoutsService.reject(7, 'A documented rejection reason')
+    expect(http.post).toHaveBeenCalledTimes(2)
+  })
   it('blocks both financial methods before transport while decision activation is closed', async () => {
     await expect(
       affiliatePayoutsService.paid(1, { transfer_reference: 'BANK-12345', transferred_at: '2026-01-01' })
@@ -50,6 +80,10 @@ describe('Documented review service subsets', () => {
       data: { transfer_reference: 'BANK-12345', transferred_at: '2026-01-01' },
       suppressSuccessNotification: true,
     })
+    http.get.mockResolvedValue(
+      ok({ payout: { id: 7, status: 'pending' }, affiliate_available_balance: '100.00', warning: null })
+    )
+    await affiliatePayoutsService.show(7)
     await affiliatePayoutsService.reject(7, 'A documented rejection reason')
     expect(http.post.mock.calls[1][0]).toMatchObject({
       url: '/dashboard/affiliate-payouts/7/reject',
@@ -60,6 +94,10 @@ describe('Documented review service subsets', () => {
     gate.decision = true
     http.post.mockResolvedValueOnce({ data: { success: false } })
     await expect(affiliatePayoutsService.reject(7, 'A documented rejection reason')).rejects.toThrow()
+    http.get.mockResolvedValue(
+      ok({ payout: { id: 7, status: 'pending' }, affiliate_available_balance: '100.00', warning: null })
+    )
+    await affiliatePayoutsService.show(7)
     const conflict = { isAxiosError: true, response: { status: 409 } }
     http.post.mockRejectedValueOnce(conflict)
     await expect(affiliatePayoutsService.reject(7, 'A documented rejection reason')).rejects.toBe(conflict)

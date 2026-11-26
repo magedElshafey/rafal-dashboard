@@ -1,4 +1,4 @@
-import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { AffiliateExportButton } from '../components/AffiliateExportButton'
 import { useMemo } from 'react'
 import { Plus, UsersRound } from 'lucide-react'
@@ -26,6 +26,7 @@ import QueryProvider from '@/store/queryContext/queryContext'
 import { useQuery } from '@/store/queryContext/useQueryContext'
 
 function AffiliatesContent() {
+  const canManage = useAffiliateAccess('manage')
   const { t } = useTranslation()
   const { forwardQuery } = useQuery()
   const drawer = useEntityFormDrawer()
@@ -41,7 +42,7 @@ function AffiliatesContent() {
     operationKey: JSON.stringify([filters, query.data?.pages.length]),
   })
 
-  const createButton = (
+  const createButton = canManage && (
     <Button onClick={drawer.openCreate}>
       <Plus aria-hidden="true" />
       {t('affiliates.actions.create')}
@@ -155,13 +156,14 @@ function AffiliatesContent() {
         </TableProvider>
       </QueryStateBoundary>
 
-      <AffiliateCreateDrawer open={drawer.open} onOpenChange={drawer.setOpen} />
+      <AffiliateCreateDrawer open={drawer.open && canManage} onOpenChange={drawer.setOpen} />
     </main>
   )
 }
 
 export default function AffiliatesPage() {
-  if (!isAffiliateFeatureEnabled) return null
+  const allowed = useAffiliateAccess('view')
+  if (!allowed) return null
   return (
     <QueryProvider resetQueryNamesOnChange={['page']}>
       <AffiliatesContent />

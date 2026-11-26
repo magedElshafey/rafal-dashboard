@@ -1,3 +1,4 @@
+import { useAuth } from '@/store/auth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
 const gate = vi.hoisted(() => ({ enabled: true, write: true }))
@@ -52,11 +53,62 @@ const create = {
 }
 const ok = (data: unknown) => ({ data: { success: true, message: 'ok', data } })
 beforeEach(() => {
+  useAuth.setState({
+    isAuthenticated: true,
+    token: 'synthetic-staff-token',
+    effectivePermissions: [
+      'affiliates.view',
+      'affiliates.manage',
+      'affiliates.settings.manage',
+      'affiliates.payouts.process',
+    ],
+  })
   vi.resetAllMocks()
   gate.enabled = true
   gate.write = true
 })
 describe('Laravel Affiliate service (synthetic grants only)', () => {
+  it('denies unknown grants before transport even when release gates are mocked open', async () => {
+    useAuth.setState({ effectivePermissions: null })
+    await expect(affiliatesService.getSettings()).rejects.toThrow()
+    await expect(affiliatesService.generateCode('Synthetic')).rejects.toThrow()
+    expect(http.get).not.toHaveBeenCalled()
+  })
+  it('generates a name-based unreserved suggestion and rejects malformed codes', async () => {
+    http.get.mockResolvedValue(ok({ code: 'TEST123' }))
+    const signal = new AbortController().signal
+    expect(await affiliatesService.generateCode(' Synthetic ', signal)).toEqual({ code: 'TEST123' })
+    expect(http.get.mock.calls[0][0]).toMatchObject({
+      url: '/dashboard/affiliates/generate-code',
+      query: { name: 'Synthetic' },
+      signal,
+    })
+    http.get.mockResolvedValue(ok({ code: '<unsafe>' }))
+    await expect(affiliatesService.generateCode('Synthetic')).rejects.toThrow()
+  })
+  it('preserves exact financial history and treats missing or malformed optional money as unavailable', async () => {
+    http.get.mockResolvedValue(
+      ok({
+        ...raw,
+        pending: '12345678901234567890.01',
+        approved_unpaid: null,
+        paid: 'bad',
+        orders: {
+          data: [{ id: 4, commission: '-0.01', adjustment_amount: '-1.00' }],
+          meta: { current_page: 2, last_page: 3 },
+        },
+        payouts: [],
+      })
+    )
+    const result = await affiliatesService.show(1, undefined, { orders_page: 2 })
+    expect(result.pending).toBe('12345678901234567890.01')
+    expect(result.approvedUnpaid).toBeNull()
+    expect(result.paid).toBeNull()
+    expect(result.orders?.data[0].commission).toBe('-0.01')
+    expect(result.orders?.meta?.current_page).toBe(2)
+    expect(result.payouts?.data).toEqual([])
+    expect(http.get.mock.calls[0][0].query).toEqual({ orders_page: 2 })
+  })
   it.each([undefined, null, {}, { pending: 45 }, { pending: 'bad' }])(
     'uses unavailable totals for absent/malformed metadata without losing the list: %j',
     async (totals) => {
@@ -210,7 +262,7 @@ describe('Laravel Affiliate service (synthetic grants only)', () => {
       terms_page_id: 2,
     })
   })
-  it('supports the documented numeric minimum and non-null page case without null/clear semantics', async () => {
+  it('supports the documented numeric minimum and non-null page case', async () => {
     http.get.mockResolvedValue(ok({ ...settings, min_payout: 100 }))
     http.put.mockResolvedValue(ok({ ...settings, min_payout: 0 }))
     expect((await affiliatesService.getSettings()).minimumPayoutAmount).toBe('100')
@@ -220,11 +272,47 @@ describe('Laravel Affiliate service (synthetic grants only)', () => {
     expect(http.put.mock.calls[0][0].data).toMatchObject({ min_payout: 0, terms_page_id: 2 })
     expect(Object.keys(http.put.mock.calls[0][0].data)).toHaveLength(6)
   })
-  it('keeps unverified settings writes closed and never submits an unset page', async () => {
+  it('preserves null through GET, all six PUT fields, and the PUT response', async () => {
+    http.get.mockResolvedValue(ok({ ...settings, terms_page_id: null, terms_page: null }))
+    http.put.mockResolvedValue(ok({ ...settings, terms_page_id: null, terms_page: null }))
+    const result = await affiliatesService.getSettings()
+    expect(result).toEqual({ ...values, termsPageId: null })
+    expect(await affiliatesService.updateSettings(result)).toEqual(result)
+    expect(http.put.mock.calls[0][0].data).toEqual({
+      enabled: true,
+      applications_enabled: true,
+      customer_discount_percent: 10,
+      commission_percent: 5,
+      min_payout: 100,
+      terms_page_id: null,
+    })
+  })
+  it('does not round a precise decimal settings amount when constructing PUT', async () => {
+    const amount = '0.1000000000000000001'
+    http.put.mockResolvedValue(ok({ ...settings, min_payout: amount }))
+    expect(
+      (await affiliatesService.updateSettings({ ...values, minimumPayoutAmount: amount })).minimumPayoutAmount
+    ).toBe(amount)
+    expect(http.put.mock.calls[0][0].data.min_payout).toBe(amount)
+  })
+  it('preserves null-page 422 validation errors', async () => {
+    const error = {
+      isAxiosError: true,
+      response: { status: 422, data: { errors: { terms_page_id: ['Invalid page'] } } },
+    }
+    http.put.mockRejectedValue(error)
+    await expect(affiliatesService.updateSettings({ ...values, termsPageId: null })).rejects.toBe(error)
+    expect(http.put).toHaveBeenCalledTimes(1)
+  })
+  it('keeps unverified settings writes closed even for a null page', async () => {
     gate.write = false
     await expect(affiliatesService.updateSettings(values)).rejects.toThrow()
-    gate.write = true
     await expect(affiliatesService.updateSettings({ ...values, termsPageId: null })).rejects.toThrow()
+    expect(http.put).not.toHaveBeenCalled()
+  })
+  it.each([undefined, 0, -1, 1.2])('rejects invalid page %s before transport', async (termsPageId) => {
+    gate.write = true
+    await expect(affiliatesService.updateSettings({ ...values, termsPageId: termsPageId as number })).rejects.toThrow()
     expect(http.put).not.toHaveBeenCalled()
   })
   it('rejects failure/malformed envelopes', async () => {

@@ -4,12 +4,14 @@ import { loginRequest } from '@/modules/auth/service/login.service'
 import type { AuthAdmin, AuthSession, LoginPayload } from '@/modules/auth/types/auth.types'
 
 interface Actions {
+  setVerifiedPermissions: (expectedToken: string, permissions: readonly string[] | null) => void
   login: (data: LoginPayload) => Promise<AuthSession>
   logout: () => void
   syncFromStorage: () => void
 }
 
 interface State {
+  effectivePermissions: readonly string[] | null
   token: string | null
   admin: AuthAdmin | null
   isAuthenticated: boolean
@@ -19,6 +21,7 @@ export const AUTH_STORAGE_KEY = 'rafal_auth_session'
 const LEGACY_AUTH_STORAGE_KEY = 'auth_session'
 
 const emptyAuthState: State = {
+  effectivePermissions: null,
   token: null,
   admin: null,
   isAuthenticated: false,
@@ -64,7 +67,7 @@ function readStoredAuth(): AuthSession | null {
 
 function toAuthState(session: AuthSession | null): State {
   if (!session) return emptyAuthState
-  return { token: session.token, admin: session.admin, isAuthenticated: true }
+  return { token: session.token, admin: session.admin, isAuthenticated: true, effectivePermissions: null }
 }
 
 function persistAuthSession(session: AuthSession): void {
@@ -78,6 +81,15 @@ function getInitialAuthState(): State {
 
 export const useAuth = create<State & Actions>((set, get) => ({
   ...getInitialAuthState(),
+  // Integration seam only: call after parsing the authoritative current-staff source.
+  // Never hydrate from roles, a catalog, or persisted browser values.
+  setVerifiedPermissions(expectedToken, permissions) {
+    if (!get().isAuthenticated || get().token !== expectedToken) return
+    const valid =
+      Array.isArray(permissions) &&
+      permissions.every((value) => typeof value === 'string' && value.trim() === value && value.length > 0)
+    set({ effectivePermissions: valid ? [...new Set(permissions)] : null })
+  },
 
   async login(data) {
     if (get().isAuthenticated || readStoredAuth()) {
@@ -99,7 +111,7 @@ export const useAuth = create<State & Actions>((set, get) => ({
       },
     }
     persistAuthSession(session)
-    set({ ...session, isAuthenticated: true })
+    set({ ...session, isAuthenticated: true, effectivePermissions: null })
     return session
   },
 

@@ -1,3 +1,4 @@
+import { useAuth } from '@/store/auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,7 +12,10 @@ import AffiliateDetailPage from '@/modules/affiliates/pages/AffiliateDetailPage'
 import { affiliatesKeys } from '@/modules/affiliates/queries/affiliates.keys'
 import type { Affiliate } from '@/modules/affiliates/types/affiliate.types'
 
-vi.mock('@/modules/affiliates/config/affiliate-feature', () => ({ isAffiliateFeatureEnabled: true }))
+vi.mock('@/modules/affiliates/config/affiliate-feature', () => ({
+  isAffiliateFeatureEnabled: true,
+  isAffiliatePayoutFeatureEnabled: false,
+}))
 
 const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
@@ -69,6 +73,16 @@ async function openEdit(user: ReturnType<typeof userEvent.setup>) {
 
 describe('Affiliate detail page', () => {
   beforeEach(async () => {
+    useAuth.setState({
+      isAuthenticated: true,
+      token: 'synthetic-staff-token',
+      effectivePermissions: [
+        'affiliates.view',
+        'affiliates.manage',
+        'affiliates.settings.manage',
+        'affiliates.payouts.process',
+      ],
+    })
     affiliate = { ...baseAffiliate }
     installFixtures()
     toastMocks.success.mockReset()
@@ -82,6 +96,32 @@ describe('Affiliate detail page', () => {
     renderPage()
     expect(await screen.findByRole('heading', { name: 'Noura Al Harbi' })).toBeInTheDocument()
     expect(screen.queryByText('Management activity')).not.toBeInTheDocument()
+  })
+  it('does not render a protected route or fetch details with unknown permissions', () => {
+    useAuth.setState({ effectivePermissions: null })
+    renderPage()
+    expect(screen.queryByRole('main')).not.toBeInTheDocument()
+    expect(affiliatesService.show).not.toHaveBeenCalled()
+  })
+  it('shows exact optional balances and histories while view-only staff cannot mutate', async () => {
+    useAuth.setState({ effectivePermissions: ['affiliates.view'] })
+    affiliate = {
+      ...affiliate,
+      pending: '12345678901234567890.01',
+      orders: { data: [{ id: 88, commission: '-0.01' }], meta: { current_page: 1, last_page: 2 } },
+    }
+    renderPage()
+    expect(await screen.findByText('12345678901234567890.01 SAR')).toBeInTheDocument()
+    expect(screen.getByText('-0.01 SAR')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    await waitFor(() =>
+      expect(affiliatesService.show).toHaveBeenLastCalledWith(
+        101,
+        expect.any(AbortSignal),
+        expect.objectContaining({ orders_page: 2 })
+      )
+    )
   })
 
   it('handles loading failure retry, invalid IDs, and API 404', async () => {

@@ -1,4 +1,4 @@
-import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useTranslation } from 'react-i18next'
 
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -9,10 +9,12 @@ import { useAffiliateSettings } from '@/modules/affiliates/hooks/useAffiliateSet
 import { useUpdateAffiliateSettings } from '@/modules/affiliates/hooks/useUpdateAffiliateSettings'
 
 export default function AffiliateSettingsPage() {
+  const allowed = useAffiliateAccess('settingsRead')
   const { t } = useTranslation()
   const query = useAffiliateSettings()
   const update = useUpdateAffiliateSettings()
-  if (!isAffiliateFeatureEnabled) return null
+  const canWrite = useAffiliateAccess('settingsWrite')
+  if (!allowed) return null
   return (
     <main className="min-w-0 space-y-5">
       <QueryStateBoundary
@@ -26,7 +28,12 @@ export default function AffiliateSettingsPage() {
         onRetry={query.refetch}
       >
         {query.data ? (
-          <AffiliateSettingsForm settings={query.data} isSubmitting={update.isPending} onSubmit={update.mutateAsync} />
+          <AffiliateSettingsForm
+            settings={query.data}
+            canWrite={canWrite}
+            isSubmitting={update.isPending}
+            onSubmit={update.mutateAsync}
+          />
         ) : (
           <DashboardPageHeader title={t('affiliates.settings.title')} />
         )}

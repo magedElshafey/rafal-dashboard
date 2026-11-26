@@ -1,3 +1,37 @@
+# Authorized-session manual smoke checklist
+
+2026-11-26. Status: IMPLEMENTED_PENDING_SMOKE_TEST. No steps below were executed against Laravel in this task. Use the configured API base ending /api/v1 and the existing authenticated staff client/session. Do not put tokens in commands, saved collections, screenshots or reports. Do not open frontend gates merely to run transport checks. Preserve current settings privately in memory for possible restoration; publish only sanitized status/type observations.
+
+## Read-only sequence
+
+1. Confirm the approved environment and staff identity. Use the existing session's authentication headers and locale; never infer permissions from roles. Record timestamp, method, path, HTTP status and whether the expected shape passed, omitting names/emails/phones/bank data.
+2. GET /dashboard/affiliate-settings. Check the common success envelope and all six fields, numeric/string min_payout and nullable terms_page_id. Do not mutate if this fails.
+3. GET /dashboard/affiliates?page=1&per_page=25; then page=2 if meta.last_page allows. Repeat with search=<disposable-code> and status=active/suspended. Verify current_page, last_page, totals and exact decimal strings, empty results and filter-dependent totals.
+4. GET /dashboard/affiliates/generate-code?name=Test. Verify data.code; do not create an account or assume reservation.
+5. Using an ID returned by step 3, GET /dashboard/affiliates/{id}, then with from=2026-11-01&to=2026-11-26. Compare balances/profile/orders/payouts. Where metadata indicates further pages, try orders_page=2 and payouts_page=2 separately. Confirm row IDs/page metadata actually change; if not, adapt to the observed Laravel pagination names rather than treating the fixture assumption as verified.
+6. GET /dashboard/affiliate-applications?page=1&status=pending and approved/rejected; request page=2 when present. Verify pending_count and GET /dashboard/affiliate-applications/{returned-id}. Do not approve/reject or reset credentials: these can send SMS.
+7. GET /dashboard/affiliate-payouts?page=1&per_page=25&status=pending and paid/rejected; follow pagination. GET /dashboard/affiliate-payouts/{returned-id}; verify payout identity/status, optional amount/details, warning and available balance. Inspect IBAN only within the authorized UI; never include it in evidence.
+8. GET /dashboard/affiliates/export with the same search/status filters. Check HTTP status, nonempty CSV MIME, safe filename and filter scope. Keep customer CSV private and discard it per local test-data policy; do not attach it to the report.
+9. GET /dashboard/orders/{disposable-order-id} for an attributed and a non-attributed order. Check discount/commission/adjustment amounts match server strings, absent attribution renders no invented section, and the Affiliate link appears only with verified view access and released routes.
+10. After permission hydration is implemented, run authorized V/M/S/P account combinations: no grants/unknown stay denied; S can read settings without V but writes require settings readiness; M does not imply V; P does not imply V or financial readiness. Check forbidden responses without using another identity's cached data. Do not send mutations to test denial. Stale 401/403, 409, 422 and network outcomes are already exercised locally; do not manufacture unsafe live errors.
+
+## Conditional nullable settings sequence
+
+1. Save the entire successful original settings response privately. Confirm enabled is exactly false. If active, STOP and report the safety blocker; never disable it for this test.
+2. Confirm with the environment owner that records are disposable and changing the terms page cannot impose unwanted reacceptance on real accounts. Restoring an ID does not reverse secondary effects. If this cannot be established, STOP mutations and complete read-only coverage.
+3. Build a body containing exactly enabled, applications_enabled, customer_discount_percent, commission_percent, min_payout, terms_page_id from the original response. Change only terms_page_id to null; preserve every other value.
+4. PUT /dashboard/affiliate-settings once. Record actual status and sanitized validation/errors or returned setting values. Do not automatically retry a timeout.
+5. GET settings immediately, including after 422/timeout. Compare all six fields with the original. On 422 capture the terms_page_id error and verify unchanged state; classify any mismatch from evidence, not assumption.
+6. If settings changed, PUT the six original fields to restore, only after verifying no concurrent unrelated change would be overwritten. GET again and compare all six values. If restore or verification fails, report that explicitly and stop further mutations.
+7. Record initial GET / PUT / verification GET / restoration PUT / restoration GET statuses individually, null persistence, restoration outcome and any secondary effects. If the original page was already null and all six fields remain identical, state that restoration was unnecessary. No claim of success without read-back.
+
+## Financial transition restriction
+
+No live Paid/Reject call is authorized by this checklist. It requires a separately named disposable test payout and explicit assurance that no transfer or external financial effect can occur. Never deliberately replay a financial mutation to provoke 409. Complete safe reads and local tests while waiting.
+
+<details>
+<summary>Historical record before this frontend completion task; superseded by the active status above</summary>
+
 # T01 contract closure and Backend handoff
 
 2026-11-26. **READY WITH BLOCKERS** for preparation; not production-ready and not full contract closure.
@@ -131,3 +165,5 @@ The text below is prepared only; it has not been sent.
 > - E16–E19 `/dashboard/affiliate-payouts`: please supply list/detail/paid/rejected and 409 envelopes with synthetic IBANs, exact IBAN field location/nullability, pagination and mutation completeness. Which timezone defines a nonfuture `transferred_at`, and what supported read-back procedure should staff use after an ambiguous paid/rejected timeout? This is needed for protected T07 rendering and avoiding duplicate financial decisions; no idempotency header or retry protocol will be assumed.
 
 External panel ownership and visual Arabic-copy review remain internal/later follow-ups, not Backend contract blockers for T02. The message deliberately does not reopen full settings PUT, separate Affiliate authentication, explicit grant names, suspension/rejection bounds, payout protection or documented 409 behavior.
+
+</details>

@@ -1,3 +1,23 @@
+# Assumptions pending authorized smoke tests
+
+2026-11-26. These are IMPLEMENTED_PENDING_SMOKE_TEST, not confirmed Backend defects or additional clarification requests. Local fixtures prove only frontend behavior. Document 10 contains the sole confirmed Backend dependency.
+
+| Surface | Prepared interpretation | Required observation |
+| --- | --- | --- |
+| Code generation | GET /dashboard/affiliates/generate-code?name=; common success envelope with data.code, 4-20 alphanumeric characters. Suggestion is unreserved. Manual input survives failures and edits while pending. | Verify response key, name parameter and actual code format with disposable data. |
+| Affiliate detail | Existing profile plus optional pending, approved_unpaid and paid decimal strings; orders/payouts are arrays or data collections with optional meta.current_page/last_page. Missing/malformed optional sections render unavailable, never zero. | GET a populated detail and compare actual nesting. The assumed history page parameters are orders_page/payouts_page, combined with from/to. Verify each page changes and no repeated page; revise adapter if actual names differ. |
+| History rows | Positive id, optional status/created_at, amount/commission/total/adjustment_amount exact decimal strings. No client financial calculations. | Verify row meaning and identifiers before activating links. Missing sections stay unavailable. |
+| Payout enrichment | Optional amount, created_at, transfer_reference, transferred_at, rejection_reason; detail payout identity/status required. Available balance may be absent/null and renders unavailable. | Compare pending/paid/rejected read-only examples. Never log full IBAN. |
+| Settings | Full six-field PUT, explicit null terms page, numeric/string GET minimum preserved. Numeric PUT for representable values; retain decimal string if converting would lose precision. Non-null pages must be published; null needs no option lookup result. | Read-only GET first. Conditional disposable-data nullable test only under document 07 safeguards. No null defect is claimed without a real 422. |
+| Permissions | V for list/detail/applications/export; M for create/generator/profile/status/reset/application decisions; V-or-S settings reads, S writes; P payout reads/decisions. All gated by release readiness. | Test independent grant sets after authoritative hydration. Do not derive grants from the assignable catalog or labels. |
+| Financial acknowledgments | Parse common success envelope, invalidate relevant caches and read authoritative details. Network/5xx/malformed results block resubmission until fresh read; 409 reconciles without replay. Date defaults to local calendar today, with no future date. | Authorized disposable transition testing only after explicit approval. Verify business-date behavior during acceptance, not a separate frontend permission system. |
+| Remaining routine reads | Totals scope, CSV MIME/filename, selected-page metadata and application optional fields use existing documented shapes and safe absence handling. | Capture sanitized shapes from authorized GET/export and update adapters only when observed evidence differs. |
+
+No assumptions are labeled live-verified. No messages have been sent. No raw customer responses, credentials or bank identifiers are included here.
+
+<details>
+<summary>Historical record before this frontend completion task; superseded by the active status above</summary>
+
 # Consolidated nonblocking Laravel missings
 
 2026-11-26. Evidence: approved extraction of the 2026-11-24 guide, not fresh PDF verification. The consolidated message is **READY TO SEND — NOT SENT**. Authorization, unsafe settings saves and financial decisions are tracked separately in document 10.
@@ -12,9 +32,11 @@
 | Application/payout pagination details                                | Adapt current_page/last_page/per_page/total to existing pagination. Malformed responses fail visibly; counts/order are never invented.                                                                                                       | Validate sanitized empty/multipage envelopes; guide does not fully enumerate these metadata fields.         |
 | Application decided_by and rejection SMS detail                      | Show date/reason, omit actor. Rejection uses authoritative success message, never fabricates sms_sent. Approval uses actual SMS result.                                                                                                      | Confirm actor/null shape and any rejection delivery fields.                                                 |
 | Application other_accounts and historical approved-Affiliate linkage | Omit unknown nested account representation. Immediate approval links returned Affiliate ID; reopened approved records have no guessed link.                                                                                                  | Enrichment incomplete; provide representation and persisted relationship if exposed.                        |
-| Minimum-payout precision beyond the documented numeric case          | Use the documented numeric request; range is validated. No null/page clearing fallback.                                                                                                                                                      | Confirm any additional precision constraint; this does not block the valid numeric case.                    |
+| Minimum-payout precision beyond the documented numeric case          | Use the documented numeric request; range is validated. Explicit null/page clearing is now supported independently; live acceptance remains unverified (B02).                                                                                | Confirm any additional precision constraint; this does not block the valid numeric case.                    |
 | Selected terms-page metadata                                         | No options request while page access unknown; read-only selector has no guessed title. Null never becomes ID 0.                                                                                                                              | Confirm title representation; save/access uncertainty is B02.                                               |
 
 ## One Backend message — READY TO SEND — NOT SENT
 
 Please provide sanitized examples for: (1) whether documented Affiliate totals follow search/status filters; (2) generator result; (3) CSV MIME/filename headers; (4) optional profile nullability/source enum, staff field limits and reactivation bounds; (5) empty/multipage application and payout metadata; (6) application decision actor, optional rejection delivery fields, other_accounts and any persisted approved-Affiliate relationship; and (7) selected terms-page metadata. Safe fallbacks omit unknown values, preserve server money, allow manual/omitted creation codes and use a CSV filename fallback. No reconfirmation is needed for the documented totals fields, numeric non-null settings case, full settings PUT, application decision requests, SMS-false behavior or 409 already-decided behavior. Urgent blockers have separate prepared messages in document 10. No message has been sent.
+
+</details>

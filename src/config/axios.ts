@@ -24,6 +24,14 @@ axiosInstance.interceptors.response.use(notifySuccessResponse, (error: AxiosErro
 
   const status = error.response?.status
 
+  if (status === 403) {
+    const authorization = error.config?.headers.get('Authorization')
+    const { token, isAuthenticated } = useAuth.getState()
+    // A forbidden response from a previous identity must not redirect or notify the current one.
+    if ((authorization || (isAuthenticated && token)) && (!isAuthenticated || authorization !== `Bearer ${token}`))
+      return Promise.reject(error)
+  }
+
   if (status === 401) {
     const requestAuthorization = error.config?.headers.get('Authorization')
     const { isAuthenticated, logout, token } = useAuth.getState()

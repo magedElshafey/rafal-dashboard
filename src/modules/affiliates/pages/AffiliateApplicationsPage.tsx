@@ -1,3 +1,4 @@
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useSearchParams, Link } from 'react-router-dom'
 import { Routes } from '@/routes/routes'
 import { useTranslation } from 'react-i18next'
@@ -18,8 +19,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
 import { affiliateApplicationsService } from '../api/affiliate-review.service'
-import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
 export default function AffiliateApplicationsPage() {
+  const allowed = useAffiliateAccess('view')
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const value = params.get('status')
@@ -27,7 +28,7 @@ export default function AffiliateApplicationsPage() {
   const query = useInfinitePaginatedQuery({
     queryKey: ['affiliates', 'applications', status ?? ''],
     queryFn: (page, signal) => affiliateApplicationsService.list(page, signal, status),
-    enabled: isAffiliateFeatureEnabled,
+    enabled: allowed,
     retry: false,
   })
   const rows = query.data?.pages.flatMap((p) => p.items) ?? []
@@ -35,7 +36,7 @@ export default function AffiliateApplicationsPage() {
     id: key,
     header: t('affiliates.applications.' + key),
   }))
-  if (!isAffiliateFeatureEnabled) return null
+  if (!allowed) return null
   return (
     <main className="space-y-5">
       <DashboardPageHeader title={t('affiliates.applications.title')} />

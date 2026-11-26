@@ -1,3 +1,4 @@
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -174,8 +175,33 @@ export function AffiliatePayoutDecision({
   refreshing: boolean
 }) {
   const { t } = useTranslation()
+  const canDecide = useAffiliateAccess('payoutDecision')
+  const client = useQueryClient()
+  const opening = useRef(false)
+  const [checking, setChecking] = useState(false)
+  const openDecision = async (next: 'paid' | 'reject') => {
+    if (opening.current) return
+    opening.current = true
+    setChecking(true)
+    const epoch = getQueryClientAuthBoundaryEpoch()
+    try {
+      const result = await client.fetchQuery({
+        queryKey: ['affiliates', 'payouts', 'detail', id],
+        queryFn: ({ signal }) => affiliatePayoutsService.show(id, signal),
+        staleTime: 0,
+        retry: false,
+      })
+      if (epoch === getQueryClientAuthBoundaryEpoch() && result.payout.status === 'pending') setMode(next)
+    } catch (error) {
+      if (epoch === getQueryClientAuthBoundaryEpoch()) toastApiError(error, t('apiFeedback.error'), true)
+    } finally {
+      opening.current = false
+      setChecking(false)
+    }
+  }
   const [mode, setMode] = useState<'paid' | 'reject' | null>(null)
   if (
+    !canDecide ||
     !isAffiliateFeatureEnabled ||
     !isAffiliatePayoutFeatureEnabled ||
     !isAffiliatePayoutDecisionReady ||
@@ -184,10 +210,10 @@ export function AffiliatePayoutDecision({
     return null
   return (
     <div className="flex gap-2">
-      <Button disabled={refreshing} onClick={() => setMode('paid')}>
+      <Button disabled={refreshing || checking} onClick={() => void openDecision('paid')}>
         {t('affiliates.payouts.paid')}
       </Button>
-      <Button variant="destructive" disabled={refreshing} onClick={() => setMode('reject')}>
+      <Button variant="destructive" disabled={refreshing || checking} onClick={() => void openDecision('reject')}>
         {t('affiliates.payouts.reject')}
       </Button>
       {mode ? <Decision key={mode} id={id} mode={mode} onClose={() => setMode(null)} /> : null}

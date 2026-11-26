@@ -1,3 +1,4 @@
+import { useAuth } from '@/store/auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -25,6 +26,21 @@ function mount(status = 'pending') {
   return client
 }
 beforeEach(async () => {
+  useAuth.setState({
+    isAuthenticated: true,
+    token: 'synthetic-staff-token',
+    effectivePermissions: [
+      'affiliates.view',
+      'affiliates.manage',
+      'affiliates.settings.manage',
+      'affiliates.payouts.process',
+    ],
+  })
+  vi.spyOn(affiliatePayoutsService, 'show').mockResolvedValue({
+    payout: { id: 7, status: 'pending' },
+    affiliate_available_balance: '100.00',
+    warning: null,
+  })
   gates.decision = true
   await i18n.changeLanguage('en')
 })
@@ -77,6 +93,20 @@ describe('Closed payout decision preparation (synthetic capability)', () => {
     reject({ isAxiosError: true, response: { status: 409 } })
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['affiliates', 'payouts'] })
+    expect(decision).toHaveBeenCalledTimes(1)
+  })
+  it('requires another successful read after closing an uncertain decision', async () => {
+    const decision = vi.spyOn(affiliatePayoutsService, 'reject').mockRejectedValue(new Error('network'))
+    mount()
+    await userEvent.click(screen.getByRole('button', { name: 'Reject payout' }))
+    await userEvent.type(await screen.findByLabelText(/Reason/), 'A valid reason for rejection')
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Reject payout' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('result is uncertain')
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    vi.mocked(affiliatePayoutsService.show).mockRejectedValue(new Error('offline'))
+    await userEvent.click(screen.getByRole('button', { name: 'Reject payout' }))
+    await waitFor(() => expect(affiliatePayoutsService.show).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     expect(decision).toHaveBeenCalledTimes(1)
   })
   it('retains the draft and blocks resubmission after an ambiguous network failure', async () => {

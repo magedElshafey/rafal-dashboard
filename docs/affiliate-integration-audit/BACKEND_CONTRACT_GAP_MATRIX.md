@@ -1,5 +1,7 @@
 # Backend contract comparison and gap matrix
 
+Current status (2026-11-26): this matrix is a historical pre-integration comparison. Active frontend implementation, local verification, prepared assumptions and the sole confirmed Backend dependency are tracked in documents 10, 11 and 12. Document 07 contains the unexecuted authorized-session smoke checklist. Do not treat old INCOMPATIBLE/MISSING labels below as current defects or live evidence.
+
 Authority: Affiliate Programme Frontend Integration Guide, backend 2026-11-24. Physical pages: p.1 common conventions/boundaries; pp.2–4 storefront; pp.4–7 Affiliate Panel; pp.7–10 staff; p.10 commission lifecycle; pp.10–11 local test recipe. All pages reviewed; external surfaces inform boundaries only.
 
 ## Reading conventions

@@ -5,6 +5,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useDirection } from '@/hooks/useDirection'
 import { cn } from '@/lib/utils'
 import type { DashboardNavigationItem } from '@/modules/dashboard/layout/dashboard-navigation'
+import { useAffiliateAccess } from '@/modules/affiliates/config/affiliate-access'
+import { Routes } from '@/routes/routes'
 
 type DashboardNavItemProps = {
   item: DashboardNavigationItem
@@ -18,6 +20,16 @@ export function DashboardNavItem({ item, collapsed, onNavigate }: DashboardNavIt
   const label = t(item.labelKey)
   const Icon = item.icon
   const isActive = Boolean(useMatch({ path: item.to, end: item.match === 'exact' }))
+  const action =
+    item.to === Routes.affiliateSettings ? 'settingsRead' : item.to === Routes.affiliatePayouts ? 'payouts' : 'view'
+  const affiliateAllowed = useAffiliateAccess(action)
+  if (
+    [Routes.affiliates, Routes.affiliateSettings, Routes.affiliateApplications, Routes.affiliatePayouts].some(
+      (path) => path === item.to
+    ) &&
+    !affiliateAllowed
+  )
+    return null
 
   return (
     <Tooltip>

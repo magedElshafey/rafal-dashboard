@@ -37,7 +37,10 @@ describe('Laravel settings validation', () => {
   it.each(['-1', '10000.01', 'abc', ''])('rejects payout %s', async (value) =>
     expect(await schema.isValid({ ...valid, minimumPayoutAmount: value })).toBe(false)
   )
-  it.each([null, 0, -1, 1.2])('rejects unavailable/invalid page %s', async (value) =>
+  it('preserves an explicit null page', async () => {
+    expect((await schema.validate({ ...valid, termsPageId: null })).termsPageId).toBeNull()
+  })
+  it.each([undefined, 0, -1, 1.2])('rejects unavailable/invalid page %s', async (value) =>
     expect(await schema.isValid({ ...valid, termsPageId: value })).toBe(false)
   )
 })

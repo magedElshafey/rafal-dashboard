@@ -1,3 +1,4 @@
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -26,7 +27,6 @@ import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 import { toastApiError } from '@/utils/error/api-error-toast.helpers'
 import { Routes } from '@/routes/routes'
 import { affiliateApplicationsService } from '../api/affiliate-review.service'
-import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
 
 function Decision({
   id,
@@ -140,17 +140,19 @@ function Decision({
   )
 }
 function ApplicationDetails({ id }: { id: number }) {
+  const canManage = useAffiliateAccess('manage')
+  const allowed = useAffiliateAccess('view')
   const { t } = useTranslation()
   const [mode, setMode] = useState<'approve' | 'reject' | null>(null)
   const [approvedId, setApprovedId] = useState<number | null>(null)
   const query = useQuery({
     queryKey: ['affiliates', 'applications', 'detail', id],
     queryFn: ({ signal }) => affiliateApplicationsService.show(id, signal),
-    enabled: isAffiliateFeatureEnabled,
+    enabled: allowed,
     retry: false,
   })
   const app = query.data
-  if (!isAffiliateFeatureEnabled) return null
+  if (!allowed) return null
   return (
     <main className="space-y-5">
       <DashboardPageHeader
@@ -208,7 +210,7 @@ function ApplicationDetails({ id }: { id: number }) {
               ))}
             </dl>
             {app.suggested_code_message ? <p role="status">{app.suggested_code_message}</p> : null}
-            {app.status === 'pending' ? (
+            {canManage && app.status === 'pending' ? (
               <div className="flex gap-2">
                 <Button disabled={query.isFetching} onClick={() => setMode('approve')}>
                   {t('affiliates.applications.approve')}
@@ -218,7 +220,7 @@ function ApplicationDetails({ id }: { id: number }) {
                 </Button>
               </div>
             ) : null}
-            {mode && app.status === 'pending' ? (
+            {mode && canManage && app.status === 'pending' ? (
               <Decision
                 key={mode}
                 id={id}
@@ -236,10 +238,11 @@ function ApplicationDetails({ id }: { id: number }) {
 }
 
 export default function AffiliateApplicationDetailPage() {
+  const allowed = useAffiliateAccess('view')
   const { t } = useTranslation()
   const { id: raw } = useParams()
   const id = Number(raw)
-  if (!isAffiliateFeatureEnabled) return null
+  if (!allowed) return null
   if (!/^[1-9]\d*$/.test(raw ?? '') || !Number.isSafeInteger(id))
     return <DashboardPageHeader title={t('affiliates.detail.notFoundTitle')} />
   return <ApplicationDetails key={id} id={id} />

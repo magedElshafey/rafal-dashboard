@@ -1,3 +1,4 @@
+import { useAuth } from '@/store/auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -43,6 +44,16 @@ function form(onSubmit = vi.fn().mockResolvedValue(initial), canWrite = true) {
   )
 }
 beforeEach(async () => {
+  useAuth.setState({
+    isAuthenticated: true,
+    token: 'synthetic-staff-token',
+    effectivePermissions: [
+      'affiliates.view',
+      'affiliates.manage',
+      'affiliates.settings.manage',
+      'affiliates.payouts.process',
+    ],
+  })
   await i18n.changeLanguage('en')
   vi.spyOn(affiliatesService, 'getSettings').mockResolvedValue(initial)
   vi.spyOn(staticPagesService, 'list').mockResolvedValue({
@@ -124,6 +135,52 @@ describe('Laravel settings UI', () => {
     expect(await screen.findByText(text)).toBeInTheDocument()
     expect(document.querySelector('img')).toBeNull()
     expect(discount).toHaveValue(12)
+  })
+  it('clears the selected page and submits all six fields with explicit null', async () => {
+    const save = vi.fn().mockResolvedValue({ ...initial, termsPageId: null })
+    form(save)
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('label.clear_selection') }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...initial, termsPageId: null }))
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+  })
+  it('keeps an initial null page when saving another field even if page lookup fails', async () => {
+    vi.mocked(staticPagesService.list).mockRejectedValue(new Error('Unavailable'))
+    const settings = { ...initial, termsPageId: null }
+    const save = vi.fn().mockResolvedValue({ ...settings, customerDiscountPercentage: 12 })
+    render(wrap(<AffiliateSettingsForm settings={settings} isSubmitting={false} canWrite onSubmit={save} />))
+    const user = userEvent.setup()
+    const discount = screen.getByRole('spinbutton', { name: 'Customer discount percentage' })
+    await user.clear(discount)
+    await user.type(discount, '12')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...settings, customerDiscountPercentage: 12 }))
+  })
+  it('uses verified selected-page metadata even when the options page is unavailable', async () => {
+    vi.mocked(staticPagesService.list).mockRejectedValue(new Error('Unavailable'))
+    const settings = { ...initial, termsPage: { id: 2, title: 'Selected terms', isPublished: true } }
+    const save = vi.fn().mockResolvedValue({ ...settings, customerDiscountPercentage: 12 })
+    render(wrap(<AffiliateSettingsForm settings={settings} isSubmitting={false} canWrite onSubmit={save} />))
+    const user = userEvent.setup()
+    const discount = screen.getByRole('spinbutton', { name: 'Customer discount percentage' })
+    await user.clear(discount)
+    await user.type(discount, '12')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...initial, customerDiscountPercentage: 12 }))
+  })
+  it('maps a null-page 422 to the selector and preserves the cleared draft', async () => {
+    const save = vi.fn().mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 422, data: { errors: { terms_page_id: ['Page cannot be null'] } } },
+    })
+    form(save)
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('label.clear_selection') }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('Page cannot be null')).toBeInTheDocument()
+    expect(save).toHaveBeenCalledWith({ ...initial, termsPageId: null })
+    expect(screen.queryByRole('button', { name: i18n.t('label.clear_selection') })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Discard changes' })).toBeEnabled()
   })
   it('requires explicit disable confirmation and cancel sends nothing', async () => {
     const save = vi.fn().mockResolvedValue({ ...initial, programEnabled: false })

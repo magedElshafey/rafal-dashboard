@@ -1,3 +1,4 @@
+import { useAuth } from '@/store/auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -136,6 +137,16 @@ async function fillCreateForm(user: ReturnType<typeof userEvent.setup>, dialog: 
 
 describe('Affiliates page', () => {
   beforeEach(async () => {
+    useAuth.setState({
+      isAuthenticated: true,
+      token: 'synthetic-staff-token',
+      effectivePermissions: [
+        'affiliates.view',
+        'affiliates.manage',
+        'affiliates.settings.manage',
+        'affiliates.payouts.process',
+      ],
+    })
     affiliates = [activeAffiliate, suspendedAffiliate]
     installServiceFixtures()
     toastMocks.success.mockReset()

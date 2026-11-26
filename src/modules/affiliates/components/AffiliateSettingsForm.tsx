@@ -62,6 +62,20 @@ function Fields({
         id: p.id,
         label: (i18n.language.startsWith('ar') ? p.title.ar : p.title.en) || p.title.ar || p.title.en || p.slug,
       })) ?? []
+  const selectedPage = settings.termsPage
+  if (
+    selectedPage?.isPublished &&
+    !pages.data?.pages.some((page) => page.items.some((item) => item.id === selectedPage.id))
+  ) {
+    const title = selectedPage.title
+    options.unshift({
+      id: selectedPage.id,
+      label:
+        typeof title === 'string'
+          ? title
+          : (i18n.language.startsWith('ar') ? title.ar : title.en) || title.ar || title.en || String(selectedPage.id),
+    })
+  }
   return (
     <DashboardCard padding="lg" className="space-y-5">
       <FormSwitch name="programEnabled" label={t('affiliates.settings.fields.programEnabled')} disabled={disabled} />
@@ -118,7 +132,7 @@ function Fields({
           hasNextPage={pages.hasNextPage}
           isFetchingNextPage={pages.isFetchingNextPage}
           onLoadMore={() => pages.fetchNextPage().then(() => undefined)}
-          required
+          clearable
         />
       </div>
       <p className="text-sm text-muted-foreground">{t('affiliates.settings.help.termsPageId')}</p>
@@ -164,9 +178,11 @@ export function AffiliateSettingsForm({ settings, isSubmitting, canWrite = false
   )
   const save = async (values: AffiliateSettingsFormValues, methods: UseFormReturn<AffiliateSettingsFormValues>) => {
     if (!canWrite || lock.current) return
-    if (
-      !pages.data?.pages.some((page) => page.items.some((item) => item.id === values.termsPageId && item.isPublished))
-    ) {
+    const loadedPage = pages.data?.pages.flatMap((page) => page.items).find((page) => page.id === values.termsPageId)
+    const isPublished = loadedPage
+      ? loadedPage.isPublished
+      : settings.termsPage?.id === values.termsPageId && settings.termsPage.isPublished
+    if (values.termsPageId !== null && !isPublished) {
       methods.setError('termsPageId', { type: 'server', message: t('affiliates.settings.validation.termsPage') })
       return
     }

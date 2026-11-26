@@ -1,3 +1,4 @@
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -9,8 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Routes } from '@/routes/routes'
 import { affiliatePayoutsService } from '../api/affiliate-review.service'
 import { AffiliatePayoutDecision } from '../components/AffiliatePayoutDecision'
-import { isAffiliatePayoutFeatureEnabled } from '../config/affiliate-feature'
 export default function AffiliatePayoutDetailPage() {
+  const allowed = useAffiliateAccess('payouts')
+  const canDecide = useAffiliateAccess('payoutDecision')
   const { t } = useTranslation()
   const { id: raw } = useParams()
   const id = Number(raw)
@@ -18,10 +20,10 @@ export default function AffiliatePayoutDetailPage() {
   const query = useQuery({
     queryKey: ['affiliates', 'payouts', 'detail', id],
     queryFn: ({ signal }) => affiliatePayoutsService.show(id, signal),
-    enabled: isAffiliatePayoutFeatureEnabled && valid,
+    enabled: allowed && valid,
     retry: false,
   })
-  if (!isAffiliatePayoutFeatureEnabled) return null
+  if (!allowed) return null
   if (!valid) return <DashboardPageHeader title={t('affiliates.detail.notFoundTitle')} />
   return (
     <main className="space-y-5">
@@ -50,11 +52,36 @@ export default function AffiliatePayoutDetailPage() {
                 {t('affiliates.reviewStatus.' + query.data.payout.status)}
               </ResponsiveDataFact>
               <ResponsiveDataFact label={t('affiliates.payouts.balance')}>
-                <bdi>{query.data.affiliate_available_balance}</bdi>
+                <bdi>
+                  {query.data.affiliate_available_balance == null
+                    ? t('affiliates.summary.unavailable')
+                    : `${query.data.affiliate_available_balance} ${t('affiliates.summary.currency')}`}
+                </bdi>
               </ResponsiveDataFact>
+              {(['amount', 'transfer_reference', 'transferred_at', 'rejection_reason'] as const).map((field) => (
+                <ResponsiveDataFact
+                  key={field}
+                  label={t(
+                    field === 'amount'
+                      ? 'affiliates.payouts.amount'
+                      : field === 'transfer_reference'
+                        ? 'affiliates.payouts.reference'
+                        : field === 'transferred_at'
+                          ? 'affiliates.payouts.date'
+                          : 'affiliates.fields.reason'
+                  )}
+                >
+                  <bdi>
+                    {query.data.payout[field] ?? t('affiliates.summary.unavailable')}
+                    {field === 'amount' && query.data.payout.amount != null
+                      ? ' ' + t('affiliates.summary.currency')
+                      : ''}
+                  </bdi>
+                </ResponsiveDataFact>
+              ))}
             </dl>
             {query.data.warning ? <p role="alert">{query.data.warning}</p> : null}
-            <p role="note">{t('affiliates.payouts.readOnly')}</p>
+            {!canDecide ? <p role="note">{t('affiliates.payouts.readOnly')}</p> : null}
             <AffiliatePayoutDecision key={id} id={id} status={query.data.payout.status} refreshing={query.isFetching} />
           </>
         ) : null}

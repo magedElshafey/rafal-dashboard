@@ -111,7 +111,8 @@
       "retrySuggestion": "Try suggestion again",
       "export": "Export CSV",
       "loadMore": "Load more",
-      "retry": "Try again"
+      "retry": "Try again",
+      "generateCode": "Generate code"
     },
     "validation": {
       "required": "This field is required.",
@@ -241,7 +242,8 @@
       "referenceBounds": "Enter a transfer reference of 3–50 characters.",
       "dateInvalid": "Enter a valid date no later than today.",
       "confirm": "Confirm this payout decision. After a timeout, verify the server status before attempting another decision.",
-      "ambiguous": "The result is uncertain. Your draft is retained. Close and verify the payout status before trying again."
+      "ambiguous": "The result is uncertain. Your draft is retained. Close and verify the payout status before trying again.",
+      "amount": "Amount"
     },
     "summary": {
       "title": "Affiliate financial summary",
@@ -252,6 +254,13 @@
       "requests": "{{count}} requests · {{amount}} SAR",
       "currency": "SAR",
       "unavailable": "Unavailable"
+    },
+    "history": {
+      "orders": "Attributed orders",
+      "payouts": "Payout history",
+      "empty": "No records",
+      "previous": "Previous page",
+      "next": "Next page"
     }
   }
 }

@@ -74,8 +74,9 @@ describe('shared axios auth boundary', () => {
   })
 
   it('allows a feature to own a documented domain 403 without a global redirect', async () => {
+    mocks.getState.mockReturnValue({ token: 'current-token', isAuthenticated: true })
     const error = {
-      config: { headers: { get: () => undefined }, suppressForbiddenRedirect: true },
+      config: { headers: { get: () => 'Bearer current-token' }, suppressForbiddenRedirect: true },
       response: { status: 403 },
     }
 
@@ -83,6 +84,14 @@ describe('shared axios auth boundary', () => {
 
     expect(mocks.notifyErrorResponse).toHaveBeenCalledWith(error)
     expect(mocks.clearQueryClientAtAuthBoundary).not.toHaveBeenCalled()
+    expect(mocks.logout).not.toHaveBeenCalled()
+    expect(window.location.pathname).toBe('/')
+  })
+  it('ignores stale-session 403 responses without notification or session disruption', async () => {
+    mocks.getState.mockReturnValue({ token: 'new-token', isAuthenticated: true })
+    const error = { config: { headers: { get: () => 'Bearer old-token' } }, response: { status: 403 } }
+    await expect(responseErrorHandler(error)).rejects.toBe(error)
+    expect(mocks.notifyErrorResponse).not.toHaveBeenCalled()
     expect(mocks.logout).not.toHaveBeenCalled()
     expect(window.location.pathname).toBe('/')
   })

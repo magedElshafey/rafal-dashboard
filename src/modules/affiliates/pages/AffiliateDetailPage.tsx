@@ -1,4 +1,4 @@
-import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { isAxiosError } from 'axios'
 import { ArrowLeft, UserRoundX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -40,7 +40,16 @@ function AffiliateNotFound() {
 function AffiliateDetails({ id }: { id: number }) {
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
-  const range = { from: params.get('from') || undefined, to: params.get('to') || undefined }
+  const page = (name: string) => {
+    const value = Number(params.get(name))
+    return Number.isSafeInteger(value) && value > 0 ? value : undefined
+  }
+  const range = {
+    from: params.get('from') || undefined,
+    to: params.get('to') || undefined,
+    orders_page: page('orders_page'),
+    payouts_page: page('payouts_page'),
+  }
   const query = useAffiliate(id, range)
   if (!query.data && isAxiosError(query.error) && query.error.response?.status === 404) return <AffiliateNotFound />
   return (
@@ -56,6 +65,8 @@ function AffiliateDetails({ id }: { id: number }) {
               onChange={(event) =>
                 setParams((previous) => {
                   const next = new URLSearchParams(previous)
+                  next.delete('orders_page')
+                  next.delete('payouts_page')
                   if (event.target.value) next.set(field, event.target.value)
                   else next.delete(field)
                   return next
@@ -87,9 +98,10 @@ function AffiliateDetails({ id }: { id: number }) {
 }
 
 export default function AffiliateDetailPage() {
+  const allowed = useAffiliateAccess('view')
   const { id: routeId } = useParams()
   const id = Number(routeId)
-  if (!isAffiliateFeatureEnabled) return null
+  if (!allowed) return null
   if (!/^[1-9]\d*$/.test(routeId ?? '') || !Number.isSafeInteger(id)) return <AffiliateNotFound />
   return <AffiliateDetails key={id} id={id} />
 }

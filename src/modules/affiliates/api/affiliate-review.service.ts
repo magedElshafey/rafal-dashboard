@@ -1,9 +1,11 @@
 import { isAffiliatePayoutFeatureEnabled, isAffiliatePayoutDecisionReady } from '../config/affiliate-feature'
 import { payoutPaidSchema, payoutRejectSchema, type PayoutPaidPayload } from '../schemas/affiliate-payout.schema'
 import { z } from 'zod'
+import { isAxiosError } from 'axios'
+import { getQueryClientAuthBoundaryEpoch } from '@/lib/react-query/query-client'
 import { $http } from '@/utils/http'
 import { assertAffiliateAccess } from './affiliates.service'
-import { paginationSchema, successSchema, affiliateCreateSchema } from '../schemas/affiliate-api.schema'
+import { paginationSchema, successSchema, affiliateCreateSchema, optionalMoney } from '../schemas/affiliate-api.schema'
 const id = z.number().int().positive().safe()
 const applicationSchema = z.object({
   id,
@@ -43,11 +45,38 @@ const payoutSchema = z.object({
   status: z.enum(['pending', 'paid', 'rejected']),
   affiliate: z.object({ id, name: z.string(), code: z.string() }),
   iban: z.string(),
+  amount: optionalMoney,
+  created_at: z.string().nullish(),
+  transfer_reference: z.string().nullish(),
+  transferred_at: z.string().nullish(),
+  rejection_reason: z.string().nullish(),
 })
 const payoutIndex = successSchema.extend({ data: z.array(payoutSchema), meta: paginationSchema })
 const silent = { suppressErrorNotification: true, suppressSuccessNotification: true }
 export type AffiliateApplication = z.infer<typeof applicationSchema>
 export type AffiliatePayout = z.infer<typeof payoutSchema>
+const decisions = new Map<number, { epoch: number; pending: boolean }>()
+async function decide(id: number, operation: () => Promise<unknown>) {
+  const epoch = getQueryClientAuthBoundaryEpoch()
+  const previous = decisions.get(id)
+  if (previous?.epoch === epoch) throw new Error('Read payout status before another decision')
+  const state = { epoch, pending: true }
+  decisions.set(id, state)
+  try {
+    await operation()
+  } catch (error) {
+    if (
+      decisions.get(id) === state &&
+      isAxiosError(error) &&
+      error.response &&
+      [400, 401, 403, 404, 422].includes(error.response.status)
+    )
+      decisions.delete(id)
+    throw error
+  } finally {
+    state.pending = false
+  }
+}
 export const affiliateApplicationsService = {
   async show(id: number, signal?: AbortSignal) {
     assertAffiliateAccess()
@@ -57,7 +86,7 @@ export const affiliateApplicationsService = {
     return result
   },
   async approve(id: number, code: string) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     if (!/^[A-Za-z0-9]{4,20}$/.test(code)) throw new Error('Invalid Affiliate code')
     const response = await $http.post({
       url: `/dashboard/affiliate-applications/${id}/approve`,
@@ -67,7 +96,7 @@ export const affiliateApplicationsService = {
     return affiliateCreateSchema.parse(response.data).data
   },
   async reject(id: number, reason: string) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     if (reason.trim().length < 10 || reason.trim().length > 250) throw new Error('Invalid rejection reason')
     const response = await $http.post({
       url: `/dashboard/affiliate-applications/${id}/reject`,
@@ -102,42 +131,49 @@ export const affiliateApplicationsService = {
 }
 export const affiliatePayoutsService = {
   async paid(id: number, payload: PayoutPaidPayload) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('payouts')
     if (!isAffiliatePayoutFeatureEnabled || !isAffiliatePayoutDecisionReady)
       throw new Error('Payout decisions unavailable')
     const data = payoutPaidSchema.parse(payload)
-    const response = await $http.post({ url: `/dashboard/affiliate-payouts/${id}/paid`, data, ...silent })
-    // A common acknowledgment is not evidence of a completed financial transition.
-    // Keep activation closed pending the financial result contract; always reread server state.
-    successSchema.parse(response.data)
+    await decide(id, async () => {
+      const response = await $http.post({ url: `/dashboard/affiliate-payouts/${id}/paid`, data, ...silent })
+      // A common acknowledgment is not evidence of a completed financial transition.
+      // Keep activation closed pending the financial result contract; always reread server state.
+      successSchema.parse(response.data)
+    })
   },
   async reject(id: number, reason: string) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('payouts')
     if (!isAffiliatePayoutFeatureEnabled || !isAffiliatePayoutDecisionReady)
       throw new Error('Payout decisions unavailable')
     const data = payoutRejectSchema.parse({ reason })
-    const response = await $http.post({ url: `/dashboard/affiliate-payouts/${id}/reject`, data, ...silent })
-    successSchema.parse(response.data)
+    await decide(id, async () => {
+      const response = await $http.post({ url: `/dashboard/affiliate-payouts/${id}/reject`, data, ...silent })
+      successSchema.parse(response.data)
+    })
   },
   async show(id: number, signal?: AbortSignal) {
     if (!isAffiliatePayoutFeatureEnabled) throw new Error('Payout access is unavailable')
-    assertAffiliateAccess()
+    assertAffiliateAccess('payouts')
+    const decision = decisions.get(id)
+    const canResolve = decision && !decision.pending
     const response = await $http.get({ url: `/dashboard/affiliate-payouts/${id}`, signal, ...silent })
     const result = successSchema
       .extend({
         data: z.object({
-          payout: z.object({ id: z.number().int().positive(), status: z.enum(['pending', 'paid', 'rejected']) }),
-          affiliate_available_balance: z.string().regex(/^-?\d+\.\d{2}$/),
-          warning: z.string().nullable(),
+          payout: payoutSchema.partial().required({ id: true, status: true }),
+          affiliate_available_balance: optionalMoney,
+          warning: z.string().nullish(),
         }),
       })
       .parse(response.data).data
     if (result.payout.id !== id) throw new Error('Unexpected payout identity')
+    if (canResolve && decisions.get(id) === decision) decisions.delete(id)
     return result
   },
   async list(page: number, signal?: AbortSignal, status?: string) {
     if (!isAffiliatePayoutFeatureEnabled) throw new Error('Payout access is unavailable')
-    assertAffiliateAccess()
+    assertAffiliateAccess('payouts')
     const response = await $http.get({
       url: '/dashboard/affiliate-payouts',
       query: { page, status, per_page: 25 },

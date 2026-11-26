@@ -7,6 +7,7 @@ export const affiliatesKeys = {
   list: (filters: AffiliateFilters = emptyAffiliateFilters) => [...affiliatesKeys.lists(), filters] as const,
   details: () => [...affiliatesKeys.all, 'detail'] as const,
   detail: (id: number) => [...affiliatesKeys.details(), id] as const,
-  period: (id: number, range: { from?: string; to?: string }) => [...affiliatesKeys.detail(id), range] as const,
+  period: (id: number, range: { from?: string; to?: string; orders_page?: number; payouts_page?: number }) =>
+    [...affiliatesKeys.detail(id), range] as const,
   settings: () => [...affiliatesKeys.all, 'settings'] as const,
 }

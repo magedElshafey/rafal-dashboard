@@ -1,6 +1,8 @@
+import { canAccessAffiliate, type AffiliateAction } from '../config/affiliate-access'
 import { isAffiliateFeatureEnabled, isAffiliateSettingsWriteReady } from '@/modules/affiliates/config/affiliate-feature'
 import {
   affiliateCreateSchema,
+  affiliateCodeSchema,
   affiliatePasswordResetSchema,
   affiliateResponseSchema,
   affiliateSettingsResponseSchema,
@@ -19,8 +21,18 @@ import { emptyAffiliateFilters, serializeAffiliateFilters } from '@/modules/affi
 import { $http } from '@/utils/http'
 
 const silent = { suppressErrorNotification: true, suppressSuccessNotification: true }
-export function assertAffiliateAccess() {
-  if (!isAffiliateFeatureEnabled) throw new Error('Affiliate access is unavailable')
+function payoutRequestValue(value: string) {
+  const canonical = (text: string) =>
+    text
+      .replace(/^0+(?=\d)/, '')
+      .replace(/(\.\d*?)0+$/, '$1')
+      .replace(/\.$/, '')
+  const number = Number(value)
+  // Keep the documented numeric case; never round a more precise decimal draft.
+  return canonical(String(number)) === canonical(value) ? number : value
+}
+export function assertAffiliateAccess(action: AffiliateAction = 'view') {
+  if (!isAffiliateFeatureEnabled || !canAccessAffiliate(action)) throw new Error('Affiliate access is unavailable')
 }
 export function normalizeAffiliatePhone(value: string) {
   const phone = value.trim().replace(/^(?:\+966|00966|966|0)/, '')
@@ -44,21 +56,32 @@ function settingsData(raw: ReturnType<typeof affiliateSettingsResponseSchema.par
     affiliateCommissionPercentage: raw.commission_percent,
     minimumPayoutAmount: String(raw.min_payout),
     termsPageId: raw.terms_page_id,
+    ...(raw.terms_page && raw.terms_page.id === raw.terms_page_id
+      ? { termsPage: { id: raw.terms_page.id, title: raw.terms_page.title, isPublished: raw.terms_page.is_published } }
+      : {}),
   }
 }
 export const affiliatesService = {
+  async generateCode(name: string, signal?: AbortSignal) {
+    assertAffiliateAccess('manage')
+    const response = await $http.get({
+      url: '/dashboard/affiliates/generate-code',
+      query: { name: name.trim() },
+      signal,
+      ...silent,
+    })
+    return affiliateCodeSchema.parse(response.data).data
+  },
   async getSettings(signal?: AbortSignal) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('settingsRead')
     const response = await $http.get({ url: '/dashboard/affiliate-settings', signal, ...silent })
     return settingsData(affiliateSettingsResponseSchema.parse(response.data).data)
   },
   async updateSettings(values: UpdateAffiliateSettingsPayload) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('settingsWrite')
     if (
       !isAffiliateSettingsWriteReady ||
-      !Number.isSafeInteger(values.termsPageId) ||
-      !values.termsPageId ||
-      values.termsPageId < 1
+      (values.termsPageId !== null && (!Number.isSafeInteger(values.termsPageId) || values.termsPageId < 1))
     )
       throw new Error('Settings save contract unavailable')
     const response = await $http.put({
@@ -68,7 +91,7 @@ export const affiliatesService = {
         applications_enabled: values.applicationsEnabled,
         customer_discount_percent: values.customerDiscountPercentage,
         commission_percent: values.affiliateCommissionPercentage,
-        min_payout: Number(values.minimumPayoutAmount),
+        min_payout: payoutRequestValue(values.minimumPayoutAmount),
         terms_page_id: values.termsPageId,
       },
       ...silent,
@@ -129,7 +152,7 @@ export const affiliatesService = {
     return response
   },
   async create(values: CreateAffiliatePayload) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     const code = values.code.trim()
     const response = await $http.post({
       url: '/dashboard/affiliates',
@@ -138,7 +161,11 @@ export const affiliatesService = {
     })
     return affiliateCreateSchema.parse(response.data).data
   },
-  async show(id: number, signal?: AbortSignal, range: { from?: string; to?: string } = {}): Promise<Affiliate> {
+  async show(
+    id: number,
+    signal?: AbortSignal,
+    range: { from?: string; to?: string; orders_page?: number; payouts_page?: number } = {}
+  ): Promise<Affiliate> {
     assertAffiliateAccess()
     const response = await $http.get({ url: `/dashboard/affiliates/${id}`, query: range, signal, ...silent })
     const raw = affiliateResponseSchema.parse(response.data).data
@@ -158,15 +185,20 @@ export const affiliatesService = {
       applicationId: raw.application_id,
       lastLoginAt: raw.last_login_at,
       termsAcceptedAt: raw.terms_accepted_at,
+      pending: raw.pending,
+      approvedUnpaid: raw.approved_unpaid,
+      paid: raw.paid,
+      orders: raw.orders,
+      payouts: raw.payouts,
     }
   },
   async update(id: number, values: UpdateAffiliatePayload) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     const response = await $http.put({ url: `/dashboard/affiliates/${id}`, data: profilePayload(values), ...silent })
     successSchema.parse(response.data)
   },
   async suspend(id: number, reason: string) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     if (reason.trim().length < 10 || reason.trim().length > 250) throw new Error('Invalid suspension reason')
     const response = await $http.post({
       url: `/dashboard/affiliates/${id}/suspend`,
@@ -176,7 +208,7 @@ export const affiliatesService = {
     successSchema.parse(response.data)
   },
   async reactivate(id: number, reason: string) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     if (!reason.trim()) throw new Error('Reactivation reason required')
     const response = await $http.post({
       url: `/dashboard/affiliates/${id}/reactivate`,
@@ -186,7 +218,7 @@ export const affiliatesService = {
     successSchema.parse(response.data)
   },
   async resetPassword(id: number) {
-    assertAffiliateAccess()
+    assertAffiliateAccess('manage')
     const response = await $http.post({ url: `/dashboard/affiliates/${id}/reset-password`, ...silent })
     return affiliatePasswordResetSchema.parse(response.data).data
   },

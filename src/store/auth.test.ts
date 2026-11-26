@@ -20,6 +20,20 @@ const admin = {
 }
 
 describe('auth store', () => {
+  it('never persists verified grants and clears them on storage restoration', () => {
+    const original = JSON.stringify({ token: 'grant-session', admin })
+    localStorage.setItem(AUTH_STORAGE_KEY, original)
+    useAuth.getState().syncFromStorage()
+    useAuth.getState().setVerifiedPermissions('grant-session', ['affiliates.view'])
+    expect(useAuth.getState().effectivePermissions).toEqual(['affiliates.view'])
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBe(original)
+    useAuth.getState().setVerifiedPermissions('grant-session', null)
+    expect(useAuth.getState().effectivePermissions).toBeNull()
+    useAuth.getState().setVerifiedPermissions('grant-session', [])
+    expect(useAuth.getState().effectivePermissions).toEqual([])
+    useAuth.getState().syncFromStorage()
+    expect(useAuth.getState().effectivePermissions).toBeNull()
+  })
   beforeEach(() => {
     localStorage.clear()
     vi.clearAllMocks()

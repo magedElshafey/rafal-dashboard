@@ -1,3 +1,4 @@
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useSearchParams, Link } from 'react-router-dom'
 import { Routes } from '@/routes/routes'
 import { useTranslation } from 'react-i18next'
@@ -18,8 +19,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
 import { affiliatePayoutsService } from '../api/affiliate-review.service'
-import { isAffiliatePayoutFeatureEnabled } from '../config/affiliate-feature'
 export default function AffiliatePayoutsPage() {
+  const allowed = useAffiliateAccess('payouts')
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const value = params.get('status')
@@ -27,12 +28,15 @@ export default function AffiliatePayoutsPage() {
   const query = useInfinitePaginatedQuery({
     queryKey: ['affiliates', 'payouts', status ?? ''],
     queryFn: (page, signal) => affiliatePayoutsService.list(page, signal, status),
-    enabled: isAffiliatePayoutFeatureEnabled,
+    enabled: allowed,
     retry: false,
   })
   const rows = query.data?.pages.flatMap((p) => p.items) ?? []
-  const columns = ['name', 'code', 'iban', 'status'].map((key) => ({ id: key, header: t('affiliates.payouts.' + key) }))
-  if (!isAffiliatePayoutFeatureEnabled) return null
+  const columns = ['name', 'code', 'amount', 'iban', 'status'].map((key) => ({
+    id: key,
+    header: t('affiliates.payouts.' + key),
+  }))
+  if (!allowed) return null
   return (
     <main className="space-y-5">
       <DashboardPageHeader title={t('affiliates.payouts.title')} />
@@ -90,6 +94,12 @@ export default function AffiliatePayoutsPage() {
                           </Link>
                         ) : col.id === 'status' ? (
                           t('affiliates.reviewStatus.' + row.status)
+                        ) : col.id === 'amount' ? (
+                          row.amount == null ? (
+                            t('affiliates.summary.unavailable')
+                          ) : (
+                            `${row.amount} ${t('affiliates.summary.currency')}`
+                          )
                         ) : col.id === 'iban' ? (
                           row.iban
                         ) : (
@@ -118,9 +128,13 @@ export default function AffiliatePayoutsPage() {
                         <bdi>
                           {col.id === 'status'
                             ? t('affiliates.reviewStatus.' + row.status)
-                            : col.id === 'iban'
-                              ? row.iban
-                              : row.affiliate.code}
+                            : col.id === 'amount'
+                              ? row.amount == null
+                                ? t('affiliates.summary.unavailable')
+                                : `${row.amount} ${t('affiliates.summary.currency')}`
+                              : col.id === 'iban'
+                                ? row.iban
+                                : row.affiliate.code}
                         </bdi>
                       </ResponsiveDataFact>
                     ))}

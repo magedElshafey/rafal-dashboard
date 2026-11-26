@@ -1,3 +1,4 @@
+import { useAuth } from '@/store/auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -72,6 +73,16 @@ function mount(
   return client
 }
 beforeEach(async () => {
+  useAuth.setState({
+    isAuthenticated: true,
+    token: 'synthetic-staff-token',
+    effectivePermissions: [
+      'affiliates.view',
+      'affiliates.manage',
+      'affiliates.settings.manage',
+      'affiliates.payouts.process',
+    ],
+  })
   state.enabled = true
   state.payout = true
   state.success.mockReset()
@@ -182,7 +193,7 @@ describe('Affiliate application and payout UI', () => {
   it('shows the payout warning and exact balance with no financial actions', async () => {
     mount('/payouts/1')
     expect(await screen.findByRole('alert')).toHaveTextContent('Refund warning')
-    expect(screen.getByText('-0.50')).toBeInTheDocument()
+    expect(screen.getByText('-0.50 SAR')).toBeInTheDocument()
     expect(screen.getByText('Payout decisions are currently unavailable.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /paid|reject/i })).not.toBeInTheDocument()
   })

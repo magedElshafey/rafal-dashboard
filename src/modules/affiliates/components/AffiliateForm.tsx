@@ -1,4 +1,9 @@
 import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { affiliatesService } from '../api/affiliates.service'
+import { affiliatesKeys } from '../queries/affiliates.keys'
+import { getQueryClientAuthBoundaryEpoch } from '@/lib/react-query/query-client'
+import { Button } from '@/components/ui/button'
 import type { UseFormReturn } from 'react-hook-form'
 import { useFormContext } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -26,7 +31,15 @@ type Props = {
 
 function AffiliateCodeField() {
   const { t } = useTranslation()
-  const { setValue } = useFormContext<AffiliateFormValues>()
+  const { setValue, getValues, watch, formState } = useFormContext<AffiliateFormValues>()
+  const name = watch('name')
+  const suggestion = useQuery({
+    queryKey: [...affiliatesKeys.all, 'code-suggestion', name],
+    queryFn: ({ signal }) => affiliatesService.generateCode(name, signal),
+    enabled: false,
+    retry: false,
+    gcTime: 0,
+  })
   return (
     <div className="space-y-2">
       <FormInput
@@ -39,6 +52,27 @@ function AffiliateCodeField() {
         maxLength={20}
         onChange={(value) => setValue('code', value.toUpperCase(), { shouldDirty: true, shouldValidate: true })}
       />
+      <Button
+        type="button"
+        variant="outline"
+        disabled={suggestion.isFetching || formState.isSubmitting}
+        onClick={async () => {
+          const before = getValues('code')
+          const epoch = getQueryClientAuthBoundaryEpoch()
+          const result = await suggestion.refetch()
+          if (
+            result.data &&
+            !result.error &&
+            epoch === getQueryClientAuthBoundaryEpoch() &&
+            getValues('code') === before &&
+            getValues('name') === name
+          )
+            setValue('code', result.data.code.toUpperCase(), { shouldDirty: true, shouldValidate: true })
+        }}
+      >
+        {t(suggestion.isFetching ? 'affiliates.form.suggestionLoading' : 'affiliates.actions.generateCode')}
+      </Button>
+      {suggestion.isError ? <p role="alert">{t('affiliates.form.suggestionError')}</p> : null}
     </div>
   )
 }

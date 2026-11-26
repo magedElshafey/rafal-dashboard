@@ -39,6 +39,6 @@ export function createAffiliateSettingsSchema(
       .number()
       .nullable()
       .defined()
-      .test('page', messages.termsSlug, (v) => v !== null && Number.isSafeInteger(v) && v > 0),
+      .test('page', messages.termsSlug, (v) => v === null || (Number.isSafeInteger(v) && v > 0)),
   })
 }

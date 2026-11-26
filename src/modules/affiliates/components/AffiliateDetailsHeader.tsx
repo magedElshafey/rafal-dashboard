@@ -1,3 +1,4 @@
+import { useAffiliateAccess } from '../config/affiliate-access'
 import { useState } from 'react'
 import { ArrowLeft, Ban, KeyRound, Pencil, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +24,7 @@ export function AffiliateDetailsHeader({
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [action, setAction] = useState<Action | null>(null)
+  const canManage = useAffiliateAccess('manage')
   const statusAction = affiliate.status === 'active' ? 'suspend' : 'reactivate'
 
   return (
@@ -45,27 +47,31 @@ export function AffiliateDetailsHeader({
                 {t('affiliates.actions.back')}
               </Link>
             </Button>
-            <Button variant="outline" disabled={refreshing} onClick={() => setEditing(true)}>
-              <Pencil aria-hidden="true" />
-              {t('affiliates.actions.edit')}
-            </Button>
-            <Button variant="outline" disabled={refreshing} onClick={() => setAction('resetPassword')}>
-              <KeyRound aria-hidden="true" />
-              {t('affiliates.actions.resetPassword')}
-            </Button>
-            <Button
-              variant={statusAction === 'suspend' ? 'destructive' : 'default'}
-              disabled={refreshing}
-              onClick={() => setAction(statusAction)}
-            >
-              {statusAction === 'suspend' ? <Ban aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
-              {t(`affiliates.actions.${statusAction}`)}
-            </Button>
+            {canManage ? (
+              <>
+                <Button variant="outline" disabled={refreshing} onClick={() => setEditing(true)}>
+                  <Pencil aria-hidden="true" />
+                  {t('affiliates.actions.edit')}
+                </Button>
+                <Button variant="outline" disabled={refreshing} onClick={() => setAction('resetPassword')}>
+                  <KeyRound aria-hidden="true" />
+                  {t('affiliates.actions.resetPassword')}
+                </Button>
+                <Button
+                  variant={statusAction === 'suspend' ? 'destructive' : 'default'}
+                  disabled={refreshing}
+                  onClick={() => setAction(statusAction)}
+                >
+                  {statusAction === 'suspend' ? <Ban aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
+                  {t(`affiliates.actions.${statusAction}`)}
+                </Button>
+              </>
+            ) : null}
           </>
         }
       />
-      <AffiliateEditDrawer affiliate={affiliate} open={editing} onOpenChange={setEditing} />
-      {action ? (
+      <AffiliateEditDrawer affiliate={affiliate} open={editing && canManage} onOpenChange={setEditing} />
+      {action && canManage ? (
         <AffiliateActionDialog
           key={action}
           affiliateId={affiliate.id}
