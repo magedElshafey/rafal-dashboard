@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { affiliatesService } from '../api/affiliates.service'
 import { affiliatesKeys } from '../queries/affiliates.keys'
@@ -33,9 +33,24 @@ function AffiliateCodeField() {
   const { t } = useTranslation()
   const { setValue, getValues, watch, formState } = useFormContext<AffiliateFormValues>()
   const name = watch('name')
+  const revision = useRef(0)
+  const request = useRef(0)
+  const activeSignal = useRef<AbortSignal | null>(null)
+  useEffect(() => {
+    const subscription = watch((_values, change) => {
+      if (change.name === 'name' || change.name === 'code') revision.current += 1
+    })
+    return () => {
+      request.current += 1
+      subscription.unsubscribe()
+    }
+  }, [watch])
   const suggestion = useQuery({
     queryKey: [...affiliatesKeys.all, 'code-suggestion', name],
-    queryFn: ({ signal }) => affiliatesService.generateCode(name, signal),
+    queryFn: ({ signal }) => {
+      activeSignal.current = signal
+      return affiliatesService.generateCode(name, signal)
+    },
     enabled: false,
     retry: false,
     gcTime: 0,
@@ -58,9 +73,16 @@ function AffiliateCodeField() {
         disabled={suggestion.isFetching || formState.isSubmitting}
         onClick={async () => {
           const before = getValues('code')
+          const editRevision = revision.current
+          const requestId = ++request.current
           const epoch = getQueryClientAuthBoundaryEpoch()
-          const result = await suggestion.refetch()
+          const pending = suggestion.refetch()
+          const signal = activeSignal.current
+          const result = await pending
           if (
+            !signal?.aborted &&
+            requestId === request.current &&
+            editRevision === revision.current &&
             result.data &&
             !result.error &&
             epoch === getQueryClientAuthBoundaryEpoch() &&

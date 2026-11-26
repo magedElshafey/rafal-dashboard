@@ -5,8 +5,14 @@ const mocks = vi.hoisted(() => ({ loginRequest: vi.fn() }))
 vi.mock('@/modules/auth/service/login.service', () => ({ loginRequest: mocks.loginRequest }))
 
 import { AUTH_STORAGE_KEY, useAuth } from './auth'
+import {
+  queryClient,
+  clearQueryClientAtAuthBoundary,
+  getQueryClientAuthBoundaryEpoch,
+} from '@/lib/react-query/query-client'
 
 const emptyState = {
+  effectivePermissions: null,
   token: null,
   admin: null,
   isAuthenticated: false,
@@ -35,9 +41,58 @@ describe('auth store', () => {
     expect(useAuth.getState().effectivePermissions).toBeNull()
   })
   beforeEach(() => {
+    clearQueryClientAtAuthBoundary()
     localStorage.clear()
     vi.clearAllMocks()
     useAuth.setState(emptyState)
+  })
+  it.each([{ grants: [] }, { grants: ['affiliates.settings.manage'] }])(
+    'invalidates the obsolete grant snapshot for $grants',
+    async ({ grants }) => {
+      useAuth.setState({ token: 'grant-session', isAuthenticated: true, effectivePermissions: ['affiliates.view'] })
+      queryClient.setQueryData(['affiliates', 'list'], ['private-old-data'])
+      queryClient.setQueryData(['unrelated'], 'retained')
+      let finish!: (value: string) => void
+      let signal!: AbortSignal
+      const pending = queryClient
+        .fetchQuery({
+          queryKey: ['affiliates', 'detail', 1],
+          queryFn: (context) => {
+            signal = context.signal
+            return new Promise<string>((resolve) => {
+              finish = resolve
+            })
+          },
+        })
+        .catch(() => undefined)
+      const epoch = getQueryClientAuthBoundaryEpoch()
+      useAuth.getState().setVerifiedPermissions('grant-session', grants)
+      expect(getQueryClientAuthBoundaryEpoch()).toBeGreaterThan(epoch)
+      expect(signal.aborted).toBe(true)
+      expect(queryClient.getQueryData(['affiliates', 'list'])).toBeUndefined()
+      expect(queryClient.getQueryData(['unrelated'])).toBe('retained')
+      finish('late-private-data')
+      await pending
+      await Promise.resolve()
+      expect(queryClient.getQueryData(['affiliates', 'detail', 1])).toBeUndefined()
+    }
+  )
+  it('does not invalidate for equivalent grants or a stale hydration response', () => {
+    useAuth.setState({
+      token: 'grant-session',
+      isAuthenticated: true,
+      effectivePermissions: ['affiliates.view', 'affiliates.manage'],
+    })
+    queryClient.setQueryData(['affiliates', 'list'], ['current'])
+    const snapshot = useAuth.getState().effectivePermissions
+    const epoch = getQueryClientAuthBoundaryEpoch()
+    useAuth
+      .getState()
+      .setVerifiedPermissions('grant-session', ['affiliates.manage', 'affiliates.view', 'affiliates.view'])
+    useAuth.getState().setVerifiedPermissions('old-session', [])
+    expect(getQueryClientAuthBoundaryEpoch()).toBe(epoch)
+    expect(useAuth.getState().effectivePermissions).toBe(snapshot)
+    expect(queryClient.getQueryData(['affiliates', 'list'])).toEqual(['current'])
   })
 
   it('normalizes and persists the minimum dashboard session on login', async () => {

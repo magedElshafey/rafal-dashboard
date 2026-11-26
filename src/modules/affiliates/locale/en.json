@@ -242,7 +242,8 @@
       "referenceBounds": "Enter a transfer reference of 3–50 characters.",
       "dateInvalid": "Enter a valid date no later than today.",
       "confirm": "Confirm this payout decision. After a timeout, verify the server status before attempting another decision.",
-      "ambiguous": "The result is uncertain. Your draft is retained. Close and verify the payout status before trying again.",
+      "ambiguous": "The result is uncertain. Your draft is retained. Further decisions require reconciliation of the earlier operation.",
+      "reconciliationRequired": "A decision was submitted for this payout. Further decisions are blocked until the earlier operation is reconciled.",
       "amount": "Amount"
     },
     "summary": {

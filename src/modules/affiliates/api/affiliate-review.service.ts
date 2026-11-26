@@ -2,7 +2,6 @@ import { isAffiliatePayoutFeatureEnabled, isAffiliatePayoutDecisionReady } from 
 import { payoutPaidSchema, payoutRejectSchema, type PayoutPaidPayload } from '../schemas/affiliate-payout.schema'
 import { z } from 'zod'
 import { isAxiosError } from 'axios'
-import { getQueryClientAuthBoundaryEpoch } from '@/lib/react-query/query-client'
 import { $http } from '@/utils/http'
 import { assertAffiliateAccess } from './affiliates.service'
 import { paginationSchema, successSchema, affiliateCreateSchema, optionalMoney } from '../schemas/affiliate-api.schema'
@@ -55,26 +54,19 @@ const payoutIndex = successSchema.extend({ data: z.array(payoutSchema), meta: pa
 const silent = { suppressErrorNotification: true, suppressSuccessNotification: true }
 export type AffiliateApplication = z.infer<typeof applicationSchema>
 export type AffiliatePayout = z.infer<typeof payoutSchema>
-const decisions = new Map<number, { epoch: number; pending: boolean }>()
+// A pending read cannot prove that a timed-out request will never commit.
+// Keep consumed/uncertain payout IDs blocked across dialog and session changes.
+// No automatic client-side reset: resolution requires authoritative operational reconciliation.
+const decisions = new Set<number>()
 async function decide(id: number, operation: () => Promise<unknown>) {
-  const epoch = getQueryClientAuthBoundaryEpoch()
-  const previous = decisions.get(id)
-  if (previous?.epoch === epoch) throw new Error('Read payout status before another decision')
-  const state = { epoch, pending: true }
-  decisions.set(id, state)
+  if (decisions.has(id)) throw new Error('Payout decision requires reconciliation')
+  decisions.add(id)
   try {
     await operation()
   } catch (error) {
-    if (
-      decisions.get(id) === state &&
-      isAxiosError(error) &&
-      error.response &&
-      [400, 401, 403, 404, 422].includes(error.response.status)
-    )
+    if (isAxiosError(error) && error.response && [400, 401, 403, 404, 422].includes(error.response.status))
       decisions.delete(id)
     throw error
-  } finally {
-    state.pending = false
   }
 }
 export const affiliateApplicationsService = {
@@ -130,6 +122,9 @@ export const affiliateApplicationsService = {
   },
 }
 export const affiliatePayoutsService = {
+  isDecisionBlocked(id: number) {
+    return decisions.has(id)
+  },
   async paid(id: number, payload: PayoutPaidPayload) {
     assertAffiliateAccess('payouts')
     if (!isAffiliatePayoutFeatureEnabled || !isAffiliatePayoutDecisionReady)
@@ -155,8 +150,6 @@ export const affiliatePayoutsService = {
   async show(id: number, signal?: AbortSignal) {
     if (!isAffiliatePayoutFeatureEnabled) throw new Error('Payout access is unavailable')
     assertAffiliateAccess('payouts')
-    const decision = decisions.get(id)
-    const canResolve = decision && !decision.pending
     const response = await $http.get({ url: `/dashboard/affiliate-payouts/${id}`, signal, ...silent })
     const result = successSchema
       .extend({
@@ -168,7 +161,7 @@ export const affiliatePayoutsService = {
       })
       .parse(response.data).data
     if (result.payout.id !== id) throw new Error('Unexpected payout identity')
-    if (canResolve && decisions.get(id) === decision) decisions.delete(id)
+    if (result.payout.status !== 'pending') decisions.add(id)
     return result
   },
   async list(page: number, signal?: AbortSignal, status?: string) {

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { clearQueryClientAtAuthBoundary } from '@/lib/react-query/query-client'
 
 import { loginRequest } from '@/modules/auth/service/login.service'
 import type { AuthAdmin, AuthSession, LoginPayload } from '@/modules/auth/types/auth.types'
@@ -79,6 +80,20 @@ function getInitialAuthState(): State {
   return toAuthState(readStoredAuth())
 }
 
+function invalidateChangedGrants(previous: State['effectivePermissions'], next: State['effectivePermissions']) {
+  if (
+    previous === next ||
+    (previous !== null &&
+      next !== null &&
+      previous.length === next.length &&
+      previous.every((grant) => next.includes(grant)))
+  )
+    return false
+  // Reuse the mutation epoch fence, but evict only Affiliate authorization-dependent queries.
+  clearQueryClientAtAuthBoundary(['affiliates'])
+  return true
+}
+
 export const useAuth = create<State & Actions>((set, get) => ({
   ...getInitialAuthState(),
   // Integration seam only: call after parsing the authoritative current-staff source.
@@ -88,7 +103,9 @@ export const useAuth = create<State & Actions>((set, get) => ({
     const valid =
       Array.isArray(permissions) &&
       permissions.every((value) => typeof value === 'string' && value.trim() === value && value.length > 0)
-    set({ effectivePermissions: valid ? [...new Set(permissions)] : null })
+    const effectivePermissions = valid ? [...new Set(permissions)] : null
+    if (!invalidateChangedGrants(get().effectivePermissions, effectivePermissions)) return
+    set({ effectivePermissions })
   },
 
   async login(data) {
@@ -117,10 +134,12 @@ export const useAuth = create<State & Actions>((set, get) => ({
 
   logout() {
     clearStoredAuth()
+    invalidateChangedGrants(get().effectivePermissions, null)
     set(emptyAuthState)
   },
 
   syncFromStorage() {
+    invalidateChangedGrants(get().effectivePermissions, null)
     set(toAuthState(readStoredAuth()))
   },
 }))

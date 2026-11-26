@@ -1,4 +1,5 @@
 import { useAffiliateAccess } from '../config/affiliate-access'
+import { useAuth } from '@/store/auth'
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -28,7 +29,19 @@ import {
 import { isValidPayoutDate, payoutToday } from '../schemas/affiliate-payout.schema'
 
 type Values = { transfer_reference: string; transferred_at: string; reason: string }
-function Decision({ id, mode, onClose }: { id: number; mode: 'paid' | 'reject'; onClose: () => void }) {
+function Decision({
+  id,
+  mode,
+  openedAt,
+  onBlocked,
+  onClose,
+}: {
+  id: number
+  mode: 'paid' | 'reject'
+  openedAt: number
+  onBlocked: () => void
+  onClose: () => void
+}) {
   const { t, i18n } = useTranslation()
   const client = useQueryClient()
   const lock = useRef(false)
@@ -109,16 +122,28 @@ function Decision({ id, mode, onClose }: { id: number; mode: 'paid' | 'reject'; 
           submissionDisabled={mutation.isPending || ambiguous}
           onSubmit={async (values, methods) => {
             if (lock.current || ambiguous) return
+            if (openedAt !== getQueryClientAuthBoundaryEpoch()) {
+              onClose()
+              return
+            }
             lock.current = true
             const epoch = getQueryClientAuthBoundaryEpoch()
             try {
               await mutation.mutateAsync(values)
-              if (epoch === getQueryClientAuthBoundaryEpoch()) onClose()
+              if (epoch === getQueryClientAuthBoundaryEpoch()) {
+                onBlocked()
+                onClose()
+              }
             } catch (error) {
               if (epoch !== getQueryClientAuthBoundaryEpoch()) return
               applyApiValidationErrors(error, methods.setError, {}, ['transfer_reference', 'transferred_at', 'reason'])
-              if (isAxiosError(error) && error.response?.status === 409) onClose()
-              else if (!isAxiosError(error) || !error.response || error.response.status >= 500) setAmbiguous(true)
+              if (isAxiosError(error) && error.response?.status === 409) {
+                onBlocked()
+                onClose()
+              } else if (!isAxiosError(error) || !error.response || error.response.status >= 500) {
+                onBlocked()
+                setAmbiguous(true)
+              }
             } finally {
               lock.current = false
             }
@@ -176,6 +201,8 @@ export function AffiliatePayoutDecision({
 }) {
   const { t } = useTranslation()
   const canDecide = useAffiliateAccess('payoutDecision')
+  const grants = useAuth((state) => state.effectivePermissions)
+  const [requiresReconciliation, setRequiresReconciliation] = useState(false)
   const client = useQueryClient()
   const opening = useRef(false)
   const [checking, setChecking] = useState(false)
@@ -191,7 +218,10 @@ export function AffiliatePayoutDecision({
         staleTime: 0,
         retry: false,
       })
-      if (epoch === getQueryClientAuthBoundaryEpoch() && result.payout.status === 'pending') setMode(next)
+      if (epoch === getQueryClientAuthBoundaryEpoch() && result.payout.status === 'pending') {
+        if (requiresReconciliation || affiliatePayoutsService.isDecisionBlocked(id)) setRequiresReconciliation(true)
+        else setMode({ kind: next, epoch, grants })
+      }
     } catch (error) {
       if (epoch === getQueryClientAuthBoundaryEpoch()) toastApiError(error, t('apiFeedback.error'), true)
     } finally {
@@ -199,7 +229,10 @@ export function AffiliatePayoutDecision({
       setChecking(false)
     }
   }
-  const [mode, setMode] = useState<'paid' | 'reject' | null>(null)
+  const [mode, setMode] = useState<{ kind: 'paid' | 'reject'; epoch: number; grants: readonly string[] | null } | null>(
+    null
+  )
+  const currentMode = mode?.epoch === getQueryClientAuthBoundaryEpoch() && mode.grants === grants ? mode : null
   if (
     !canDecide ||
     !isAffiliateFeatureEnabled ||
@@ -216,7 +249,19 @@ export function AffiliatePayoutDecision({
       <Button variant="destructive" disabled={refreshing || checking} onClick={() => void openDecision('reject')}>
         {t('affiliates.payouts.reject')}
       </Button>
-      {mode ? <Decision key={mode} id={id} mode={mode} onClose={() => setMode(null)} /> : null}
+      {requiresReconciliation && !currentMode ? (
+        <p role="alert">{t('affiliates.payouts.reconciliationRequired')}</p>
+      ) : null}
+      {currentMode ? (
+        <Decision
+          key={`${currentMode.kind}:${currentMode.epoch}`}
+          id={id}
+          mode={currentMode.kind}
+          openedAt={currentMode.epoch}
+          onBlocked={() => setRequiresReconciliation(true)}
+          onClose={() => setMode(null)}
+        />
+      ) : null}
     </div>
   )
 }
