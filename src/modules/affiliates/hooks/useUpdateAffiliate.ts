@@ -1,26 +1,33 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-
-import { affiliatesService } from '@/modules/affiliates/api/affiliates.service'
-import { affiliatesKeys } from '@/modules/affiliates/queries/affiliates.keys'
-import type { UpdateAffiliatePayload } from '@/modules/affiliates/types/affiliate.types'
+import { getQueryClientAuthBoundaryEpoch } from '@/lib/react-query/query-client'
+import { affiliatesService } from '../api/affiliates.service'
+import { affiliatesKeys } from '../queries/affiliates.keys'
+import type { UpdateAffiliatePayload } from '../types/affiliate.types'
 import { toastApiError } from '@/utils/error/api-error-toast.helpers'
-
 export function useUpdateAffiliate(id: number) {
-  const queryClient = useQueryClient()
+  const client = useQueryClient()
   const { t } = useTranslation()
   return useMutation({
     retry: false,
+    onMutate: () => getQueryClientAuthBoundaryEpoch(),
     mutationFn: (payload: UpdateAffiliatePayload) => affiliatesService.update(id, payload),
-    onSuccess: async (affiliate) => {
-      queryClient.setQueryData(affiliatesKeys.detail(id), affiliate)
+    onSuccess: async (_result, _payload, epoch) => {
+      if (epoch !== getQueryClientAuthBoundaryEpoch()) return
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: affiliatesKeys.lists() }),
-        queryClient.invalidateQueries({ queryKey: affiliatesKeys.activity(id), exact: true }),
+        client.cancelQueries({ queryKey: affiliatesKeys.detail(id) }),
+        client.cancelQueries({ queryKey: affiliatesKeys.lists() }),
       ])
-      toast.success(t('affiliates.feedback.updated'))
+      if (epoch !== getQueryClientAuthBoundaryEpoch()) return
+      await Promise.all([
+        client.invalidateQueries({ queryKey: affiliatesKeys.detail(id) }),
+        client.invalidateQueries({ queryKey: affiliatesKeys.lists() }),
+      ])
+      if (epoch === getQueryClientAuthBoundaryEpoch()) toast.success(t('affiliates.feedback.updated'))
     },
-    onError: (error) => toastApiError(error, t('affiliates.feedback.updateError')),
+    onError: (error, _payload, epoch) => {
+      if (epoch === getQueryClientAuthBoundaryEpoch()) toastApiError(error, t('affiliates.feedback.updateError'), true)
+    },
   })
 }

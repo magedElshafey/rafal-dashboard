@@ -1,139 +1,155 @@
-import { AlertTriangle, LoaderCircle, RotateCcw } from 'lucide-react'
-import { useEffect, useId, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFormContext, type UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-
 import { FormWrapper } from '@/components/core/FormWrapper'
-import { FormInput } from '@/components/form'
+import { FormInput } from '@/components/form/FormInput'
+import { FormSelect } from '@/components/form/FormSelect'
 import { FormSwitch } from '@/components/form/FormSwitch'
 import { DashboardCard } from '@/components/shared/dashboard/atoms/DashboardCard'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
 import { Button } from '@/components/ui/button'
-import { isAffiliateSettingsVersionConflict } from '@/modules/affiliates/hooks/useUpdateAffiliateSettings'
-import { createAffiliateSettingsSchema } from '@/modules/affiliates/schemas/affiliate-settings.schema'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import { useInfinitePaginatedQuery } from '@/hooks/queries/useInfinitePaginatedQuery'
+import { staticPagesService } from '@/modules/static-pages/api/static-pages.service'
+import { staticPagesKeys } from '@/modules/static-pages/queries/static-pages.keys'
+import type { StaticPage } from '@/modules/static-pages/types/static-page.types'
+import { emptyPagesFilters } from '@/modules/static-pages/utils/static-page-filters'
+import { createAffiliateSettingsSchema } from '../schemas/affiliate-settings.schema'
 import type {
   AffiliateSettings,
   AffiliateSettingsFormValues,
   UpdateAffiliateSettingsPayload,
-} from '@/modules/affiliates/types/affiliate.types'
-import {
-  buildAffiliateSettingsPayload,
-  toAffiliateSettingsFormValues,
-} from '@/modules/affiliates/utils/affiliate-settings'
+} from '../types/affiliate.types'
+import { toAffiliateSettingsFormValues, buildAffiliateSettingsPayload } from '../utils/affiliate-settings'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
-import { formatDateTime, resolveAppLocale } from '@/utils/date/date.helpers'
 
 type Props = {
   settings: AffiliateSettings
   isSubmitting: boolean
+  canWrite?: boolean
   onSubmit: (payload: UpdateAffiliateSettingsPayload) => Promise<AffiliateSettings>
-  onReloadConflict: () => Promise<{ data?: AffiliateSettings; isSuccess: boolean }>
 }
-
-type ConflictState = {
-  latest?: AffiliateSettings
-  methods: UseFormReturn<AffiliateSettingsFormValues>
-  proposedFields: (keyof AffiliateSettingsFormValues)[]
-  reloadFailed: boolean
-}
-
-function PristineBaselineSync({
+function Fields({
   settings,
-  blocked,
-  acceptedBaselineRef,
+  disabled,
+  pages,
 }: {
   settings: AffiliateSettings
-  blocked: boolean
-  acceptedBaselineRef: MutableRefObject<AffiliateSettings>
+  disabled: boolean
+  pages: ReturnType<typeof useInfinitePaginatedQuery<StaticPage>>
 }) {
+  const { t, i18n } = useTranslation()
   const {
     reset,
     formState: { isDirty },
   } = useFormContext<AffiliateSettingsFormValues>()
   useEffect(() => {
-    if (!blocked && !isDirty && settings.version >= acceptedBaselineRef.current.version) {
-      acceptedBaselineRef.current = settings
-      reset(toAffiliateSettingsFormValues(settings))
-    }
-  }, [acceptedBaselineRef, blocked, isDirty, reset, settings])
-  return null
-}
-
-function FormMethodsBridge({
-  methodsRef,
-}: {
-  methodsRef: MutableRefObject<UseFormReturn<AffiliateSettingsFormValues> | null>
-}) {
-  const methods = useFormContext<AffiliateSettingsFormValues>()
-  useEffect(() => {
-    methodsRef.current = methods
-    return () => {
-      methodsRef.current = null
-    }
-  }, [methods, methodsRef])
-  return null
-}
-
-function SwitchField({
-  name,
-  label,
-  description,
-  disabled,
-}: {
-  name: string
-  label: string
-  description: string
-  disabled: boolean
-}) {
-  const descriptionId = useId()
+    if (!isDirty) reset(toAffiliateSettingsFormValues(settings))
+  }, [settings, isDirty, reset])
+  const options =
+    pages.data?.pages
+      .flatMap((p) => p.items)
+      .filter((p) => p.isPublished)
+      .map((p) => ({
+        id: p.id,
+        label: (i18n.language.startsWith('ar') ? p.title.ar : p.title.en) || p.title.ar || p.title.en || p.slug,
+      })) ?? []
   return (
-    <div className="space-y-1.5">
-      <FormSwitch name={name} label={label} aria-label={label} aria-describedby={descriptionId} disabled={disabled} />
-      <p id={descriptionId} className="text-sm text-muted-foreground">
-        {description}
-      </p>
-    </div>
+    <DashboardCard padding="lg" className="space-y-5">
+      <FormSwitch name="programEnabled" label={t('affiliates.settings.fields.programEnabled')} disabled={disabled} />
+      <p className="text-sm text-muted-foreground">{t('affiliates.settings.help.programEnabled')}</p>
+      <FormSwitch
+        name="applicationsEnabled"
+        label={t('affiliates.settings.fields.applicationsEnabled')}
+        disabled={disabled}
+      />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormInput
+          name="customerDiscountPercentage"
+          type="number"
+          min={1}
+          max={50}
+          step="0.01"
+          dir="ltr"
+          label={t('affiliates.settings.fields.customerDiscountPercentage')}
+          disabled={disabled}
+          required
+        />
+        <FormInput
+          name="affiliateCommissionPercentage"
+          type="number"
+          min={0.5}
+          max={50}
+          step="0.01"
+          dir="ltr"
+          label={t('affiliates.settings.fields.affiliateCommissionPercentage')}
+          disabled={disabled}
+          required
+        />
+        <FormInput
+          name="minimumPayoutAmount"
+          inputMode="decimal"
+          dir="ltr"
+          label={t('affiliates.settings.fields.minimumPayoutAmount')}
+          disabled={disabled}
+          required
+        />
+        <FormSelect
+          name="termsPageId"
+          label={t('affiliates.settings.fields.termsPageId')}
+          data={options}
+          valueKey="id"
+          labelKey="label"
+          disabled={disabled}
+          deserializeValue={(value) => (value ? Number(value) : null)}
+          serializeValue={(value) => (value == null ? '' : String(value))}
+          isLoading={pages.isLoading}
+          isError={pages.isError}
+          onRetry={() => pages.refetch()}
+          isRetrying={pages.isFetching}
+          hasNextPage={pages.hasNextPage}
+          isFetchingNextPage={pages.isFetchingNextPage}
+          onLoadMore={() => pages.fetchNextPage().then(() => undefined)}
+          required
+        />
+      </div>
+      <p className="text-sm text-muted-foreground">{t('affiliates.settings.help.termsPageId')}</p>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => reset(toAffiliateSettingsFormValues(settings))}
+        disabled={disabled || !isDirty}
+      >
+        {t('affiliates.settings.actions.discard')}
+      </Button>
+    </DashboardCard>
   )
 }
-
-function ServerValues({ settings }: { settings: AffiliateSettings }) {
+export function AffiliateSettingsForm({ settings, isSubmitting, canWrite = false, onSubmit }: Props) {
   const { t } = useTranslation()
-  const values = [
-    [
-      t('affiliates.settings.fields.programEnabled'),
-      t(settings.programEnabled ? 'affiliates.settings.values.enabled' : 'affiliates.settings.values.disabled'),
-    ],
-    [
-      t('affiliates.settings.fields.applicationsEnabled'),
-      t(settings.applicationsEnabled ? 'affiliates.settings.values.enabled' : 'affiliates.settings.values.disabled'),
-    ],
-    [t('affiliates.settings.fields.customerDiscountPercentage'), `${settings.customerDiscountPercentage}%`],
-    [t('affiliates.settings.fields.affiliateCommissionPercentage'), `${settings.affiliateCommissionPercentage}%`],
-    [t('affiliates.settings.fields.minimumPayoutAmount'), settings.minimumPayoutAmount],
-    [t('affiliates.settings.fields.termsPageReference'), settings.termsPageReference],
-  ]
-  return (
-    <dl className="grid gap-3 sm:grid-cols-2">
-      {values.map(([label, value]) => (
-        <div key={label} className="min-w-0 rounded-lg bg-background p-3">
-          <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-          <dd className="mt-1 [overflow-wrap:anywhere]" dir="auto">
-            {value}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-export function AffiliateSettingsForm({ settings, isSubmitting, onSubmit, onReloadConflict }: Props) {
-  const { t, i18n } = useTranslation()
-  const [formState, setFormState] = useState({ isDirty: false, isValid: false })
-  const [conflict, setConflict] = useState<ConflictState | null>(null)
-  const lockRef = useRef(false)
-  const acceptedBaselineRef = useRef(settings)
-  const methodsRef = useRef<UseFormReturn<AffiliateSettingsFormValues> | null>(null)
-  const values = useMemo(() => toAffiliateSettingsFormValues(settings), [settings])
+  const lock = useRef(false)
+  const pages = useInfinitePaginatedQuery({
+    queryKey: staticPagesKeys.list(emptyPagesFilters),
+    queryFn: (page, signal) => {
+      if (!canWrite) throw new Error('Page access unavailable')
+      return staticPagesService.list(page, signal)
+    },
+    enabled: canWrite,
+    retry: false,
+  })
+  const [pending, setPending] = useState<{
+    values: AffiliateSettingsFormValues
+    methods: UseFormReturn<AffiliateSettingsFormValues>
+  } | null>(null)
+  const [state, setState] = useState({ isDirty: false, isValid: false })
   const schema = useMemo(
     () =>
       createAffiliateSettingsSchema({
@@ -142,235 +158,103 @@ export function AffiliateSettingsForm({ settings, isSubmitting, onSubmit, onRelo
         percentageRange: t('affiliates.settings.validation.percentageRange'),
         payoutFormat: t('affiliates.settings.validation.payoutFormat'),
         payoutPositive: t('affiliates.settings.validation.payoutPositive'),
-        termsSlug: t('affiliates.settings.validation.termsSlug'),
+        termsSlug: t('affiliates.settings.validation.termsPage'),
       }),
     [t]
   )
-
-  const submitValues = async (
-    submittedValues: AffiliateSettingsFormValues,
-    methods: UseFormReturn<AffiliateSettingsFormValues>,
-    baseline: AffiliateSettings
-  ) => {
-    if (lockRef.current) return
-    const payload = buildAffiliateSettingsPayload(baseline, submittedValues)
-    if (!payload) {
-      acceptedBaselineRef.current = baseline
-      methods.reset(toAffiliateSettingsFormValues(baseline))
-      setConflict(null)
+  const save = async (values: AffiliateSettingsFormValues, methods: UseFormReturn<AffiliateSettingsFormValues>) => {
+    if (!canWrite || lock.current) return
+    if (
+      !pages.data?.pages.some((page) => page.items.some((item) => item.id === values.termsPageId && item.isPublished))
+    ) {
+      methods.setError('termsPageId', { type: 'server', message: t('affiliates.settings.validation.termsPage') })
       return
     }
-    lockRef.current = true
+    lock.current = true
     try {
-      const updated = await onSubmit(payload)
-      acceptedBaselineRef.current = updated
-      methods.reset(toAffiliateSettingsFormValues(updated))
-      setConflict(null)
+      const result = await onSubmit(buildAffiliateSettingsPayload(settings, values))
+      methods.reset(toAffiliateSettingsFormValues(result))
+      setPending(null)
     } catch (error) {
-      if (isAffiliateSettingsVersionConflict(error)) {
-        const reloaded = await onReloadConflict()
-        const latest = reloaded.isSuccess ? reloaded.data : undefined
-        const proposedFields = Object.keys(payload).filter(
-          (key): key is keyof AffiliateSettingsFormValues => key !== 'version'
-        )
-        setConflict({ latest, methods, proposedFields, reloadFailed: !latest })
-      } else {
-        applyApiValidationErrors(error, methods.setError, {
-          program_enabled: 'programEnabled',
+      setPending(null)
+      applyApiValidationErrors(
+        error,
+        methods.setError,
+        {
+          enabled: 'programEnabled',
           applications_enabled: 'applicationsEnabled',
-          customer_discount_percentage: 'customerDiscountPercentage',
-          affiliate_commission_percentage: 'affiliateCommissionPercentage',
-          minimum_payout_amount: 'minimumPayoutAmount',
-          terms_page_reference: 'termsPageReference',
-        })
-      }
+          customer_discount_percent: 'customerDiscountPercentage',
+          commission_percent: 'affiliateCommissionPercentage',
+          min_payout: 'minimumPayoutAmount',
+          terms_page_id: 'termsPageId',
+        },
+        [
+          'enabled',
+          'applications_enabled',
+          'customer_discount_percent',
+          'commission_percent',
+          'min_payout',
+          'terms_page_id',
+        ]
+      )
     } finally {
-      lockRef.current = false
+      lock.current = false
     }
   }
-
-  const handleSubmit = (
-    submittedValues: AffiliateSettingsFormValues,
-    methods: UseFormReturn<AffiliateSettingsFormValues>
-  ) => submitValues(submittedValues, methods, conflict?.latest ?? acceptedBaselineRef.current)
-
-  const retryConflict = async () => {
-    if (!conflict?.latest || isSubmitting || lockRef.current) return
-    const valid = await conflict.methods.trigger()
-    if (valid) {
-      const draft = conflict.methods.getValues()
-      const proposedValues = toAffiliateSettingsFormValues(conflict.latest)
-      conflict.proposedFields.forEach((key) => Object.assign(proposedValues, { [key]: draft[key] }))
-      await submitValues(proposedValues, conflict.methods, conflict.latest)
-    }
-  }
-
-  const reloadConflict = async () => {
-    if (!conflict) return
-    const reloaded = await onReloadConflict()
-    const latest = reloaded.isSuccess ? reloaded.data : undefined
-    setConflict({ ...conflict, latest, reloadFailed: !latest })
-  }
-
-  const discard = () => {
-    const baseline = conflict?.latest ?? settings
-    const methods = conflict?.methods ?? methodsRef.current
-    acceptedBaselineRef.current = baseline
-    methods?.reset(toAffiliateSettingsFormValues(baseline))
-    setConflict(null)
-  }
-
-  const locale = resolveAppLocale(i18n.language)
-  const updatedAt = formatDateTime((conflict?.latest ?? settings).updatedAt, { locale }) || '—'
-  const fieldsDisabled = isSubmitting || Boolean(conflict)
-
   return (
     <FormWrapper<AffiliateSettingsFormValues>
       schema={schema}
-      defaultValues={values}
+      defaultValues={toAffiliateSettingsFormValues(settings)}
       validationMode="onChange"
-      submissionDisabled={isSubmitting}
-      onFormStateChange={setFormState}
-      onSubmit={handleSubmit}
+      onFormStateChange={setState}
+      submissionDisabled={!canWrite || isSubmitting}
+      onSubmit={async (values, methods) => {
+        if (settings.programEnabled && !values.programEnabled) {
+          setPending({ values, methods })
+          return
+        }
+        await save(values, methods)
+      }}
       className="space-y-5"
     >
-      <PristineBaselineSync settings={settings} blocked={Boolean(conflict)} acceptedBaselineRef={acceptedBaselineRef} />
-      <FormMethodsBridge methodsRef={methodsRef} />
       <DashboardPageHeader
         title={t('affiliates.settings.title')}
         description={t('affiliates.settings.description')}
-        intro={t('affiliates.settings.updatedAt', { date: updatedAt })}
         actions={
-          <>
-            <Button type="button" variant="outline" disabled={!formState.isDirty || isSubmitting} onClick={discard}>
-              <RotateCcw aria-hidden />
-              {t('affiliates.settings.actions.discard')}
+          canWrite ? (
+            <Button type="submit" disabled={isSubmitting || !state.isDirty || !state.isValid}>
+              {t('affiliates.settings.actions.save')}
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !formState.isDirty || !formState.isValid || Boolean(conflict)}
-            >
-              {isSubmitting ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
-              {t(isSubmitting ? 'affiliates.settings.actions.saving' : 'affiliates.settings.actions.save')}
-            </Button>
-          </>
+          ) : undefined
         }
       />
-
-      <div role="note" className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-        {t('affiliates.settings.mockNotice')}
-      </div>
-
-      {conflict ? (
-        <div role="alert" className="space-y-4 rounded-xl border border-warning bg-warning/10 p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle aria-hidden className="mt-0.5 size-5 shrink-0 text-warning" />
-            <div>
-              <h2 className="font-semibold">{t('affiliates.settings.conflict.title')}</h2>
-              <p className="text-sm text-muted-foreground">{t('affiliates.settings.conflict.message')}</p>
-            </div>
-          </div>
-          {conflict.latest ? <ServerValues settings={conflict.latest} /> : null}
-          {conflict.reloadFailed ? <p className="text-sm">{t('affiliates.settings.conflict.reloadError')}</p> : null}
-          <div className="flex flex-wrap gap-2">
-            {conflict.latest ? (
-              <Button type="button" onClick={() => void retryConflict()} disabled={isSubmitting}>
-                {t('affiliates.settings.conflict.retry')}
-              </Button>
-            ) : (
-              <Button type="button" variant="outline" onClick={() => void reloadConflict()}>
-                {t('affiliates.settings.conflict.reload')}
-              </Button>
-            )}
-            <Button type="button" variant="outline" onClick={discard}>
-              {t('affiliates.settings.actions.discard')}
+      {!canWrite ? <p role="note">{t('affiliates.settings.readOnly')}</p> : null}
+      <Fields settings={settings} pages={pages} disabled={!canWrite || isSubmitting} />
+      <AlertDialog
+        open={Boolean(pending)}
+        onOpenChange={(open) => {
+          if (!open && !isSubmitting) setPending(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('affiliates.settings.disableTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('affiliates.settings.help.programEnabled')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>{t('affiliates.actions.cancel')}</AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (pending) void save(pending.values, pending.methods)
+              }}
+            >
+              {t('affiliates.settings.actions.save')}
             </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <DashboardCard padding="lg" className="space-y-5">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold">{t('affiliates.settings.sections.availability.title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('affiliates.settings.sections.availability.description')}</p>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <SwitchField
-            name="programEnabled"
-            label={t('affiliates.settings.fields.programEnabled')}
-            description={t('affiliates.settings.help.programEnabled')}
-            disabled={fieldsDisabled}
-          />
-          <SwitchField
-            name="applicationsEnabled"
-            label={t('affiliates.settings.fields.applicationsEnabled')}
-            description={t('affiliates.settings.help.applicationsEnabled')}
-            disabled={fieldsDisabled}
-          />
-        </div>
-      </DashboardCard>
-
-      <DashboardCard padding="lg" className="space-y-5">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold">{t('affiliates.settings.sections.commercial.title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('affiliates.settings.sections.commercial.description')}</p>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <FormInput
-            name="customerDiscountPercentage"
-            label={t('affiliates.settings.fields.customerDiscountPercentage')}
-            description={t('affiliates.settings.help.customerDiscountPercentage')}
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={100}
-            step="any"
-            dir="ltr"
-            disabled={fieldsDisabled}
-            required
-          />
-          <FormInput
-            name="affiliateCommissionPercentage"
-            label={t('affiliates.settings.fields.affiliateCommissionPercentage')}
-            description={t('affiliates.settings.help.affiliateCommissionPercentage')}
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={100}
-            step="any"
-            dir="ltr"
-            disabled={fieldsDisabled}
-            required
-          />
-          <FormInput
-            name="minimumPayoutAmount"
-            label={t('affiliates.settings.fields.minimumPayoutAmount')}
-            description={t('affiliates.settings.help.minimumPayoutAmount')}
-            inputMode="decimal"
-            dir="ltr"
-            disabled={fieldsDisabled}
-            required
-          />
-        </div>
-      </DashboardCard>
-
-      <DashboardCard padding="lg" className="space-y-5">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold">{t('affiliates.settings.sections.legal.title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('affiliates.settings.sections.legal.description')}</p>
-        </div>
-        <FormInput
-          name="termsPageReference"
-          label={t('affiliates.settings.fields.termsPageReference')}
-          description={t('affiliates.settings.help.termsPageReference')}
-          placeholder="affiliate-terms"
-          autoComplete="off"
-          dir="ltr"
-          maxLength={200}
-          disabled={fieldsDisabled}
-          required
-        />
-      </DashboardCard>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormWrapper>
   )
 }

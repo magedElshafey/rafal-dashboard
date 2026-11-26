@@ -15,7 +15,8 @@ vi.mock('react-i18next', () => ({
     language: mocks.language,
     t: (key: string) =>
       ({
-        'apiFeedback.success': mocks.language === 'ar' ? 'تم إكمال العملية بنجاح.' : 'Operation completed successfully.',
+        'apiFeedback.success':
+          mocks.language === 'ar' ? 'تم إكمال العملية بنجاح.' : 'Operation completed successfully.',
         'apiFeedback.networkError': 'Unable to connect to the server. Check your connection and try again.',
         'apiFeedback.forbidden': "You don't have permission to perform this action.",
         'apiFeedback.conflict': 'The request conflicts with existing information. Review your changes and try again.',
@@ -48,6 +49,20 @@ beforeEach(() => {
 })
 
 describe('applyCommonHeaders', () => {
+  it.each([
+    ['ar-SA', 'ar'],
+    ['en-US', 'en'],
+    ['AR_eg', 'ar'],
+    ['ar', 'ar'],
+  ])('normalizes X-Locale for %s', (language, expected) => {
+    mocks.language = language
+    mocks.getAuthState.mockReturnValue({ token: 'synthetic-staff' })
+    const config = { headers: new AxiosHeaders() } as InternalAxiosRequestConfig
+    applyCommonHeaders(config)
+    expect(config.headers.get('X-Locale')).toBe(expected)
+    expect(config.headers.get('Accept')).toBe('application/json')
+    expect(config.headers.get('Accept-Language')).toBe(language)
+  })
   it('adds the current session Bearer token', () => {
     mocks.getAuthState.mockReturnValue({ token: 'auth-token' })
     const config = { headers: new AxiosHeaders() } as InternalAxiosRequestConfig

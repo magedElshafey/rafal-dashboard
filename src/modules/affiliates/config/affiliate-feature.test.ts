@@ -1,24 +1,34 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-
-describe('Affiliate feature gate', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs()
-    vi.resetModules()
-  })
-
-  it('stays disabled outside Vite development even when mock configuration exists', async () => {
-    vi.stubEnv('DEV', false)
-    vi.stubEnv('VITE_AFFILIATE_MOCK_API_BASE_URL', 'http://127.0.0.1:4100')
-    vi.stubEnv('VITE_AFFILIATE_MOCK_TOKEN', 'mock-staff-authorized')
-    const { isAffiliateFeatureEnabled } = await import('@/modules/affiliates/config/affiliate-feature')
+import { describe, expect, it } from 'vitest'
+import {
+  canReadAffiliateSettings,
+  hasAffiliatePermission,
+  isAffiliateFeatureEnabled,
+  isAffiliateSettingsWriteReady,
+  isAffiliatePayoutDecisionReady,
+  isAffiliatePayoutFeatureEnabled,
+} from './affiliate-feature'
+const names = [
+  'affiliates.view',
+  'affiliates.manage',
+  'affiliates.settings.manage',
+  'affiliates.payouts.process',
+] as const
+describe('Affiliate exact grants and readiness', () => {
+  it('keeps production/development access and unsafe settings writes closed', () => {
     expect(isAffiliateFeatureEnabled).toBe(false)
+    expect(isAffiliateSettingsWriteReady).toBe(false)
+    expect(isAffiliatePayoutDecisionReady).toBe(false)
+    expect(isAffiliatePayoutFeatureEnabled).toBe(false)
   })
-
-  it('requires both Affiliate-specific mock settings in development', async () => {
-    vi.stubEnv('DEV', true)
-    vi.stubEnv('VITE_AFFILIATE_MOCK_API_BASE_URL', 'http://127.0.0.1:4100')
-    vi.stubEnv('VITE_AFFILIATE_MOCK_TOKEN', '')
-    const { isAffiliateFeatureEnabled } = await import('@/modules/affiliates/config/affiliate-feature')
-    expect(isAffiliateFeatureEnabled).toBe(false)
+  it('denies unknown/catalog role names', () => {
+    expect(canReadAffiliateSettings(null)).toBe(false)
+    expect(hasAffiliatePermission(['Super Admin'], 'affiliates.manage')).toBe(false)
+  })
+  it.each(Array.from({ length: 16 }, (_, i) => i))('checks exact grants for subset %s', (mask) => {
+    const grants = names.filter((_, i) => mask & (1 << i))
+    names.forEach((name) => expect(hasAffiliatePermission(grants, name)).toBe(grants.includes(name)))
+    expect(canReadAffiliateSettings(grants)).toBe(
+      grants.includes('affiliates.view') || grants.includes('affiliates.settings.manage')
+    )
   })
 })

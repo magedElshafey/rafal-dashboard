@@ -33,5 +33,6 @@ export function orderMoneyLabel(value: string, currency: string, language: strin
   const separator = parts.find((part) => part.type === 'decimal')?.value ?? '.'
   const digits = new Intl.NumberFormat(locale, { useGrouping: false })
   const fractional = fraction ? separator + [...fraction].map((digit) => digits.format(Number(digit))).join('') : ''
-  return `${new Intl.NumberFormat(locale).format(BigInt(integer))}${fractional} ${currency}`
+  const negativeZero = integer.startsWith('-') && BigInt(integer) === 0n
+  return `${new Intl.NumberFormat(locale).format(negativeZero ? -0 : BigInt(integer))}${fractional} ${currency}`
 }

@@ -1,13 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { useFormContext } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { FormWrapper } from '@/components/core/FormWrapper'
 import { FormInput } from '@/components/form/FormInput'
-import { Button } from '@/components/ui/button'
 import { createAffiliateSchema } from '@/modules/affiliates/schemas/affiliate.schema'
-import type { AffiliateCodeSuggestion, AffiliateFormValues } from '@/modules/affiliates/types/affiliate.types'
+import type { AffiliateFormValues } from '@/modules/affiliates/types/affiliate.types'
 import { applyApiValidationErrors } from '@/utils/apply-api-validation-errors'
 
 export const EMPTY_AFFILIATE_FORM_VALUES: AffiliateFormValues = {
@@ -21,29 +20,13 @@ export const EMPTY_AFFILIATE_FORM_VALUES: AffiliateFormValues = {
 
 type Props = {
   formId: string
-  suggestion?: AffiliateCodeSuggestion
-  suggestionError: boolean
-  suggestionLoading: boolean
   isSubmitting: boolean
-  onRetrySuggestion: () => void
   onSubmit: (values: AffiliateFormValues, methods: UseFormReturn<AffiliateFormValues>) => Promise<void>
 }
 
-function AffiliateCodeField({
-  suggestion,
-  suggestionError,
-  suggestionLoading,
-  onRetrySuggestion,
-}: Pick<Props, 'suggestion' | 'suggestionError' | 'suggestionLoading' | 'onRetrySuggestion'>) {
+function AffiliateCodeField() {
   const { t } = useTranslation()
-  const { getFieldState, setValue } = useFormContext<AffiliateFormValues>()
-
-  useEffect(() => {
-    if (suggestion?.code && !getFieldState('code').isDirty) {
-      setValue('code', suggestion.code, { shouldDirty: false, shouldTouch: false, shouldValidate: true })
-    }
-  }, [getFieldState, setValue, suggestion])
-
+  const { setValue } = useFormContext<AffiliateFormValues>()
   return (
     <div className="space-y-2">
       <FormInput
@@ -54,35 +37,13 @@ function AffiliateCodeField({
         autoComplete="off"
         dir="ltr"
         maxLength={20}
-        required
         onChange={(value) => setValue('code', value.toUpperCase(), { shouldDirty: true, shouldValidate: true })}
       />
-      {suggestionLoading ? (
-        <p role="status" className="text-xs text-muted-foreground">
-          {t('affiliates.form.suggestionLoading')}
-        </p>
-      ) : null}
-      {suggestionError ? (
-        <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
-          <span>{t('affiliates.form.suggestionError')}</span>
-          <Button type="button" variant="outline" size="sm" onClick={onRetrySuggestion}>
-            {t('affiliates.actions.retrySuggestion')}
-          </Button>
-        </div>
-      ) : null}
     </div>
   )
 }
 
-export function AffiliateForm({
-  formId,
-  suggestion,
-  suggestionError,
-  suggestionLoading,
-  isSubmitting,
-  onRetrySuggestion,
-  onSubmit,
-}: Props) {
+export function AffiliateForm({ formId, isSubmitting, onSubmit }: Props) {
   const { t } = useTranslation()
   const schema = useMemo(
     () =>
@@ -111,7 +72,19 @@ export function AffiliateForm({
     try {
       await onSubmit(normalized, methods)
     } catch (error) {
-      applyApiValidationErrors(error, methods.setError)
+      applyApiValidationErrors(
+        error,
+        methods.setError,
+        {
+          name: 'name',
+          phone: 'mobile',
+          email: 'email',
+          platform: 'platform',
+          account_handle: 'username',
+          code: 'code',
+        },
+        ['name', 'phone', 'email', 'platform', 'account_handle', 'code']
+      )
     }
   }
 
@@ -188,12 +161,7 @@ export function AffiliateForm({
         <h2 id="affiliate-code-information" className="font-semibold text-foreground">
           {t('affiliates.form.affiliateCode')}
         </h2>
-        <AffiliateCodeField
-          suggestion={suggestion}
-          suggestionError={suggestionError}
-          suggestionLoading={suggestionLoading}
-          onRetrySuggestion={onRetrySuggestion}
-        />
+        <AffiliateCodeField />
       </section>
     </FormWrapper>
   )

@@ -136,6 +136,21 @@
       "pendingVerification": "بانتظار التحقق"
     },
     "paymentStatus": { "paid": "مدفوع", "pending": "قيد الانتظار", "failed": "فشل الدفع" },
-    "values": { "guest": "زائر", "registered": "مسجل", "system": "النظام", "admin": "مسؤول", "card": "بطاقة" }
+    "values": { "guest": "زائر", "registered": "مسجل", "system": "النظام", "admin": "مسؤول", "card": "بطاقة" },
+    "affiliate": {
+      "title": "إسناد المسوّق",
+      "name": "المسوّق",
+      "code": "الرمز",
+      "discountPercent": "نسبة خصم العميل",
+      "discount": "خصم العميل",
+      "base": "أساس العمولة",
+      "rate": "نسبة العمولة",
+      "amount": "مبلغ العمولة",
+      "status": "حالة العمولة",
+      "adjustment": "تسوية الاسترجاع",
+      "pending": "معلقة",
+      "approved": "معتمدة",
+      "cancelled": "ملغاة"
+    }
   }
 }

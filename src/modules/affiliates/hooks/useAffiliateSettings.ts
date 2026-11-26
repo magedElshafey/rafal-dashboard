@@ -1,3 +1,4 @@
+import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
 import { useQuery } from '@tanstack/react-query'
 
 import { affiliatesService } from '@/modules/affiliates/api/affiliates.service'
@@ -7,6 +8,7 @@ export function useAffiliateSettings() {
   return useQuery({
     queryKey: affiliatesKeys.settings(),
     queryFn: ({ signal }) => affiliatesService.getSettings(signal),
+    enabled: isAffiliateFeatureEnabled,
     retry: false,
   })
 }

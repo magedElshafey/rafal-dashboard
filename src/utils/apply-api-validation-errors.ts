@@ -17,7 +17,8 @@ function resolveAlias<TValues extends FieldValues>(field: string, aliases: Reado
 export function applyApiValidationErrors<TValues extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<TValues>,
-  fieldAliases: Readonly<Record<string, Path<TValues>>> = {}
+  fieldAliases: Readonly<Record<string, Path<TValues>>> = {},
+  backendMessageFields: readonly string[] = []
 ) {
   if (!isAxiosError(error) || !isRecord(error.response?.data)) return false
   const errors = error.response.data.errors
@@ -29,7 +30,11 @@ export function applyApiValidationErrors<TValues extends FieldValues>(
     if (!hasValidationError) return
     setError(resolveAlias(field, fieldAliases) ?? (field as Path<TValues>), {
       type: 'server',
-      message: i18n.t('validations.server'),
+      message:
+        error.response?.status === 422 && backendMessageFields.includes(field)
+          ? messages.find((item: unknown): item is string => typeof item === 'string' && Boolean(item.trim())) ||
+            i18n.t('validations.server')
+          : i18n.t('validations.server'),
     })
     applied = true
   })

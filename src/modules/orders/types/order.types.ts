@@ -81,6 +81,7 @@ export type OrderGift = {
   }
 }
 export type OrderDetail = Omit<OrderIdentity, 'customer'> & {
+  affiliate?: RawOrderDetail['affiliate']
   customer: RawOrderDetail['customer']
   shippingAddress: {
     recipientName: string

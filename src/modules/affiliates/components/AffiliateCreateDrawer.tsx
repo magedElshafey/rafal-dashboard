@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 
 import { EntityFormDrawer } from '@/components/shared/entity-form-drawer'
 import { AffiliateForm, EMPTY_AFFILIATE_FORM_VALUES } from '@/modules/affiliates/components/AffiliateForm'
-import { useAffiliateCodeSuggestion } from '@/modules/affiliates/hooks/useAffiliateCodeSuggestion'
 import { useCreateAffiliate } from '@/modules/affiliates/hooks/useCreateAffiliate'
 import type { AffiliateFormValues } from '@/modules/affiliates/types/affiliate.types'
 
@@ -16,7 +15,6 @@ export function AffiliateCreateDrawer({ open, onOpenChange }: Props) {
   const { t } = useTranslation()
   const submissionLockRef = useRef(false)
   const createAffiliate = useCreateAffiliate()
-  const suggestion = useAffiliateCodeSuggestion(open)
 
   const handleSubmit = async (values: AffiliateFormValues, methods: UseFormReturn<AffiliateFormValues>) => {
     if (submissionLockRef.current || createAffiliate.isPending) return
@@ -47,11 +45,7 @@ export function AffiliateCreateDrawer({ open, onOpenChange }: Props) {
         <AffiliateForm
           key={`create-${open}`}
           formId={FORM_ID}
-          suggestion={suggestion.data}
-          suggestionError={suggestion.isError}
-          suggestionLoading={suggestion.isFetching && !suggestion.data}
           isSubmitting={createAffiliate.isPending}
-          onRetrySuggestion={() => void suggestion.refetch()}
           onSubmit={handleSubmit}
         />
       ) : null}

@@ -8,9 +8,12 @@ import '@/config/i18'
 import i18n from '@/config/i18'
 import { affiliatesService } from '@/modules/affiliates/api/affiliates.service'
 import AffiliatesPage from '@/modules/affiliates/pages/AffiliatesPage'
-import type { Affiliate } from '@/modules/affiliates/types/affiliate.types'
+import { affiliatesKeys } from '../queries/affiliates.keys'
+import type { Affiliate, AffiliateListItem } from '@/modules/affiliates/types/affiliate.types'
 
-const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
+vi.mock('@/modules/affiliates/config/affiliate-feature', () => ({ isAffiliateFeatureEnabled: true }))
+
+const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
 
 class ResizeObserverMock {
@@ -50,7 +53,17 @@ let affiliates: Affiliate[] = []
 
 function page(items: Affiliate[], currentPage = 1) {
   return {
-    items,
+    items: items.map(
+      (item) =>
+        ({
+          ...item,
+          source: 'staff',
+          ordersCount: 0,
+          pending: '0.00',
+          approvedUnpaid: '0.00',
+          paid: '0.00',
+        }) satisfies AffiliateListItem
+    ),
     paginate: {
       current_page: currentPage,
       total_pages: 1,
@@ -78,7 +91,6 @@ function installServiceFixtures() {
       )
     )
   })
-  vi.spyOn(affiliatesService, 'suggestCode').mockResolvedValue({ code: 'RAF12AB34CD56', reserved: false })
   vi.spyOn(affiliatesService, 'create').mockImplementation(async (payload) => {
     const affiliate: Affiliate = {
       id: 200,
@@ -89,7 +101,7 @@ function installServiceFixtures() {
       updatedAt: '2026-11-21T10:00:00.000Z',
     }
     affiliates.unshift(affiliate)
-    return affiliate
+    return { affiliate: { id: affiliate.id }, sms_sent: true, sms_message: null }
   })
 }
 
@@ -133,6 +145,40 @@ describe('Affiliates page', () => {
 
   afterEach(() => vi.restoreAllMocks())
 
+  it('renders exact server summary values, latest page metadata, and filtered response changes without summing rows', async () => {
+    const totals = {
+      pending: '45.00',
+      approved_unpaid: '12345678901234567890.01',
+      paid_this_month: '400.00',
+      open_requests: { count: 2, amount: '350.00' },
+    }
+    vi.mocked(affiliatesService.list).mockImplementation(async (_page, _signal, filters) => ({
+      ...page([]),
+      extra: { ...totals, pending: filters?.search ? '99.00' : '45.00' },
+    }))
+    const { client } = renderPage()
+    expect(await screen.findByText('45.00 SAR')).toBeInTheDocument()
+    expect(screen.getByText('12345678901234567890.01 SAR')).toBeInTheDocument()
+    expect(screen.getByText('2 requests · 350.00 SAR')).toBeInTheDocument()
+    client.setQueryData(affiliatesKeys.list(), {
+      pages: [
+        { ...page([]), extra: totals },
+        { ...page([], 2), extra: { ...totals, pending: '46.00' } },
+      ],
+      pageParams: [1, 2],
+    })
+    expect(await screen.findByText('46.00 SAR')).toBeInTheDocument()
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search affiliates' }), 'Noura')
+    expect(await screen.findByText('99.00 SAR')).toBeInTheDocument()
+    expect(screen.queryByText('46.00 SAR')).not.toBeInTheDocument()
+  })
+  it('shows unavailable summaries rather than invented zero balances', async () => {
+    affiliates = []
+    renderPage()
+    expect(await screen.findAllByText('Unavailable')).toHaveLength(4)
+    expect(screen.queryByText('0.00 SAR')).not.toBeInTheDocument()
+  })
+
   it('renders loading, one responsive data source, localized statuses, and all required fields', async () => {
     renderPage()
     expect(screen.getByTestId('query-loading-state')).toBeInTheDocument()
@@ -145,7 +191,7 @@ describe('Affiliates page', () => {
     expect(screen.getAllByText('Active')).toHaveLength(2)
     expect(screen.getAllByText('Suspended')).toHaveLength(2)
     expect(screen.getAllByText('+966501112233')).toHaveLength(2)
-    expect(screen.getAllByText('noura.styles')).toHaveLength(2)
+    expect(screen.getAllByText('staff')).toHaveLength(4)
     expect(document.querySelector('[data-slot="responsive-data-desktop"]')).toBeInTheDocument()
     expect(document.querySelector('[data-slot="responsive-data-mobile-cards"]')).toBeInTheDocument()
   })
@@ -174,11 +220,7 @@ describe('Affiliates page', () => {
     expect(await screen.findAllByText('Noura Al Harbi')).toHaveLength(2)
   })
 
-  it('prefills a suggestion without overwriting a manually edited code', async () => {
-    let resolveSuggestion!: (value: { code: string; reserved: false }) => void
-    vi.spyOn(affiliatesService, 'suggestCode').mockImplementation(
-      () => new Promise((resolve) => (resolveSuggestion = resolve))
-    )
+  it('preserves a manually entered code without calling an undocumented generator', async () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findAllByText('Noura Al Harbi')
@@ -186,9 +228,6 @@ describe('Affiliates page', () => {
     const code = within(dialog).getByRole('textbox', { name: 'Affiliate code' })
     await user.type(code, 'mine42')
     expect(code).toHaveValue('MINE42')
-
-    resolveSuggestion({ code: 'RAF12AB34CD56', reserved: false })
-    await waitFor(() => expect(code).toHaveValue('MINE42'))
   })
 
   it('validates required fields, Saudi mobile, email, and code before submission', async () => {
@@ -222,9 +261,6 @@ describe('Affiliates page', () => {
     const { client } = renderPage()
     await screen.findAllByText('Noura Al Harbi')
     const dialog = await openCreateDrawer(user)
-    await waitFor(() =>
-      expect(within(dialog).getByRole('textbox', { name: 'Affiliate code' })).toHaveValue('RAF12AB34CD56')
-    )
     await fillCreateForm(user, dialog)
     await user.click(within(dialog).getByRole('button', { name: 'Create Affiliate' }))
 
@@ -235,21 +271,19 @@ describe('Affiliates page', () => {
       email: 'sara@example.test',
       platform: 'instagram',
       username: 'sara.style',
-      code: 'RAF12AB34CD56',
+      code: '',
     })
     expect(await screen.findAllByText('Sara Al Salem')).toHaveLength(2)
     expect(JSON.stringify(client.getQueriesData({ queryKey: ['affiliates'] }))).not.toMatch(/password|credential/i)
-    expect(toastMocks.success).toHaveBeenCalledWith(
-      'Affiliate created successfully. Credential delivery has been initiated by the backend.'
-    )
+    expect(toastMocks.success).toHaveBeenCalledWith('Affiliate account created.')
   })
 
-  it('maps 409 code errors, preserves values, and prevents repeated submissions', async () => {
+  it('maps 422 code errors, preserves values, and prevents repeated submissions', async () => {
     const conflict = Object.assign(new Error('unsafe conflict detail'), {
       isAxiosError: true,
       response: {
-        status: 409,
-        data: { code: 'COUPON_CODE_CONFLICT', errors: { code: ['The code conflicts with a coupon.'] } },
+        status: 422,
+        data: { errors: { code: ['The code conflicts with a coupon.'] } },
       },
     })
     let rejectCreate!: (reason: unknown) => void
@@ -265,10 +299,10 @@ describe('Affiliates page', () => {
     expect(create).toHaveBeenCalledTimes(1)
     rejectCreate(conflict)
 
-    expect(await within(dialog).findByText('Review this field and try again.')).toBeInTheDocument()
+    expect(await within(dialog).findByText('The code conflicts with a coupon.')).toBeInTheDocument()
     expect(create).toHaveBeenCalledTimes(1)
     expect(within(dialog).getByRole('textbox', { name: 'Full name' })).toHaveValue('  Sara  Al Salem  ')
-    expect(within(dialog).getByRole('textbox', { name: 'Affiliate code' })).toHaveValue('RAF12AB34CD56')
+    expect(within(dialog).getByRole('textbox', { name: 'Affiliate code' })).toHaveValue('')
     expect(dialog).toBeInTheDocument()
   })
 

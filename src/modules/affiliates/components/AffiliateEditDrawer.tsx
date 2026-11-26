@@ -50,14 +50,8 @@ export function AffiliateEditDrawer({
 
     lockRef.current = true
     try {
-      const updated = await mutation.mutateAsync(payload)
-      methods.reset({
-        name: updated.name,
-        mobile: updated.mobile,
-        email: updated.email,
-        platform: updated.platform,
-        username: updated.username,
-      })
+      await mutation.mutateAsync(payload)
+      methods.reset(values)
       handleOpenChange(false)
     } finally {
       lockRef.current = false

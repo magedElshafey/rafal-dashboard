@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import { Routes } from '@/routes/routes'
 import { useId, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -68,8 +70,8 @@ export function AffiliateDetailsSections({ affiliate }: { affiliate?: Affiliate 
         <Facts
           loading={!affiliate}
           facts={[
-            [t('affiliates.fields.platform'), <bdi key="platform">{affiliate?.platform ?? '—'}</bdi>],
-            [t('affiliates.fields.username'), <bdi key="username">{affiliate?.username ?? '—'}</bdi>],
+            [t('affiliates.fields.platform'), <bdi key="platform">{affiliate?.platform || '—'}</bdi>],
+            [t('affiliates.fields.username'), <bdi key="username">{affiliate?.username || '—'}</bdi>],
           ]}
         />
       </Section>
@@ -90,6 +92,22 @@ export function AffiliateDetailsSections({ affiliate }: { affiliate?: Affiliate 
               ],
               [t('affiliates.fields.createdAt'), <time key="created">{date(affiliate?.createdAt)}</time>],
               [t('affiliates.fields.updatedAt'), <time key="updated">{date(affiliate?.updatedAt)}</time>],
+              [t('affiliates.fields.source'), affiliate?.source || '—'],
+              [
+                t('affiliates.applications.title'),
+                affiliate?.applicationId ? (
+                  <Link
+                    className="underline focus-visible:outline-ring"
+                    to={Routes.affiliateApplicationDetailPath(affiliate.applicationId)}
+                  >
+                    {affiliate.applicationId}
+                  </Link>
+                ) : (
+                  '—'
+                ),
+              ],
+              [t('affiliates.fields.lastLogin'), date(affiliate?.lastLoginAt ?? undefined)],
+              [t('affiliates.fields.termsAccepted'), date(affiliate?.termsAcceptedAt ?? undefined)],
             ]}
           />
         </Section>

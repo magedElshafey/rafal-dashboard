@@ -1,7 +1,5 @@
 import * as yup from 'yup'
-
-import type { AffiliateSettingsFormValues } from '@/modules/affiliates/types/affiliate.types'
-
+import type { AffiliateSettingsFormValues } from '../types/affiliate.types'
 export type AffiliateSettingsValidationMessages = {
   required: string
   validNumber: string
@@ -10,37 +8,37 @@ export type AffiliateSettingsValidationMessages = {
   payoutPositive: string
   termsSlug: string
 }
-
-function percentage(messages: AffiliateSettingsValidationMessages) {
+function percentage(min: number, messages: AffiliateSettingsValidationMessages) {
   return yup
     .number()
-    .transform((value, originalValue) => (originalValue === '' || originalValue === null ? Number.NaN : value))
     .typeError(messages.validNumber)
     .required(messages.required)
-    .test('finite', messages.validNumber, Number.isFinite)
-    .min(0, messages.percentageRange)
-    .max(100, messages.percentageRange)
+    .min(min, messages.percentageRange)
+    .max(50, messages.percentageRange)
+    .test(
+      'precision',
+      messages.percentageRange,
+      (value) => value !== undefined && Number.isFinite(value) && Math.abs(value * 100 - Math.round(value * 100)) < 1e-8
+    )
 }
-
 export function createAffiliateSettingsSchema(
   messages: AffiliateSettingsValidationMessages
 ): yup.ObjectSchema<AffiliateSettingsFormValues> {
   return yup.object({
-    programEnabled: yup.boolean().required(messages.required).defined(),
-    applicationsEnabled: yup.boolean().required(messages.required).defined(),
-    customerDiscountPercentage: percentage(messages),
-    affiliateCommissionPercentage: percentage(messages),
+    programEnabled: yup.boolean().required(),
+    applicationsEnabled: yup.boolean().required(),
+    customerDiscountPercentage: percentage(1, messages),
+    affiliateCommissionPercentage: percentage(0.5, messages),
     minimumPayoutAmount: yup
       .string()
       .trim()
       .required(messages.required)
-      .matches(/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/, messages.payoutFormat)
-      .test('positive-decimal', messages.payoutPositive, (value) => Boolean(value && !/^0(?:\.0+)?$/.test(value))),
-    termsPageReference: yup
-      .string()
-      .trim()
-      .required(messages.required)
-      .max(200, messages.termsSlug)
-      .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, messages.termsSlug),
+      .matches(/^\d+(?:\.\d+)?$/, messages.payoutFormat)
+      .test('range', messages.payoutPositive, (v) => v !== undefined && Number(v) >= 0 && Number(v) <= 10000),
+    termsPageId: yup
+      .number()
+      .nullable()
+      .defined()
+      .test('page', messages.termsSlug, (v) => v !== null && Number.isSafeInteger(v) && v > 0),
   })
 }

@@ -1,94 +1,69 @@
 import { z } from 'zod'
 
-const statusSchema = z.enum(['active', 'suspended'])
-
-export const affiliateSchema = z
-  .object({
-    id: z.number().int().positive(),
-    name: z.string().min(1),
-    mobile: z.string().regex(/^\+9665\d{8}$/),
-    email: z.string().email(),
-    platform: z.string().min(1),
-    username: z.string().min(1),
-    code: z.string().regex(/^[A-Z0-9]{4,20}$/),
-    status: statusSchema,
-    created_at: z.string().datetime({ offset: true }),
-    updated_at: z.string().datetime({ offset: true }),
-  })
-  .strict()
-
-export const affiliatesIndexSchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
-  data: z.array(affiliateSchema),
-  meta: z.object({
-    current_page: z.number().int().positive(),
-    last_page: z.number().int().positive(),
-    per_page: z.number().int().positive(),
-    total: z.number().int().nonnegative(),
-  }),
+const id = z.number().int().positive().safe()
+const money = z.string().regex(/^-?\d+\.\d{2}$/)
+export const successSchema = z.object({ success: z.literal(true), message: z.string(), data: z.unknown() })
+export const affiliateSchema = z.object({
+  id,
+  name: z.string().min(1),
+  phone: z.string(),
+  email: z.string(),
+  code: z.string(),
+  status: z.enum(['active', 'suspended']),
+  created_at: z.string(),
 })
-
-export const affiliateResponseSchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
-  data: affiliateSchema,
+export const affiliateDetailSchema = affiliateSchema.extend({
+  platform: z.string().nullish(),
+  account_handle: z.string().nullish(),
+  updated_at: z.string().nullish(),
+  source: z.string().nullish(),
+  application_id: id.nullish(),
+  last_login_at: z.string().nullish(),
+  terms_accepted_at: z.string().nullish(),
 })
-
-export const affiliateSuggestionSchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
-  data: z.object({ code: z.string().regex(/^[A-Z0-9]{4,20}$/), reserved: z.literal(false) }),
+export const affiliateListSchema = affiliateSchema.extend({
+  source: z.string(),
+  orders_count: z.number().int().nonnegative(),
+  pending: money,
+  approved_unpaid: money,
+  paid: money,
 })
-
-const auditStateSchema = z.record(z.unknown()).nullable()
-
-export const affiliateActivitySchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
-  data: z.array(
-    z
-      .object({
-        id: z.string().uuid(),
-        affiliate_id: z.number().int().positive(),
-        action: z.enum(['profile_updated', 'status_suspended', 'status_reactivated', 'password_reset_requested']),
-        actor: z.object({ type: z.literal('mock_staff'), id: z.literal('development-staff') }).strict(),
-        previous_state: auditStateSchema,
-        new_state: auditStateSchema,
-        created_at: z.string().datetime({ offset: true }),
-      })
-      .strict()
-  ),
+export const paginationSchema = z.object({
+  current_page: id,
+  last_page: id,
+  per_page: id,
+  total: z.number().int().nonnegative(),
 })
-
-export const affiliatePasswordResetSchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
+export const affiliateTotalsSchema = z.object({
+  pending: money,
+  approved_unpaid: money,
+  paid_this_month: money,
+  open_requests: z.object({ count: z.number().int().nonnegative().safe(), amount: money }),
+})
+export const affiliatesIndexSchema = successSchema.extend({
+  data: z.array(affiliateListSchema),
+  meta: paginationSchema.extend({ totals: affiliateTotalsSchema.nullable().catch(null) }),
+})
+export const affiliateResponseSchema = successSchema.extend({ data: affiliateDetailSchema })
+export const smsSchema = z.object({ sms_sent: z.boolean(), sms_message: z.string().nullable() })
+export const affiliatePasswordResetSchema = successSchema.extend({ data: smsSchema })
+export const affiliateCreateSchema = successSchema.extend({ data: smsSchema.extend({ affiliate: z.object({ id }) }) })
+// Both representations are evidenced by the approved guide extraction (general money strings / numeric settings example).
+const payout = z.union([
+  z.number().finite().min(0).max(10000),
+  z
+    .string()
+    .regex(/^\d+(?:\.\d+)?$/)
+    .refine((v) => Number(v) <= 10000),
+])
+export const affiliateSettingsResponseSchema = successSchema.extend({
   data: z.object({
-    affiliate_id: z.number().int().positive(),
-    delivery_status: z.literal('queued'),
-    channel: z.literal('sms'),
-    requires_password_change: z.literal(true),
-    requested_at: z.string().datetime({ offset: true }),
+    enabled: z.boolean(),
+    applications_enabled: z.boolean(),
+    customer_discount_percent: z.number().min(1).max(50),
+    commission_percent: z.number().min(0.5).max(50),
+    min_payout: payout,
+    terms_page_id: id.nullable(),
+    terms_page: z.unknown(),
   }),
-})
-
-export const affiliateSettingsResponseSchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
-  data: z
-    .object({
-      program_enabled: z.boolean(),
-      applications_enabled: z.boolean(),
-      customer_discount_percentage: z.number().min(0).max(100),
-      affiliate_commission_percentage: z.number().min(0).max(100),
-      minimum_payout_amount: z.string().regex(/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/),
-      terms_page_reference: z
-        .string()
-        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-        .max(200),
-      version: z.number().int().positive(),
-      updated_at: z.string().datetime({ offset: true }),
-    })
-    .strict(),
 })

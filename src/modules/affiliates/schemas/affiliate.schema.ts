@@ -23,7 +23,11 @@ export function createAffiliateSchema(messages: AffiliateValidationMessages): yu
     email: yup.string().trim().required(messages.required).email(messages.emailInvalid).max(254, messages.emailTooLong),
     platform: yup.string().trim().required(messages.required).max(50, messages.platformTooLong),
     username: yup.string().trim().required(messages.required).max(100, messages.usernameTooLong),
-    code: yup.string().trim().required(messages.required).matches(AFFILIATE_CODE_PATTERN, messages.codeInvalid),
+    code: yup
+      .string()
+      .trim()
+      .defined()
+      .test('optional-code', messages.codeInvalid, (value) => !value || AFFILIATE_CODE_PATTERN.test(value)),
   })
 }
 

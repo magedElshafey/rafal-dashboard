@@ -41,6 +41,7 @@ export function normalizeOrderDetail(value: unknown): OrderDetail {
   return {
     ...identity(raw),
     customer: raw.customer,
+    ...(raw.affiliate ? { affiliate: raw.affiliate } : {}),
     shippingAddress: address
       ? {
           recipientName: address.recipient_name,

@@ -25,7 +25,10 @@ import {
   SlidersHorizontal,
 } from 'lucide-react'
 
-import { isAffiliateFeatureEnabled } from '@/modules/affiliates/config/affiliate-feature'
+import {
+  isAffiliateFeatureEnabled,
+  isAffiliatePayoutFeatureEnabled,
+} from '@/modules/affiliates/config/affiliate-feature'
 import { Routes } from '@/routes/routes'
 
 export type DashboardNavigationItem = {
@@ -57,10 +60,26 @@ export const dashboardNavigation: readonly DashboardNavigationItem[] = [
           match: 'exact' as const,
         },
         {
+          to: Routes.affiliateApplications,
+          labelKey: 'affiliates.applications.title',
+          icon: BadgePercent,
+          match: 'prefix' as const,
+        },
+        {
           to: Routes.affiliateSettings,
           labelKey: 'dashboard.sidebar.affiliateSettings',
           icon: SlidersHorizontal,
           match: 'exact' as const,
+        },
+      ]
+    : []),
+  ...(isAffiliatePayoutFeatureEnabled
+    ? [
+        {
+          to: Routes.affiliatePayouts,
+          labelKey: 'affiliates.payouts.title',
+          icon: BadgePercent,
+          match: 'prefix' as const,
         },
       ]
     : []),

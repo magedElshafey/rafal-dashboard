@@ -10,6 +10,9 @@ export function applyCommonHeaders(config: InternalAxiosRequestConfig) {
   const { token } = useAuth.getState()
   config.headers['Default-Language'] = language
   config.headers['Accept-Language'] = language
+  const locale = language.toLowerCase().split(/[-_]/)[0]
+  const fallback = env.DEFAULT_LOCALE?.toLowerCase().split(/[-_]/)[0]
+  config.headers['X-Locale'] = locale === 'ar' || locale === 'en' ? locale : fallback === 'en' ? 'en' : 'ar'
   config.headers.Accept = 'application/json'
   if (token) {
     config.headers.Authorization = `Bearer ${token}`

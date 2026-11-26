@@ -1,9 +1,19 @@
-import env from '@/config/env'
+// No effective-staff-grants source is available yet. No role/catalog inference or DEV bypass.
+export const isAffiliateFeatureEnabled = false
+export const isAffiliatePayoutFeatureEnabled = false
+// Separate from read readiness: response interpretation and staging acceptance are unresolved.
+export const isAffiliatePayoutDecisionReady = false
+export const isAffiliateSettingsWriteReady = false
 
-export const affiliateMockConfig = {
-  baseUrl: env.AFFILIATE_MOCK_API_BASE_URL?.trim() ?? '',
-  token: env.AFFILIATE_MOCK_TOKEN?.trim() ?? '',
+export type AffiliatePermission =
+  'affiliates.view' | 'affiliates.manage' | 'affiliates.settings.manage' | 'affiliates.payouts.process'
+
+export function hasAffiliatePermission(grants: readonly string[] | null, permission: AffiliatePermission) {
+  return grants?.includes(permission) === true
 }
 
-export const isAffiliateFeatureEnabled =
-  import.meta.env.DEV && Boolean(affiliateMockConfig.baseUrl && affiliateMockConfig.token)
+export function canReadAffiliateSettings(grants: readonly string[] | null) {
+  return (
+    hasAffiliatePermission(grants, 'affiliates.view') || hasAffiliatePermission(grants, 'affiliates.settings.manage')
+  )
+}

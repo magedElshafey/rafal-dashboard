@@ -9,15 +9,16 @@ import i18n from '@/config/i18'
 import { affiliatesService } from '@/modules/affiliates/api/affiliates.service'
 import AffiliateDetailPage from '@/modules/affiliates/pages/AffiliateDetailPage'
 import { affiliatesKeys } from '@/modules/affiliates/queries/affiliates.keys'
-import type { Affiliate, AffiliateAuditEvent } from '@/modules/affiliates/types/affiliate.types'
+import type { Affiliate } from '@/modules/affiliates/types/affiliate.types'
 
-const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
+vi.mock('@/modules/affiliates/config/affiliate-feature', () => ({ isAffiliateFeatureEnabled: true }))
+
+const toastMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMocks }))
 
 Element.prototype.scrollIntoView = vi.fn()
 
 let affiliate: Affiliate
-let activity: AffiliateAuditEvent[]
 
 const baseAffiliate: Affiliate = {
   id: 101,
@@ -34,26 +35,16 @@ const baseAffiliate: Affiliate = {
 
 function installFixtures() {
   vi.spyOn(affiliatesService, 'show').mockImplementation(async () => ({ ...affiliate }))
-  vi.spyOn(affiliatesService, 'activity').mockImplementation(async () => [...activity])
   vi.spyOn(affiliatesService, 'update').mockImplementation(async (_id, payload) => {
     affiliate = { ...affiliate, ...payload, updatedAt: '2026-11-21T10:00:00.000Z' }
-    return { ...affiliate }
   })
   vi.spyOn(affiliatesService, 'suspend').mockImplementation(async () => {
     affiliate = { ...affiliate, status: 'suspended' }
-    return { ...affiliate }
   })
   vi.spyOn(affiliatesService, 'reactivate').mockImplementation(async () => {
     affiliate = { ...affiliate, status: 'active' }
-    return { ...affiliate }
   })
-  vi.spyOn(affiliatesService, 'resetPassword').mockResolvedValue({
-    affiliateId: 101,
-    deliveryStatus: 'queued',
-    channel: 'sms',
-    requiresPasswordChange: true,
-    requestedAt: '2026-11-21T10:00:00.000Z',
-  })
+  vi.spyOn(affiliatesService, 'resetPassword').mockResolvedValue({ sms_sent: true, sms_message: 'SMS sent' })
 }
 
 function renderPage(path = '/dashboard/affiliates/101') {
@@ -79,7 +70,6 @@ async function openEdit(user: ReturnType<typeof userEvent.setup>) {
 describe('Affiliate detail page', () => {
   beforeEach(async () => {
     affiliate = { ...baseAffiliate }
-    activity = []
     installFixtures()
     toastMocks.success.mockReset()
     toastMocks.error.mockReset()
@@ -88,37 +78,10 @@ describe('Affiliate detail page', () => {
 
   afterEach(() => vi.restoreAllMocks())
 
-  it('renders the authoritative profile, contextual actions, and safe chronological activity', async () => {
-    activity = [
-      {
-        id: '8bd918c9-1ad2-4d7a-8547-daec5d2f488f',
-        affiliateId: 101,
-        action: 'profile_updated',
-        actor: { type: 'mock_staff', id: 'development-staff' },
-        previousState: { name: 'Noura' },
-        newState: { name: 'Noura Al Harbi' },
-        createdAt: '2026-11-11T09:00:00.000Z',
-      },
-      {
-        id: '6f6ec4e7-cb41-48bf-ae65-f04a5a623bbc',
-        affiliateId: 101,
-        action: 'password_reset_requested',
-        actor: { type: 'mock_staff', id: 'development-staff' },
-        previousState: null,
-        newState: null,
-        createdAt: '2026-11-12T09:00:00.000Z',
-      },
-    ]
+  it('renders the profile without the unsupported activity timeline', async () => {
     renderPage()
-
     expect(await screen.findByRole('heading', { name: 'Noura Al Harbi' })).toBeInTheDocument()
-    expect(screen.getAllByText('NOURA25').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: 'Suspend Affiliate' })).toBeInTheDocument()
-    expect(await screen.findByText('Profile updated')).toBeInTheDocument()
-    expect(screen.getByText('Password reset requested')).toBeInTheDocument()
-    expect(screen.getAllByText('Development staff')).toHaveLength(2)
-    expect(screen.queryByText('development-staff')).not.toBeInTheDocument()
-    expect(document.body.textContent).not.toContain('{"')
+    expect(screen.queryByText('Management activity')).not.toBeInTheDocument()
   })
 
   it('handles loading failure retry, invalid IDs, and API 404', async () => {
@@ -141,7 +104,7 @@ describe('Affiliate detail page', () => {
     expect((await screen.findAllByText('Affiliate not found')).length).toBeGreaterThan(0)
   })
 
-  it('prefills editable fields, validates locally, and PATCHes only changed profile fields', async () => {
+  it('prefills editable fields, validates locally, and PUTes only changed profile fields', async () => {
     const user = userEvent.setup()
     renderPage()
     const dialog = await openEdit(user)
@@ -218,7 +181,7 @@ describe('Affiliate detail page', () => {
     expect(within(reopened).getByRole('button', { name: 'Save changes' })).toBeDisabled()
   })
 
-  it('preserves unsaved values through a background refresh without PATCHing untouched stale fields', async () => {
+  it('preserves unsaved values through a background refresh without PUTing untouched stale fields', async () => {
     const user = userEvent.setup()
     const { client } = renderPage()
     const dialog = await openEdit(user)
@@ -227,7 +190,7 @@ describe('Affiliate detail page', () => {
     await user.type(username, 'noura.draft')
 
     affiliate = { ...affiliate, name: 'Authoritative Refresh' }
-    client.setQueryData(affiliatesKeys.detail(101), { ...affiliate })
+    client.setQueryData(affiliatesKeys.period(101, {}), { ...affiliate })
     await waitFor(() => expect(screen.getAllByText('Authoritative Refresh').length).toBeGreaterThan(0))
     expect(within(dialog).getByRole('textbox', { name: 'Full name' })).toHaveValue('Noura Al Harbi')
     expect(username).toHaveValue('noura.draft')
@@ -238,7 +201,7 @@ describe('Affiliate detail page', () => {
   })
 
   it('confirms suspension, prevents duplicate actions, and switches to reactivation', async () => {
-    let resolveSuspend!: (value: Affiliate) => void
+    let resolveSuspend!: () => void
     const suspend = vi
       .mocked(affiliatesService.suspend)
       .mockImplementationOnce(() => new Promise((resolve) => (resolveSuspend = resolve)))
@@ -252,10 +215,11 @@ describe('Affiliate detail page', () => {
     await user.click(screen.getByRole('button', { name: 'Suspend Affiliate' }))
     const reopenedDialog = await screen.findByRole('alertdialog')
     const confirm = within(reopenedDialog).getByRole('button', { name: 'Suspend Affiliate' })
+    await user.type(within(reopenedDialog).getByRole('textbox', { name: 'Reason' }), 'A valid reason')
     await user.dblClick(confirm)
     expect(suspend).toHaveBeenCalledTimes(1)
     affiliate = { ...affiliate, status: 'suspended' }
-    resolveSuspend({ ...affiliate })
+    resolveSuspend()
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     expect(await screen.findByRole('button', { name: 'Reactivate Affiliate' })).toBeInTheDocument()
   })
@@ -263,7 +227,7 @@ describe('Affiliate detail page', () => {
   it('reconciles a stale status after a 409 and supports reactivation', async () => {
     const conflict = Object.assign(new Error('already changed'), {
       isAxiosError: true,
-      response: { status: 409, data: { code: 'AFFILIATE_STATUS_CONFLICT', errors: { status: ['changed'] } } },
+      response: { status: 409, data: { message: 'Already changed', errors: { status: ['changed'] } } },
     })
     vi.mocked(affiliatesService.suspend).mockRejectedValueOnce(conflict)
     vi.mocked(affiliatesService.show)
@@ -273,47 +237,49 @@ describe('Affiliate detail page', () => {
     const { client } = renderPage()
     client.setQueryData(affiliatesKeys.list(), { pages: [], pageParams: [] })
     await user.click(await screen.findByRole('button', { name: 'Suspend Affiliate' }))
+    await user.type(
+      within(await screen.findByRole('alertdialog')).getByRole('textbox', { name: 'Reason' }),
+      'A valid reason'
+    )
     await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Suspend Affiliate' }))
     expect(await screen.findByRole('button', { name: 'Reactivate Affiliate' })).toBeInTheDocument()
-    expect(toastMocks.error).toHaveBeenCalledWith(
-      'The Affiliate status already changed. The current details have been refreshed.'
-    )
+    expect(toastMocks.error).toHaveBeenCalledWith('Already changed')
     expect(client.getQueryState(affiliatesKeys.list())?.isInvalidated).toBe(true)
 
     await user.click(screen.getByRole('button', { name: 'Reactivate Affiliate' }))
+    await user.type(within(await screen.findByRole('alertdialog')).getByRole('textbox', { name: 'Reason' }), 'Reviewed')
     await user.click(
       within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Reactivate Affiliate' })
     )
-    expect(affiliatesService.reactivate).toHaveBeenCalledWith(101)
+    expect(affiliatesService.reactivate).toHaveBeenCalledWith(101, 'Reviewed')
   })
 
-  it('queues password reset safely and refreshes activity without exposing credentials', async () => {
-    const activityApi = vi.mocked(affiliatesService.activity)
+  it('shows actual SMS outcome without exposing credentials', async () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByRole('heading', { name: 'Noura Al Harbi' })
-    await waitFor(() => expect(activityApi).toHaveBeenCalledTimes(1))
     await user.click(screen.getByRole('button', { name: 'Reset Password' }))
     const dialog = await screen.findByRole('alertdialog')
-    expect(within(dialog).getByText(/queue an SMS credential-reset request/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/attempt SMS delivery/i)).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Reset Password' }))
 
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     expect(affiliatesService.resetPassword).toHaveBeenCalledWith(101)
-    expect(toastMocks.success).toHaveBeenCalledWith('Password reset initiated. SMS delivery has been queued.')
-    await waitFor(() => expect(activityApi.mock.calls.length).toBeGreaterThan(1))
+    expect(toastMocks.success).toHaveBeenCalledWith('SMS sent')
     expect(document.body.textContent).not.toMatch(/password\s*[:=]|credential\s*[:=]/i)
   })
 
-  it('keeps activity errors independent and supports an empty history retry', async () => {
-    vi.mocked(affiliatesService.activity).mockRejectedValueOnce(new Error('private activity failure'))
+  it('shows SMS failure without retrying the reset', async () => {
+    vi.mocked(affiliatesService.resetPassword).mockResolvedValueOnce({
+      sms_sent: false,
+      sms_message: 'SMS unavailable',
+    })
     const user = userEvent.setup()
     renderPage()
-    expect(await screen.findByRole('heading', { name: 'Noura Al Harbi' })).toBeInTheDocument()
-    expect(await screen.findByTestId('query-state-loading-error')).toBeInTheDocument()
-    expect(screen.queryByText('private activity failure')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /try again/i }))
-    expect(await screen.findByText('No management activity')).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Reset Password' }))
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Reset Password' }))
+    await waitFor(() => expect(toastMocks.warning).toHaveBeenCalledWith('SMS unavailable'))
+    expect(affiliatesService.resetPassword).toHaveBeenCalledTimes(1)
   })
 
   it('localizes the management surface in Arabic and preserves LTR values', async () => {

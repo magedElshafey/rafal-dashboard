@@ -1,3 +1,4 @@
+import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
 import { useTranslation } from 'react-i18next'
 
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
@@ -11,6 +12,7 @@ export default function AffiliateSettingsPage() {
   const { t } = useTranslation()
   const query = useAffiliateSettings()
   const update = useUpdateAffiliateSettings()
+  if (!isAffiliateFeatureEnabled) return null
   return (
     <main className="min-w-0 space-y-5">
       <QueryStateBoundary
@@ -24,12 +26,7 @@ export default function AffiliateSettingsPage() {
         onRetry={query.refetch}
       >
         {query.data ? (
-          <AffiliateSettingsForm
-            settings={query.data}
-            isSubmitting={update.isPending}
-            onSubmit={update.mutateAsync}
-            onReloadConflict={query.refetch}
-          />
+          <AffiliateSettingsForm settings={query.data} isSubmitting={update.isPending} onSubmit={update.mutateAsync} />
         ) : (
           <DashboardPageHeader title={t('affiliates.settings.title')} />
         )}

@@ -1,3 +1,5 @@
+import { isAffiliateFeatureEnabled } from '../config/affiliate-feature'
+import { AffiliateExportButton } from '../components/AffiliateExportButton'
 import { useMemo } from 'react'
 import { Plus, UsersRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import FiltersWrapper from '@/components/filters/FiltersWrapper'
 import { ResponsiveDataLayout } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { DashboardPageHeader } from '@/components/shared/dashboard/atoms/DashboardPageHeader'
+import { DashboardStatCard } from '@/components/shared/dashboard/atoms/DashboardStatCard'
 import { EmptyState } from '@/components/shared/empty-state'
 import { useEntityFormDrawer } from '@/components/shared/entity-form-drawer'
 import { QueryStateBoundary } from '@/components/shared/query-state'
@@ -30,6 +33,7 @@ function AffiliatesContent() {
   const query = useAffiliates(filters)
   const affiliates = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data])
   const total = query.data?.pages.at(-1)?.paginate.total ?? affiliates.length
+  const totals = query.data?.pages.at(-1)?.extra
   const hasFilters = Boolean(filters.search || filters.status)
   const loadMoreRef = useInfiniteScroll({
     enabled: Boolean(query.hasNextPage && !query.isFetchingNextPage),
@@ -66,7 +70,12 @@ function AffiliatesContent() {
       <DashboardPageHeader
         title={t('affiliates.title')}
         description={t('affiliates.description')}
-        actions={createButton}
+        actions={
+          <>
+            {createButton}
+            <AffiliateExportButton filters={filters} />
+          </>
+        }
       />
       <FiltersWrapper
         searchName="search"
@@ -89,6 +98,28 @@ function AffiliatesContent() {
         hasData={Boolean(query.data)}
         onRetry={query.refetch}
       >
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('affiliates.summary.title')}>
+          {(['pending', 'approved_unpaid', 'paid_this_month', 'open_requests'] as const).map((field) => (
+            <DashboardStatCard
+              key={field}
+              label={t('affiliates.summary.' + field)}
+              value={
+                totals ? (
+                  <bdi>
+                    {field === 'open_requests'
+                      ? t('affiliates.summary.requests', {
+                          count: totals.open_requests.count,
+                          amount: totals.open_requests.amount,
+                        })
+                      : `${totals[field]} ${t('affiliates.summary.currency')}`}
+                  </bdi>
+                ) : (
+                  t('affiliates.summary.unavailable')
+                )
+              }
+            />
+          ))}
+        </div>
         <TableProvider data={affiliates} isLoading={query.isLoading} refetch={query.refetch} name="affiliates">
           <ResponsiveDataLayout
             header={listHeader}
@@ -130,6 +161,7 @@ function AffiliatesContent() {
 }
 
 export default function AffiliatesPage() {
+  if (!isAffiliateFeatureEnabled) return null
   return (
     <QueryProvider resetQueryNamesOnChange={['page']}>
       <AffiliatesContent />

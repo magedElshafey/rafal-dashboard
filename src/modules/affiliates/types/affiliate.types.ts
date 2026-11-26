@@ -11,6 +11,10 @@ export type Affiliate = {
   status: AffiliateStatus
   createdAt: string
   updatedAt: string
+  source?: string | null
+  applicationId?: number | null
+  lastLoginAt?: string | null
+  termsAcceptedAt?: string | null
 }
 
 export type AffiliateFilters = {
@@ -32,26 +36,7 @@ export type CreateAffiliatePayload = AffiliateFormValues
 export type AffiliateProfileFormValues = Omit<AffiliateFormValues, 'code'>
 export type UpdateAffiliatePayload = Partial<AffiliateProfileFormValues>
 
-export type AffiliateAuditAction =
-  'profile_updated' | 'status_suspended' | 'status_reactivated' | 'password_reset_requested'
-
-export type AffiliateAuditEvent = {
-  id: string
-  affiliateId: number
-  action: AffiliateAuditAction
-  actor: { type: 'mock_staff'; id: 'development-staff' }
-  previousState: Record<string, unknown> | null
-  newState: Record<string, unknown> | null
-  createdAt: string
-}
-
-export type AffiliatePasswordReset = {
-  affiliateId: number
-  deliveryStatus: 'queued'
-  channel: 'sms'
-  requiresPasswordChange: true
-  requestedAt: string
-}
+export type AffiliatePasswordReset = { sms_sent: boolean; sms_message: string | null }
 
 export type AffiliateSettings = {
   programEnabled: boolean
@@ -59,15 +44,18 @@ export type AffiliateSettings = {
   customerDiscountPercentage: number
   affiliateCommissionPercentage: number
   minimumPayoutAmount: string
-  termsPageReference: string
-  version: number
-  updatedAt: string
+  termsPageId: number | null
 }
-
-export type AffiliateSettingsFormValues = Omit<AffiliateSettings, 'version' | 'updatedAt'>
-export type UpdateAffiliateSettingsPayload = { version: number } & Partial<AffiliateSettingsFormValues>
-
-export type AffiliateCodeSuggestion = {
-  code: string
-  reserved: false
+export type AffiliateSettingsFormValues = AffiliateSettings
+export type UpdateAffiliateSettingsPayload = AffiliateSettingsFormValues
+export type AffiliateCodeSuggestion = { code: string }
+export type AffiliateListItem = Pick<
+  Affiliate,
+  'id' | 'name' | 'mobile' | 'email' | 'code' | 'status' | 'createdAt'
+> & {
+  source: string
+  ordersCount: number
+  pending: string
+  approvedUnpaid: string
+  paid: string
 }

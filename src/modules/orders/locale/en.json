@@ -133,6 +133,21 @@
       "pendingVerification": "Pending verification"
     },
     "paymentStatus": { "paid": "Paid", "pending": "Pending", "failed": "Failed" },
-    "values": { "guest": "Guest", "registered": "Registered", "system": "System", "admin": "Admin", "card": "Card" }
+    "values": { "guest": "Guest", "registered": "Registered", "system": "System", "admin": "Admin", "card": "Card" },
+    "affiliate": {
+      "title": "Affiliate attribution",
+      "name": "Affiliate",
+      "code": "Code",
+      "discountPercent": "Customer discount rate",
+      "discount": "Customer discount",
+      "base": "Commission base",
+      "rate": "Commission rate",
+      "amount": "Commission amount",
+      "status": "Commission status",
+      "adjustment": "Refund adjustment",
+      "pending": "Pending",
+      "approved": "Approved",
+      "cancelled": "Cancelled"
+    }
   }
 }

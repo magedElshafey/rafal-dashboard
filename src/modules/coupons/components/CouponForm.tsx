@@ -133,28 +133,33 @@ export function CouponForm({
     try {
       await onSubmit(values, intent, methods)
     } catch (error) {
-      applyApiValidationErrors(error, methods.setError, {
-        code: 'code',
-        'name.ar': 'name.ar',
-        'name[ar]': 'name.ar',
-        'name.en': 'name.en',
-        'name[en]': 'name.en',
-        'description.ar': 'description.ar',
-        'description[ar]': 'description.ar',
-        'description.en': 'description.en',
-        'description[en]': 'description.en',
-        type: 'type',
-        value: 'value',
-        max_discount_amount: 'maxDiscountAmount',
-        min_order_amount: 'minOrderAmount',
-        starts_at: 'startsAt',
-        ends_at: 'endsAt',
-        is_public: 'isPublic',
-        is_active: 'isActive',
-        usage_limit_total: 'usageLimitTotal',
-        usage_limit_per_customer: 'usageLimitPerCustomer',
-        new_customers_only: 'newCustomersOnly',
-      })
+      applyApiValidationErrors(
+        error,
+        methods.setError,
+        {
+          code: 'code',
+          'name.ar': 'name.ar',
+          'name[ar]': 'name.ar',
+          'name.en': 'name.en',
+          'name[en]': 'name.en',
+          'description.ar': 'description.ar',
+          'description[ar]': 'description.ar',
+          'description.en': 'description.en',
+          'description[en]': 'description.en',
+          type: 'type',
+          value: 'value',
+          max_discount_amount: 'maxDiscountAmount',
+          min_order_amount: 'minOrderAmount',
+          starts_at: 'startsAt',
+          ends_at: 'endsAt',
+          is_public: 'isPublic',
+          is_active: 'isActive',
+          usage_limit_total: 'usageLimitTotal',
+          usage_limit_per_customer: 'usageLimitPerCustomer',
+          new_customers_only: 'newCustomersOnly',
+        },
+        ['code']
+      )
     }
   }
 

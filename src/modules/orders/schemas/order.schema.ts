@@ -111,6 +111,22 @@ export const rawOrderGiftSchema = z.object({
 })
 export const rawOrderDetailSchema = z.object({
   ...identity,
+  affiliate: z
+    .object({
+      id,
+      name: text,
+      code: text,
+      discount: z.object({ percent: z.union([z.number().finite(), decimal]), amount: decimal }),
+      commission: z.object({
+        base: decimal,
+        rate: z.union([z.number().finite(), decimal]),
+        amount: decimal,
+        status: text,
+        adjustment_amount: z.string().regex(/^-?\d+(?:\.\d+)?$/),
+      }),
+    })
+    .nullish()
+    .transform((value) => value ?? null),
   display_number: displayText,
   customer: detailCustomer,
   shipping_address: z

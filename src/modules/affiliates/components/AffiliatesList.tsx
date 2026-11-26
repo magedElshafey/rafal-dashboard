@@ -11,23 +11,24 @@ import {
   ResponsiveDataTableRow,
 } from '@/components/shared/data-display/ResponsiveDataLayout'
 import { AffiliateStatusBadge } from '@/modules/affiliates/components/AffiliateStatusBadge'
-import type { Affiliate } from '@/modules/affiliates/types/affiliate.types'
+import type { AffiliateListItem } from '@/modules/affiliates/types/affiliate.types'
 import { formatDate, resolveAppLocale } from '@/utils/date/date.helpers'
 import { Routes } from '@/routes/routes'
 
-export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[] }) {
+export function AffiliatesList({ affiliates }: { affiliates: readonly AffiliateListItem[] }) {
   const { t, i18n } = useTranslation()
   const locale = resolveAppLocale(i18n.language)
   const columns = [
     { id: 'affiliate', header: t('affiliates.fields.affiliate') },
     { id: 'contact', header: t('affiliates.fields.contact') },
-    { id: 'social', header: t('affiliates.fields.social') },
+    { id: 'source', header: t('affiliates.fields.source') },
+    { id: 'finance', header: t('affiliates.fields.finances') },
     { id: 'code', header: t('affiliates.fields.code') },
     { id: 'status', header: t('affiliates.fields.status') },
     { id: 'created', header: t('affiliates.fields.createdAt') },
   ]
 
-  const createdDate = (affiliate: Affiliate) => formatDate(affiliate.createdAt, { locale }) || '—'
+  const createdDate = (affiliate: AffiliateListItem) => formatDate(affiliate.createdAt, { locale }) || '—'
 
   return (
     <>
@@ -49,8 +50,10 @@ export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[
                 </a>
               </ResponsiveDataTableCell>
               <ResponsiveDataTableCell className="min-w-36">
-                <span className="block capitalize">{affiliate.platform}</span>
-                <bdi className="block text-sm text-muted-foreground">{affiliate.username}</bdi>
+                <bdi>{affiliate.source}</bdi>
+              </ResponsiveDataTableCell>
+              <ResponsiveDataTableCell>
+                <FinancialFacts affiliate={affiliate} />
               </ResponsiveDataTableCell>
               <ResponsiveDataTableCell>
                 <code dir="ltr" className="rounded bg-muted px-2 py-1 font-semibold">
@@ -89,10 +92,10 @@ export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[
                     {affiliate.mobile}
                   </a>
                 </ResponsiveDataFact>
-                <ResponsiveDataFact label={t('affiliates.fields.social')}>
-                  <span className="capitalize">{affiliate.platform}</span>{' '}
-                  <bdi className="text-muted-foreground">{affiliate.username}</bdi>
+                <ResponsiveDataFact label={t('affiliates.fields.source')}>
+                  <bdi>{affiliate.source}</bdi>
                 </ResponsiveDataFact>
+                <FinancialFacts affiliate={affiliate} />
                 <ResponsiveDataFact label={t('affiliates.fields.code')}>
                   <code dir="ltr" className="font-semibold">
                     {affiliate.code}
@@ -110,5 +113,21 @@ export function AffiliatesList({ affiliates }: { affiliates: readonly Affiliate[
         ))}
       </ResponsiveDataMobileCards>
     </>
+  )
+}
+
+function FinancialFacts({ affiliate }: { affiliate: AffiliateListItem }) {
+  const { t } = useTranslation()
+  return (
+    <dl className="grid gap-2">
+      {(['ordersCount', 'pending', 'approvedUnpaid', 'paid'] as const).map((key) => (
+        <div key={key}>
+          <dt className="text-xs text-muted-foreground">{t('affiliates.fields.' + key)}</dt>
+          <dd>
+            <bdi>{affiliate[key]}</bdi>
+          </dd>
+        </div>
+      ))}
+    </dl>
   )
 }

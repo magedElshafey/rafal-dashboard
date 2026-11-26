@@ -61,7 +61,12 @@ export function AffiliateProfileForm({ affiliate, formId, isSubmitting, onDirtyC
     try {
       await onSubmit(normalized, methods)
     } catch (error) {
-      applyApiValidationErrors(error, methods.setError)
+      applyApiValidationErrors(
+        error,
+        methods.setError,
+        { name: 'name', phone: 'mobile', email: 'email', platform: 'platform', account_handle: 'username' },
+        ['name', 'phone', 'email', 'platform', 'account_handle']
+      )
     }
   }
 

@@ -1,56 +1,21 @@
-# Affiliate dashboard management (AFF-07 / AFF-08 / AFF-09)
+# Affiliate Laravel integration
 
-Implemented in the Staff Dashboard:
+The module targets the approved EPIC-11 Laravel guide (2026-11-24), using the existing shared `$http`, staff session, TanStack Query and EN/AR resources. Configure the normal API base ending in `/api/v1`; services append `/dashboard` once. No feature token, second Axios client, Mock fallback or activity endpoint remains.
 
-- `/dashboard/affiliates` responsive Affiliate listing
-- `/dashboard/affiliates/settings` Affiliate Programme Settings
-- `/dashboard/affiliates/:id` responsive Affiliate details and management history
-- URL-backed name/email/mobile/code search and status filtering
-- server-driven infinite pagination
-- create-Affiliate drawer with Saudi mobile, email, and code validation
-- unreserved code suggestion with protection for manually edited values
-- localized English/Arabic and RTL/LTR presentation
-- profile editing with partial PATCH payloads and read-only code/status
-- confirmed suspension, reactivation, and password-reset initiation
-- safe chronological management activity without raw audit JSON or employee claims
-- explicit settings saves with changed fields plus the last-read version
-- safe settings conflict review that preserves the draft, reloads current values, and requires an explicit retry
+All Affiliate production and development routes remain disabled until an authoritative effective-staff-permissions source and per-endpoint policy are supplied. Payout readiness is separately closed. Do not enable a flag as a substitute for implementing permission hydration, route/query/mutation checks and staging acceptance. Role names and the permissions catalog are not grants.
 
-## Development mock
+Implemented local contracts and UI:
 
-Run the shared mock project at `E:/freelance/rafal/rafal-affiliate-mock-api`, then configure the Dashboard locally:
+- Settings GET and full six-field PUT mapping, documented percentage/range validation, published-page selector, draft preservation and programme-disable confirmation. Save is explicitly closed pending settings/page-access clarification.
+- Affiliate list pagination, URL search/status, source/order counts and exact Backend money strings; CSV export uses shared transport/download utilities.
+- Creation uses canonical Saudi phone/account_handle and optional code; actual SMS false is shown without repeating creation. Generator response is not assumed; manual/backend-generated code is the fallback.
+- Profile PUT, reason-based suspend/reactivate, confirmed reset with actual SMS outcome; date-range detail reads, source/application/login/terms metadata. Partial mutation results never replace full detail caches.
+- Application list/detail, authoritative pending count, customer context, chosen-code approval, rejection reasons and 409 reconciliation. Decision metadata is displayed without an invented timeline.
+- Payout list and minimal detail/balance warning are read-only. Financial decisions, exact banking/detail enrichment and date rules await confirmation.
+- Order attribution and coupon collision feedback reuse their existing modules and shared components.
 
-```env
-VITE_AFFILIATE_MOCK_API_BASE_URL=http://127.0.0.1:4100
-VITE_AFFILIATE_MOCK_TOKEN=mock-staff-authorized
-```
+Missing nested Affiliate financial DTOs and `meta.totals` keys prevent complete financial summary/detail rendering. Unknown optional sections are omitted, never populated with synthetic values. Response parsers validate consumed fields only; successful synthetic tests are not evidence of deployed Laravel compatibility.
 
-Restart Vite after changing environment variables. The route and sidebar entry are enabled only in Vite development mode when both variables are present. Affiliate requests use a feature-owned Axios instance; Laravel authentication storage and interceptors are not used or forwarded.
+Read the active blockers and consolidated missing-information handoff under `docs/affiliate-integration-audit/10_ACTIVE_BACKEND_BLOCKERS.md` and `11_CONSOLIDATED_BACKEND_MISSINGS.md` before the next integration step. No live Backend mutation was performed.
 
-Contract: `E:/freelance/rafal/rafal-affiliate-mock-api/openapi.yaml` (Proposed — Pending Laravel Backend Confirmation).
-
-Management uses `GET/PATCH /dashboard/affiliates/:id`, the `suspend`, `reactivate`, and `reset-password` POST
-actions, and `GET /dashboard/affiliates/:id/activity`. Mutations invalidate only affected list, detail, and activity
-queries and use authoritative responses for visible profile state.
-
-Settings use `GET/PATCH /dashboard/affiliate-settings`. The complete GET/PATCH DTO contains the two programme
-flags, two percentage values, the exact minimum-payout decimal string, terms-page slug, `version`, and `updated_at`.
-PATCH sends `version` plus changed fields only. A `409 AFFILIATE_SETTINGS_VERSION_CONFLICT` preserves the local
-draft, refetches the authoritative DTO for review, and never retries until the staff member explicitly confirms.
-The returned complete DTO replaces only the settings cache and becomes the next accepted form baseline.
-
-Focused tests:
-
-```sh
-node node_modules/vitest/vitest.mjs run src/modules/affiliates
-```
-
-## Known limitations
-
-- Laravel endpoints and effective staff permissions are not available. Production routing remains disabled.
-- The mock's authorization token is a development scenario selector, not production authorization.
-- A code suggestion is not reserved; the create endpoint remains authoritative for Affiliate/coupon collisions.
-- The successful response confirms account creation and backend initiation only, not actual SMS delivery.
-- The mock stores settings but does not enforce them in storefront checkout, applications, commissions, or payouts.
-- Production currency, commission basis, terms-page existence, Laravel endpoints, and final permissions remain pending decisions.
-- Commission performance, orders, exports, applications, payouts, code rotation, and analytics are intentionally deferred.
+Focused tests: `node node_modules/vitest/vitest.mjs run src/modules/affiliates --maxWorkers=2 --minWorkers=1`. If the local NVM shim hangs, use the already installed runtime described in `09_TOOLING_BASELINE.md`. Dependencies were restored from the existing lockfile, without upgrades.

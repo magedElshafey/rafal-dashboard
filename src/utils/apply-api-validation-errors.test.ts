@@ -5,6 +5,19 @@ import i18n from '@/config/i18'
 import { applyApiValidationErrors } from './apply-api-validation-errors'
 
 describe('applyApiValidationErrors', () => {
+  it('opts in only named 422 fields while preserving other callers and fields', () => {
+    const setError = vi.fn()
+    const error = {
+      isAxiosError: true,
+      response: { status: 422, data: { errors: { code: ['<b>Affiliate collision</b>'], name: ['Private rule'] } } },
+    }
+    applyApiValidationErrors(error, setError, { code: 'code', name: 'name' }, ['code'])
+    expect(setError).toHaveBeenCalledWith('code', { type: 'server', message: '<b>Affiliate collision</b>' })
+    expect(setError).toHaveBeenCalledWith('name', { type: 'server', message: i18n.t('validations.server') })
+    setError.mockClear()
+    applyApiValidationErrors(error, setError)
+    expect(setError).toHaveBeenCalledWith('code', { type: 'server', message: i18n.t('validations.server') })
+  })
   afterEach(async () => {
     await i18n.changeLanguage('en')
   })

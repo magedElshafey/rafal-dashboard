@@ -3,6 +3,19 @@ import { describe, expect, it } from 'vitest'
 import { getApiErrorMessage } from './api-error.helpers'
 
 describe('getApiErrorMessage', () => {
+  it('returns Backend text only with explicit opt-in and keeps network details private', () => {
+    expect(
+      getApiErrorMessage(
+        { isAxiosError: true, response: { data: { message: '<script>text</script>' } } },
+        'Fallback',
+        true
+      )
+    ).toBe('<script>text</script>')
+    expect(getApiErrorMessage(new Error('private'), 'Fallback', true)).toBe('Fallback')
+    expect(getApiErrorMessage({ isAxiosError: true, response: { data: { message: 42 } } }, 'Fallback', true)).toBe(
+      'Fallback'
+    )
+  })
   it('does not expose backend prose when it may use a different language', () => {
     expect(
       getApiErrorMessage(

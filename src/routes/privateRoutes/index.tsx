@@ -4,7 +4,10 @@ import type { RouteObject } from 'react-router'
 import { Navigate, Outlet } from 'react-router-dom'
 
 import { RequireAuth } from '@/modules/auth/guards/RequireAuth'
-import { isAffiliateFeatureEnabled } from '@/modules/affiliates/config/affiliate-feature'
+import {
+  isAffiliateFeatureEnabled,
+  isAffiliatePayoutFeatureEnabled,
+} from '@/modules/affiliates/config/affiliate-feature'
 import { DashboardShell } from '@/modules/dashboard/layout/DashboardShell'
 import { Routes } from '@/routes/routes'
 
@@ -46,6 +49,10 @@ const StaticPageCreatePage = lazy(() => import('@/modules/static-pages/pages/Sta
 const StaticPageEditPage = lazy(() => import('@/modules/static-pages/pages/StaticPageEditPage'))
 const AffiliatesPage = lazy(() => import('@/modules/affiliates/pages/AffiliatesPage'))
 const AffiliateDetailPage = lazy(() => import('@/modules/affiliates/pages/AffiliateDetailPage'))
+const AffiliateApplicationDetailPage = lazy(() => import('@/modules/affiliates/pages/AffiliateApplicationDetailPage'))
+const AffiliatePayoutDetailPage = lazy(() => import('@/modules/affiliates/pages/AffiliatePayoutDetailPage'))
+const AffiliateApplicationsPage = lazy(() => import('@/modules/affiliates/pages/AffiliateApplicationsPage'))
+const AffiliatePayoutsPage = lazy(() => import('@/modules/affiliates/pages/AffiliatePayoutsPage'))
 const AffiliateSettingsPage = lazy(() => import('@/modules/affiliates/pages/AffiliateSettingsPage'))
 
 export const PrivateRoutes: RouteObject[] = [
@@ -100,7 +107,15 @@ export const PrivateRoutes: RouteObject[] = [
         ? [
             { path: Routes.affiliates, Component: AffiliatesPage },
             { path: Routes.affiliateSettings, Component: AffiliateSettingsPage },
+            { path: Routes.affiliateApplications, Component: AffiliateApplicationsPage },
+            { path: Routes.affiliateApplicationDetail, Component: AffiliateApplicationDetailPage },
             { path: Routes.affiliateDetail, Component: AffiliateDetailPage },
+          ]
+        : []),
+      ...(isAffiliatePayoutFeatureEnabled
+        ? [
+            { path: Routes.affiliatePayouts, Component: AffiliatePayoutsPage },
+            { path: Routes.affiliatePayoutDetail, Component: AffiliatePayoutDetailPage },
           ]
         : []),
       { path: Routes.customerDetail, Component: CustomerDetailPage },
