@@ -126,6 +126,7 @@
     },
     "feedback": {
       "created": "Affiliate account created.",
+      "createUnconfirmed": "The create result could not be confirmed. The affiliate may already exist. Check the affiliate list by phone, email or code and contact support before creating again. Your draft has been preserved.",
       "createError": "The affiliate could not be created. Review the form and try again.",
       "updated": "Affiliate profile updated successfully.",
       "updateError": "The Affiliate profile could not be updated. Review the form and try again.",

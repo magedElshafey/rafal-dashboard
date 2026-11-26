@@ -112,6 +112,7 @@ export function AffiliateDetailsSections({ affiliate }: { affiliate?: Affiliate 
                 affiliate ? <AffiliateStatusBadge key="status" status={affiliate.status} /> : null,
               ],
               [t('affiliates.fields.createdAt'), <time key="created">{date(affiliate?.createdAt)}</time>],
+              [t('affiliates.fields.reason'), <bdi key="reason">{affiliate?.statusReason || '—'}</bdi>],
               [t('affiliates.fields.updatedAt'), <time key="updated">{date(affiliate?.updatedAt)}</time>],
               [t('affiliates.fields.source'), affiliate?.source || '—'],
               [

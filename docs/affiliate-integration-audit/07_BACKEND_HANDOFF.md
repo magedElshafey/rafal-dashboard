@@ -1,8 +1,37 @@
 # Authorized-session manual smoke checklist
 
-2026-11-26. Status: IMPLEMENTED_PENDING_SMOKE_TEST. No steps below were executed against Laravel in this task. Use the configured API base ending /api/v1 and the existing authenticated staff client/session. Do not put tokens in commands, saved collections, screenshots or reports. Do not open frontend gates merely to run transport checks. Preserve current settings privately in memory for possible restoration; publish only sanitized status/type observations.
+## Dashboard Integration & QA reconciliation - 2026-11-26
 
-## Read-only sequence
+Evidence source: user-reported live Laravel results, not new requests by this agent. Local mocks establish frontend behavior only; no browser integration run has been completed.
+
+| Area | Current frontend / verified evidence | Remaining acceptance |
+| --- | --- | --- |
+| Settings | Nullable GET/form; positive published ID required for six-field PUT. Null PUT rejected; unchanged read-back and published ID 9 PUT/persistence VERIFIED_AGAINST_LIVE_API. String Settings title and localized Static Pages titles supported. | Browser selection/pagination and settings-only staff page access; no initial-only null inference. |
+| List | URL pagination/search/status and meta.totals supported; live success VERIFIED_AGAINST_LIVE_API. Decimal strings retained without financial arithmetic. | Browser filter/back navigation and populated page rendering. |
+| Generate Code, Details, Date Range, Edit, Suspend, Reactivate | Successful requests VERIFIED_AGAINST_LIVE_API. Reactivate requires a reason; omitted body returned HTTP 422. Existing service/dialog require nonblank reason and send trimmed text. Active status retains the returned reactivation reason. | Local fix preserves status_reason in detail schema/model/adapter and renders it for active and suspended status. Browser reconciliation still pending. |
+| Nullable details | Null application_id/login timestamps and empty orders/payouts accepted. Unused nullable user_id and bank fields are excluded from the UI model. | Populated history row semantics and history pagination still unverified; date-range success does not prove these. |
+| Create | BACKEND_BUG_VERIFIED: record persisted, then serialization failed with Attempt to read property "value" on null in AffiliateDetailResource.php:39. | Backend must fix serialization and provide a safely reconciled successful create response. No blind replay. Local create retry remains false; network/5xx/malformed-response errors show an unconfirmed-result warning, preserve the open draft and disable resubmission in the mounted drawer, including reopen. Route reload is not proof of noncreation; reconcile the record with Backend before creating again. |
+| CSV | Endpoint success VERIFIED_AGAINST_LIVE_API. Existing Blob anchor download, sanitized header filename and affiliates.csv fallback are tested locally, including URL cleanup. | Real browser file save, actual CSV MIME and cross-origin Content-Disposition exposure remain browser checks. |
+| Applications / Payouts | Only empty-list responses VERIFIED_AGAINST_LIVE_API. | Populated lists/details, decisions and financial transitions remain unverified. No financial or SMS mutations authorized in this task. |
+| Authorization | Unknown grants fail closed; verified grants are in-memory and token-bound. Changes cancel/evict Affiliate queries and fence obsolete mutation results. All four release flags remain false. | Authoritative staff permissions hydration is absent; positive real-browser access remains blocked pending verified source integration and separate release authorization. |
+
+
+2026-11-26. Settings evidence has now been supplied by the user as classified below. Remaining checks are pending; the agent made no new live requests. Use the configured API base ending /api/v1 and the existing authenticated staff client/session. Do not put tokens in commands, saved collections, screenshots or reports. Do not open frontend gates merely to run transport checks. Preserve current settings privately in memory for possible restoration; publish only sanitized status/type observations.
+
+## Practical browser QA sequence
+
+1. On the current unchanged build, sign in normally. Verify Affiliate navigation/actions remain inaccessible with unknown effective grants and direct URLs send no Affiliate requests. Do not inject grants into storage/devtools or enable flags to bypass this blocker.
+2. Backend supplies the authoritative effective-permission source/field; implement and test real hydration separately. Obtain separate release approval and an approved QA deployment before positive UI tests. Create remains blocked on the serialization fix; financial release stays closed.
+3. With authorized staff accounts, check view/manage/settings permissions independently, forbidden responses, logout/session replacement and grant revocation. Check no old user/grant data survives. Record sanitized method/path/status only; never save tokens or customer/bank data.
+4. Exercise list pagination, search/status URL filters, refresh and browser back/forward. Compare rows and totals to Network responses. Open an existing disposable affiliate; verify decimal strings, null placeholders, empty histories, active status reason and from/to behavior.
+5. Exercise code generation without saving: edit name/manual code while a suggestion is pending, cancel/close, and verify no stale suggestion replaces the draft. Inspect Edit/Suspend/Reactivate dialogs and blank/whitespace reason blocking without executing a mutation in this QA phase. Later writes require explicit controlled-data authorization and must not trigger SMS.
+6. Open Settings with the verified selected ID 9. Check string title metadata, localized page options, pagination, loading/error/retry and EN/AR RTL keyboard behavior. Use local response fixtures for initial null, invalid/unpublished selection and 422 draft-preservation checks; do not manufacture live rejected writes or activate the programme. A real write requires separately authorized test data.
+7. Export a permitted filtered list. Inspect the saved CSV and filename in the browser. Confirm affiliates.csv when Content-Disposition is unavailable (local response fixture or approved QA CORS configuration). Verify no blank tab, duplicate download or object URL leak; keep downloaded customer data private.
+8. Review Applications/Payouts empty states read-only. Do not infer populated-data or financial decision acceptance. Use local fixtures for errors and populated displays. No approve/reject/paid/reset-password/create operations that can cause SMS or financial effects.
+9. Reproduce Create 5xx/network/malformed-response warning only with local fixtures: no automatic retry, draft remains, submit disabled after reopening. For the already persisted live record, reconcile by phone/email/code with Backend rather than recreating it. After Backend repair, successful Create/SMS acceptance requires a separate explicitly authorized disposable test.
+10. Record browser/version, environment, locale, viewport, permission set, sanitized response shape and pass/fail for each step. Mark positive browser checks BLOCKED until prerequisites are fulfilled; unit tests and Postman success are not browser acceptance.
+
+## Additional read-only API sequence
 
 1. Confirm the approved environment and staff identity. Use the existing session's authentication headers and locale; never infer permissions from roles. Record timestamp, method, path, HTTP status and whether the expected shape passed, omitting names/emails/phones/bank data.
 2. GET /dashboard/affiliate-settings. Check the common success envelope and all six fields, numeric/string min_payout and nullable terms_page_id. Do not mutate if this fails.
@@ -15,15 +44,26 @@
 9. GET /dashboard/orders/{disposable-order-id} for an attributed and a non-attributed order. Check discount/commission/adjustment amounts match server strings, absent attribution renders no invented section, and the Affiliate link appears only with verified view access and released routes.
 10. After permission hydration is implemented, run authorized V/M/S/P account combinations: no grants/unknown stay denied; S can read settings without V but writes require settings readiness; M does not imply V; P does not imply V or financial readiness. Check forbidden responses without using another identity's cached data. Do not send mutations to test denial. Stale 401/403, 409, 422 and network outcomes are already exercised locally; do not manufacture unsafe live errors.
 
-## Conditional nullable settings sequence
+## Verified settings read/write distinction - 2026-11-26
 
-1. Save the entire successful original settings response privately. Confirm enabled is exactly false. If active, STOP and report the safety blocker; never disable it for this test.
-2. Confirm with the environment owner that records are disposable and changing the terms page cannot impose unwanted reacceptance on real accounts. Restoring an ID does not reverse secondary effects. If this cannot be established, STOP mutations and complete read-only coverage.
-3. Build a body containing exactly enabled, applications_enabled, customer_discount_percent, commission_percent, min_payout, terms_page_id from the original response. Change only terms_page_id to null; preserve every other value.
-4. PUT /dashboard/affiliate-settings once. Record actual status and sanitized validation/errors or returned setting values. Do not automatically retry a timeout.
-5. GET settings immediately, including after 422/timeout. Compare all six fields with the original. On 422 capture the terms_page_id error and verify unchanged state; classify any mismatch from evidence, not assumption.
-6. If settings changed, PUT the six original fields to restore, only after verifying no concurrent unrelated change would be overwritten. GET again and compare all six values. If restore or verification fails, report that explicitly and stop further mutations.
-7. Record initial GET / PUT / verification GET / restoration PUT / restoration GET statuses individually, null persistence, restoration outcome and any secondary effects. If the original page was already null and all six fields remain identical, state that restoration was unnecessary. No claim of success without read-back.
+Evidence supplied by the user from a live Laravel smoke test; no new live requests were made by the agent in this alignment task. Exact HTTP status numbers were not supplied.
+
+| Observation | Classification |
+| --- | --- |
+| GET /api/v1/dashboard/affiliate-settings succeeded with terms_page_id: null and terms_page: null | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with terms_page_id: null returned success: false and terms_page_id validation errors | REJECTED_BY_LIVE_VALIDATION |
+| Follow-up GET confirmed every original setting unchanged | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with published Static Page ID 9 succeeded | VERIFIED_AGAINST_LIVE_API |
+| Subsequent GET confirmed ID 9 persisted and all other settings unchanged; enabled and applications_enabled remain false | VERIFIED_AGAINST_LIVE_API |
+| Settings terms_page.title is a plain string; Static Pages list titles are localized { ar, en } objects | VERIFIED_AGAINST_LIVE_API |
+
+The initial observed settings were enabled=false, applications_enabled=false, customer_discount_percent=10, commission_percent=10, min_payout=100, terms_page_id=null and terms_page=null. The rejected PUT message and errors.terms_page_id[0] both read: "يرجى اختيار صفحة الشروط".
+
+This proves null is readable, the tested null write is rejected, and the tested published-ID 9 write succeeds and persists. It does not prove null is an initial-only state or establish a lifecycle rule. The existing parser and selector support both the verified plain-string Settings title and localized Static Pages titles. Read/form types remain nullable; the write type requires a number, with positive safe-integer guards and a published-page check before form submission. All six PUT fields, selected-page metadata, pagination, 422 feedback and draft preservation remain supported. Authorization and release gates are unchanged.
+
+## Verified published-page PUT result
+
+The user confirmed Static Page ID 9 is published. PUT with all six fields and terms_page_id: 9 succeeded, and subsequent GET confirmed ID 9 persisted with all other settings unchanged. Both enabled and applications_enabled remain false. This is user-supplied live evidence, distinct from local fixture tests. No restoration to the original null page was reported; the agent made no further mutations.
 
 ## Financial transition restriction
 

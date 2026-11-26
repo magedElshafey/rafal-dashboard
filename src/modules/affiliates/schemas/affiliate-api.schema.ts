@@ -34,6 +34,7 @@ export const affiliateSchema = z.object({
   created_at: z.string(),
 })
 export const affiliateDetailSchema = affiliateSchema.extend({
+  status_reason: z.string().nullish(),
   platform: z.string().nullish(),
   account_handle: z.string().nullish(),
   updated_at: z.string().nullish(),

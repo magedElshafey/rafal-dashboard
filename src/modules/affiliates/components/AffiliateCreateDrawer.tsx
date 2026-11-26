@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { EntityFormDrawer } from '@/components/shared/entity-form-drawer'
 import { AffiliateForm, EMPTY_AFFILIATE_FORM_VALUES } from '@/modules/affiliates/components/AffiliateForm'
-import { useCreateAffiliate } from '@/modules/affiliates/hooks/useCreateAffiliate'
+import { isAmbiguousAffiliateCreateError, useCreateAffiliate } from '@/modules/affiliates/hooks/useCreateAffiliate'
 import type { AffiliateFormValues } from '@/modules/affiliates/types/affiliate.types'
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void }
@@ -15,9 +15,10 @@ export function AffiliateCreateDrawer({ open, onOpenChange }: Props) {
   const { t } = useTranslation()
   const submissionLockRef = useRef(false)
   const createAffiliate = useCreateAffiliate()
+  const unconfirmed = isAmbiguousAffiliateCreateError(createAffiliate.error)
 
   const handleSubmit = async (values: AffiliateFormValues, methods: UseFormReturn<AffiliateFormValues>) => {
-    if (submissionLockRef.current || createAffiliate.isPending) return
+    if (submissionLockRef.current || createAffiliate.isPending || unconfirmed) return
     submissionLockRef.current = true
     try {
       await createAffiliate.mutateAsync(values)
@@ -40,12 +41,14 @@ export function AffiliateCreateDrawer({ open, onOpenChange }: Props) {
       closeLabel={t('affiliates.actions.close')}
       formId={FORM_ID}
       isSubmitting={createAffiliate.isPending}
+      isSubmitDisabled={unconfirmed}
     >
+      {unconfirmed ? <p role="alert">{t('affiliates.feedback.createUnconfirmed')}</p> : null}
       {open ? (
         <AffiliateForm
           key={`create-${open}`}
           formId={FORM_ID}
-          isSubmitting={createAffiliate.isPending}
+          isSubmitting={createAffiliate.isPending || unconfirmed}
           onSubmit={handleSubmit}
         />
       ) : null}

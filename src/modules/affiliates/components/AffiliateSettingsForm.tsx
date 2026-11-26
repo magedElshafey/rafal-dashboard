@@ -132,7 +132,7 @@ function Fields({
           hasNextPage={pages.hasNextPage}
           isFetchingNextPage={pages.isFetchingNextPage}
           onLoadMore={() => pages.fetchNextPage().then(() => undefined)}
-          clearable
+          required
         />
       </div>
       <p className="text-sm text-muted-foreground">{t('affiliates.settings.help.termsPageId')}</p>
@@ -182,7 +182,12 @@ export function AffiliateSettingsForm({ settings, isSubmitting, canWrite = false
     const isPublished = loadedPage
       ? loadedPage.isPublished
       : settings.termsPage?.id === values.termsPageId && settings.termsPage.isPublished
-    if (values.termsPageId !== null && !isPublished) {
+    if (
+      values.termsPageId === null ||
+      !Number.isSafeInteger(values.termsPageId) ||
+      values.termsPageId < 1 ||
+      !isPublished
+    ) {
       methods.setError('termsPageId', { type: 'server', message: t('affiliates.settings.validation.termsPage') })
       return
     }

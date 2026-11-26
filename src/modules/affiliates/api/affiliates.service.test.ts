@@ -224,6 +224,42 @@ describe('Laravel Affiliate service (synthetic grants only)', () => {
     http.get.mockResolvedValue(ok(raw))
     await expect(affiliatesService.show(2)).rejects.toThrow('identity')
   })
+  it('preserves an active status reason and accepts nullable detail fields and empty histories', async () => {
+    http.get.mockResolvedValue(
+      ok({
+        ...raw,
+        status_reason: 'Reviewed',
+        user_id: null,
+        application_id: null,
+        last_login_at: null,
+        terms_accepted_at: null,
+        bank_name: null,
+        iban: null,
+        orders: [],
+        payouts: [],
+      })
+    )
+    expect(await affiliatesService.show(1)).toMatchObject({
+      status: 'active',
+      statusReason: 'Reviewed',
+      applicationId: null,
+      lastLoginAt: null,
+      termsAcceptedAt: null,
+      orders: { data: [], meta: null },
+      payouts: { data: [], meta: null },
+    })
+  })
+  it.each(['', '   '])('blocks blank reactivation reason %j before transport', async (reason) => {
+    await expect(affiliatesService.reactivate(1, reason)).rejects.toThrow('reason')
+    expect(http.post).not.toHaveBeenCalled()
+  })
+  it('trims reactivation reasons and preserves server 422 validation', async () => {
+    const error = { isAxiosError: true, response: { status: 422, data: { errors: { reason: ['Required'] } } } }
+    http.post.mockRejectedValue(error)
+    await expect(affiliatesService.reactivate(1, ' Reviewed ')).rejects.toBe(error)
+    expect(http.post).toHaveBeenCalledOnce()
+    expect(http.post.mock.calls[0][0].data).toEqual({ reason: 'Reviewed' })
+  })
   it('uses sparse profile PUT and never expects a full financial result', async () => {
     http.put.mockResolvedValue(ok(null))
     await affiliatesService.update(1, { mobile: '0501112233', username: 'new' })
@@ -272,19 +308,62 @@ describe('Laravel Affiliate service (synthetic grants only)', () => {
     expect(http.put.mock.calls[0][0].data).toMatchObject({ min_payout: 0, terms_page_id: 2 })
     expect(Object.keys(http.put.mock.calls[0][0].data)).toHaveLength(6)
   })
-  it('preserves null through GET, all six PUT fields, and the PUT response', async () => {
+  it('preserves null from GET without inventing a default page', async () => {
     http.get.mockResolvedValue(ok({ ...settings, terms_page_id: null, terms_page: null }))
-    http.put.mockResolvedValue(ok({ ...settings, terms_page_id: null, terms_page: null }))
-    const result = await affiliatesService.getSettings()
-    expect(result).toEqual({ ...values, termsPageId: null })
-    expect(await affiliatesService.updateSettings(result)).toEqual(result)
+    expect(await affiliatesService.getSettings()).toEqual({ ...values, termsPageId: null })
+    expect(http.put).not.toHaveBeenCalled()
+  })
+  it('matches the reported live null GET to published ID 9 PUT/read-back contract locally', async () => {
+    const baseline = {
+      enabled: false,
+      applications_enabled: false,
+      customer_discount_percent: 10,
+      commission_percent: 10,
+      min_payout: 100,
+      terms_page_id: null,
+      terms_page: null,
+    }
+    const persisted = {
+      ...baseline,
+      terms_page_id: 9,
+      terms_page: { id: 9, title: 'Published terms', is_published: true },
+    }
+    http.get.mockResolvedValueOnce(ok(baseline)).mockResolvedValueOnce(ok(persisted))
+    http.put.mockResolvedValueOnce(ok(persisted))
+    const before = await affiliatesService.getSettings()
+    expect(before.termsPageId).toBeNull()
+    const saved = await affiliatesService.updateSettings({ ...before, termsPageId: 9 })
+    expect(http.put).toHaveBeenCalledTimes(1)
+    expect(http.put.mock.calls[0][0].data).toEqual({
+      enabled: false,
+      applications_enabled: false,
+      customer_discount_percent: 10,
+      commission_percent: 10,
+      min_payout: 100,
+      terms_page_id: 9,
+    })
+    const after = await affiliatesService.getSettings()
+    expect(after).toEqual(saved)
+    expect(after).toEqual({
+      ...before,
+      termsPageId: 9,
+      termsPage: { id: 9, title: 'Published terms', isPublished: true },
+    })
+  })
+  it('preserves selected published-page metadata and excludes it from the six-field PUT', async () => {
+    const raw = { ...settings, terms_page: { id: 2, title: { en: 'Terms', ar: null }, is_published: true } }
+    http.get.mockResolvedValue(ok(raw))
+    http.put.mockResolvedValue(ok(raw))
+    const read = await affiliatesService.getSettings()
+    expect(read.termsPage).toEqual({ id: 2, title: { en: 'Terms', ar: null }, isPublished: true })
+    await affiliatesService.updateSettings({ ...read, termsPageId: 2 })
     expect(http.put.mock.calls[0][0].data).toEqual({
       enabled: true,
       applications_enabled: true,
       customer_discount_percent: 10,
       commission_percent: 5,
       min_payout: 100,
-      terms_page_id: null,
+      terms_page_id: 2,
     })
   })
   it('does not round a precise decimal settings amount when constructing PUT', async () => {
@@ -295,26 +374,33 @@ describe('Laravel Affiliate service (synthetic grants only)', () => {
     ).toBe(amount)
     expect(http.put.mock.calls[0][0].data.min_payout).toBe(amount)
   })
-  it('preserves null-page 422 validation errors', async () => {
+  it('preserves server terms-page 422 validation errors for a locally valid request', async () => {
     const error = {
       isAxiosError: true,
       response: { status: 422, data: { errors: { terms_page_id: ['Invalid page'] } } },
     }
     http.put.mockRejectedValue(error)
-    await expect(affiliatesService.updateSettings({ ...values, termsPageId: null })).rejects.toBe(error)
+    await expect(affiliatesService.updateSettings(values)).rejects.toBe(error)
     expect(http.put).toHaveBeenCalledTimes(1)
   })
   it('keeps unverified settings writes closed even for a null page', async () => {
     gate.write = false
     await expect(affiliatesService.updateSettings(values)).rejects.toThrow()
-    await expect(affiliatesService.updateSettings({ ...values, termsPageId: null })).rejects.toThrow()
+    await expect(
+      affiliatesService.updateSettings({ ...values, termsPageId: null as unknown as number })
+    ).rejects.toThrow()
     expect(http.put).not.toHaveBeenCalled()
   })
-  it.each([undefined, 0, -1, 1.2])('rejects invalid page %s before transport', async (termsPageId) => {
-    gate.write = true
-    await expect(affiliatesService.updateSettings({ ...values, termsPageId: termsPageId as number })).rejects.toThrow()
-    expect(http.put).not.toHaveBeenCalled()
-  })
+  it.each([null, undefined, 0, -1, 1.2, NaN, Infinity, '2'])(
+    'rejects invalid page %s before transport',
+    async (termsPageId) => {
+      gate.write = true
+      await expect(
+        affiliatesService.updateSettings({ ...values, termsPageId: termsPageId as number })
+      ).rejects.toThrow()
+      expect(http.put).not.toHaveBeenCalled()
+    }
+  )
   it('rejects failure/malformed envelopes', async () => {
     http.get.mockResolvedValue({ data: { success: false, data: [raw] } })
     await expect(affiliatesService.list(1)).rejects.toThrow()

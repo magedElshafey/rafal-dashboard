@@ -1,5 +1,21 @@
 # Active dependencies and release blockers
 
+## Dashboard Integration & QA reconciliation - 2026-11-26
+
+Evidence source: user-reported live Laravel results, not new requests by this agent. Local mocks establish frontend behavior only; no browser integration run has been completed.
+
+| Area | Current frontend / verified evidence | Remaining acceptance |
+| --- | --- | --- |
+| Settings | Nullable GET/form; positive published ID required for six-field PUT. Null PUT rejected; unchanged read-back and published ID 9 PUT/persistence VERIFIED_AGAINST_LIVE_API. String Settings title and localized Static Pages titles supported. | Browser selection/pagination and settings-only staff page access; no initial-only null inference. |
+| List | URL pagination/search/status and meta.totals supported; live success VERIFIED_AGAINST_LIVE_API. Decimal strings retained without financial arithmetic. | Browser filter/back navigation and populated page rendering. |
+| Generate Code, Details, Date Range, Edit, Suspend, Reactivate | Successful requests VERIFIED_AGAINST_LIVE_API. Reactivate requires a reason; omitted body returned HTTP 422. Existing service/dialog require nonblank reason and send trimmed text. Active status retains the returned reactivation reason. | Local fix preserves status_reason in detail schema/model/adapter and renders it for active and suspended status. Browser reconciliation still pending. |
+| Nullable details | Null application_id/login timestamps and empty orders/payouts accepted. Unused nullable user_id and bank fields are excluded from the UI model. | Populated history row semantics and history pagination still unverified; date-range success does not prove these. |
+| Create | BACKEND_BUG_VERIFIED: record persisted, then serialization failed with Attempt to read property "value" on null in AffiliateDetailResource.php:39. | Backend must fix serialization and provide a safely reconciled successful create response. No blind replay. Local create retry remains false; network/5xx/malformed-response errors show an unconfirmed-result warning, preserve the open draft and disable resubmission in the mounted drawer, including reopen. Route reload is not proof of noncreation; reconcile the record with Backend before creating again. |
+| CSV | Endpoint success VERIFIED_AGAINST_LIVE_API. Existing Blob anchor download, sanitized header filename and affiliates.csv fallback are tested locally, including URL cleanup. | Real browser file save, actual CSV MIME and cross-origin Content-Disposition exposure remain browser checks. |
+| Applications / Payouts | Only empty-list responses VERIFIED_AGAINST_LIVE_API. | Populated lists/details, decisions and financial transitions remain unverified. No financial or SMS mutations authorized in this task. |
+| Authorization | Unknown grants fail closed; verified grants are in-memory and token-bound. Changes cancel/evict Affiliate queries and fence obsolete mutation results. All four release flags remain false. | Authoritative staff permissions hydration is absent; positive real-browser access remains blocked pending verified source integration and separate release authorization. |
+
+
 2026-11-26. This section supersedes earlier B02/B03 classifications. No Backend message has been sent.
 
 ## BACKEND_DEPENDENCY: authoritative effective staff permissions
@@ -10,11 +26,26 @@ The existing session exposes identity and role names, not verified effective per
 
 All four existing release/settings/financial readiness gates remain false. Production requires integrating the verified permission source, executing authorized live smoke tests and release approval. These are not evidence that ordinary Laravel endpoints are missing or defective. Role-based read-only tests must verify the prepared action mapping; no implicit grant inheritance is implemented.
 
-The previous settings null/clear, number/string minimum payout, generator DTO and routine detail-envelope questions are now IMPLEMENTED_PENDING_SMOKE_TEST assumptions, tracked in document 11. They are not requests for Backend clarification before a safe GET. Financial transitions use acknowledgments followed by authoritative reads, with no optimistic balances or automatic retries. A mutation lock survives dialog closure at the service boundary until a successful fresh detail read; reopening also forces a fresh read. Live payout mutation testing still requires a separately approved disposable payout with no external financial effect.
+Settings now follow the verified read/write distinction below. The published-ID 9 PUT and read-back are VERIFIED_AGAINST_LIVE_API. The reported numeric minimum payout, generator and routine detail requests now have live-success evidence; untested history shapes remain tracked in document 11. They are not requests for Backend clarification before a safe GET. Financial transitions use acknowledgments followed by authoritative reads, with no optimistic balances or automatic retries. A consumed or ambiguous payout decision remains locked across closure and session changes; a successful GET still returning pending does not prove the earlier mutation failed. Live payout mutation testing still requires a separately approved disposable payout with no external financial effect.
 
-## Actual live evidence
+## Verified settings read/write distinction - 2026-11-26
 
-Authenticated staff access was unavailable through the tools in this session. No authentication environment was supplied and no local browser debugging listener was found on ports 9222/9223. No live GET, PUT, export, SMS-triggering operation or financial mutation was executed. No HTTP status/validation response was observed. Programme enabled state and disposable-data safety were not established. No settings changed and no restoration or restoration GET was needed. Nothing is VERIFIED_AGAINST_LIVE_API. See document 07 for a reproducible authorized-session checklist.
+Evidence supplied by the user from a live Laravel smoke test; no new live requests were made by the agent in this alignment task. Exact HTTP status numbers were not supplied.
+
+| Observation | Classification |
+| --- | --- |
+| GET /api/v1/dashboard/affiliate-settings succeeded with terms_page_id: null and terms_page: null | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with terms_page_id: null returned success: false and terms_page_id validation errors | REJECTED_BY_LIVE_VALIDATION |
+| Follow-up GET confirmed every original setting unchanged | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with published Static Page ID 9 succeeded | VERIFIED_AGAINST_LIVE_API |
+| Subsequent GET confirmed ID 9 persisted and all other settings unchanged; enabled and applications_enabled remain false | VERIFIED_AGAINST_LIVE_API |
+| Settings terms_page.title is a plain string; Static Pages list titles are localized { ar, en } objects | VERIFIED_AGAINST_LIVE_API |
+
+The initial observed settings were enabled=false, applications_enabled=false, customer_discount_percent=10, commission_percent=10, min_payout=100, terms_page_id=null and terms_page=null. The rejected PUT message and errors.terms_page_id[0] both read: "يرجى اختيار صفحة الشروط".
+
+This proves null is readable, the tested null write is rejected, and the tested published-ID 9 write succeeds and persists. It does not prove null is an initial-only state or establish a lifecycle rule. The existing parser and selector support both the verified plain-string Settings title and localized Static Pages titles. Read/form types remain nullable; the write type requires a number, with positive safe-integer guards and a published-page check before form submission. All six PUT fields, selected-page metadata, pagination, 422 feedback and draft preservation remain supported. Authorization and release gates are unchanged.
+
+Backend dependencies are the effective-permission source and the verified create-response serialization bug described above. The null PUT rejection is handled by frontend validation, not a request to make Laravel nullable on writes. Other untested workflows retain their previous live-verification limitations.
 
 <details>
 <summary>Historical record before this frontend completion task; superseded by the active status above</summary>

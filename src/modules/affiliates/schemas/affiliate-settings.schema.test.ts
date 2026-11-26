@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createAffiliateSettingsSchema } from './affiliate-settings.schema'
+import { buildAffiliateSettingsPayload, toAffiliateSettingsFormValues } from '../utils/affiliate-settings'
 const schema = createAffiliateSettingsSchema({
   required: 'required',
   validNumber: 'number',
@@ -17,6 +18,13 @@ const valid = {
   termsPageId: 2,
 }
 describe('Laravel settings validation', () => {
+  it('preserves null on initialization but refuses to build a null write payload', () => {
+    const settings = { ...valid, termsPageId: null }
+    const form = toAffiliateSettingsFormValues(settings)
+    expect(form.termsPageId).toBeNull()
+    expect(() => buildAffiliateSettingsPayload(settings, form)).toThrow('terms page')
+    expect(buildAffiliateSettingsPayload(settings, { ...form, termsPageId: 2 })).toEqual(valid)
+  })
   it('accepts zero payout and documented percentage boundaries', async () => {
     expect(await schema.isValid(valid)).toBe(true)
     expect(
@@ -37,10 +45,7 @@ describe('Laravel settings validation', () => {
   it.each(['-1', '10000.01', 'abc', ''])('rejects payout %s', async (value) =>
     expect(await schema.isValid({ ...valid, minimumPayoutAmount: value })).toBe(false)
   )
-  it('preserves an explicit null page', async () => {
-    expect((await schema.validate({ ...valid, termsPageId: null })).termsPageId).toBeNull()
-  })
-  it.each([undefined, 0, -1, 1.2])('rejects unavailable/invalid page %s', async (value) =>
+  it.each([null, undefined, 0, -1, 1.2, NaN, Infinity])('rejects unavailable/invalid page %s', async (value) =>
     expect(await schema.isValid({ ...valid, termsPageId: value })).toBe(false)
   )
 })

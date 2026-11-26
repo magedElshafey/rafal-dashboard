@@ -79,10 +79,7 @@ export const affiliatesService = {
   },
   async updateSettings(values: UpdateAffiliateSettingsPayload) {
     assertAffiliateAccess('settingsWrite')
-    if (
-      !isAffiliateSettingsWriteReady ||
-      (values.termsPageId !== null && (!Number.isSafeInteger(values.termsPageId) || values.termsPageId < 1))
-    )
+    if (!isAffiliateSettingsWriteReady || !Number.isSafeInteger(values.termsPageId) || values.termsPageId < 1)
       throw new Error('Settings save contract unavailable')
     const response = await $http.put({
       url: '/dashboard/affiliate-settings',
@@ -179,6 +176,7 @@ export const affiliatesService = {
       status: raw.status,
       createdAt: raw.created_at,
       platform: raw.platform ?? '',
+      statusReason: raw.status_reason,
       username: raw.account_handle ?? '',
       updatedAt: raw.updated_at ?? '',
       source: raw.source,

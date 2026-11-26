@@ -21,6 +21,7 @@ export type Affiliate = {
   username: string
   code: string
   status: AffiliateStatus
+  statusReason?: string | null
   createdAt: string
   updatedAt: string
   source?: string | null
@@ -65,7 +66,7 @@ export type AffiliateSettings = {
   termsPageId: number | null
 }
 export type AffiliateSettingsFormValues = Omit<AffiliateSettings, 'termsPage'>
-export type UpdateAffiliateSettingsPayload = AffiliateSettingsFormValues
+export type UpdateAffiliateSettingsPayload = Omit<AffiliateSettingsFormValues, 'termsPageId'> & { termsPageId: number }
 export type AffiliateCodeSuggestion = { code: string }
 export type AffiliateListItem = Pick<
   Affiliate,

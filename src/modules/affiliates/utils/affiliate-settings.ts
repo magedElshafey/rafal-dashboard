@@ -17,5 +17,12 @@ export function buildAffiliateSettingsPayload(
   _baseline: AffiliateSettings,
   values: AffiliateSettingsFormValues
 ): UpdateAffiliateSettingsPayload {
-  return { ...toAffiliateSettingsFormValues(values), minimumPayoutAmount: values.minimumPayoutAmount.trim() }
+  const { termsPageId } = values
+  if (termsPageId === null || !Number.isSafeInteger(termsPageId) || termsPageId < 1)
+    throw new Error('A valid terms page is required')
+  return {
+    ...toAffiliateSettingsFormValues(values),
+    termsPageId,
+    minimumPayoutAmount: values.minimumPayoutAmount.trim(),
+  }
 }

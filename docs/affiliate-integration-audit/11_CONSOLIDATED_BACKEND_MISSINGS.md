@@ -1,6 +1,22 @@
-# Assumptions pending authorized smoke tests
+# Prepared assumptions and verified settings results
 
-2026-11-26. These are IMPLEMENTED_PENDING_SMOKE_TEST, not confirmed Backend defects or additional clarification requests. Local fixtures prove only frontend behavior. Document 10 contains the sole confirmed Backend dependency.
+## Dashboard Integration & QA reconciliation - 2026-11-26
+
+Evidence source: user-reported live Laravel results, not new requests by this agent. Local mocks establish frontend behavior only; no browser integration run has been completed.
+
+| Area | Current frontend / verified evidence | Remaining acceptance |
+| --- | --- | --- |
+| Settings | Nullable GET/form; positive published ID required for six-field PUT. Null PUT rejected; unchanged read-back and published ID 9 PUT/persistence VERIFIED_AGAINST_LIVE_API. String Settings title and localized Static Pages titles supported. | Browser selection/pagination and settings-only staff page access; no initial-only null inference. |
+| List | URL pagination/search/status and meta.totals supported; live success VERIFIED_AGAINST_LIVE_API. Decimal strings retained without financial arithmetic. | Browser filter/back navigation and populated page rendering. |
+| Generate Code, Details, Date Range, Edit, Suspend, Reactivate | Successful requests VERIFIED_AGAINST_LIVE_API. Reactivate requires a reason; omitted body returned HTTP 422. Existing service/dialog require nonblank reason and send trimmed text. Active status retains the returned reactivation reason. | Local fix preserves status_reason in detail schema/model/adapter and renders it for active and suspended status. Browser reconciliation still pending. |
+| Nullable details | Null application_id/login timestamps and empty orders/payouts accepted. Unused nullable user_id and bank fields are excluded from the UI model. | Populated history row semantics and history pagination still unverified; date-range success does not prove these. |
+| Create | BACKEND_BUG_VERIFIED: record persisted, then serialization failed with Attempt to read property "value" on null in AffiliateDetailResource.php:39. | Backend must fix serialization and provide a safely reconciled successful create response. No blind replay. Local create retry remains false; network/5xx/malformed-response errors show an unconfirmed-result warning, preserve the open draft and disable resubmission in the mounted drawer, including reopen. Route reload is not proof of noncreation; reconcile the record with Backend before creating again. |
+| CSV | Endpoint success VERIFIED_AGAINST_LIVE_API. Existing Blob anchor download, sanitized header filename and affiliates.csv fallback are tested locally, including URL cleanup. | Real browser file save, actual CSV MIME and cross-origin Content-Disposition exposure remain browser checks. |
+| Applications / Payouts | Only empty-list responses VERIFIED_AGAINST_LIVE_API. | Populated lists/details, decisions and financial transitions remain unverified. No financial or SMS mutations authorized in this task. |
+| Authorization | Unknown grants fail closed; verified grants are in-memory and token-bound. Changes cancel/evict Affiliate queries and fence obsolete mutation results. All four release flags remain false. | Authoritative staff permissions hydration is absent; positive real-browser access remains blocked pending verified source integration and separate release authorization. |
+
+
+2026-11-26. The reconciliation table above classifies the latest live results. The preparation table below records remaining shape/browser checks; it does not negate reported endpoint success. Local fixtures prove only frontend behavior. Document 10 tracks the permissions dependency and create serialization defect.
 
 | Surface | Prepared interpretation | Required observation |
 | --- | --- | --- |
@@ -8,12 +24,29 @@
 | Affiliate detail | Existing profile plus optional pending, approved_unpaid and paid decimal strings; orders/payouts are arrays or data collections with optional meta.current_page/last_page. Missing/malformed optional sections render unavailable, never zero. | GET a populated detail and compare actual nesting. The assumed history page parameters are orders_page/payouts_page, combined with from/to. Verify each page changes and no repeated page; revise adapter if actual names differ. |
 | History rows | Positive id, optional status/created_at, amount/commission/total/adjustment_amount exact decimal strings. No client financial calculations. | Verify row meaning and identifiers before activating links. Missing sections stay unavailable. |
 | Payout enrichment | Optional amount, created_at, transfer_reference, transferred_at, rejection_reason; detail payout identity/status required. Available balance may be absent/null and renders unavailable. | Compare pending/paid/rejected read-only examples. Never log full IBAN. |
-| Settings | Full six-field PUT, explicit null terms page, numeric/string GET minimum preserved. Numeric PUT for representable values; retain decimal string if converting would lose precision. Non-null pages must be published; null needs no option lookup result. | Read-only GET first. Conditional disposable-data nullable test only under document 07 safeguards. No null defect is claimed without a real 422. |
+| Settings | Nullable GET/form initialization; PUT requires a positive selected published-page ID and all six fields. Null/invalid IDs are blocked before transport. Selected metadata and numeric/string money normalization are preserved. | GET null and unchanged settings after rejection are VERIFIED_AGAINST_LIVE_API. Null PUT is REJECTED_BY_LIVE_VALIDATION. Published-ID 9 PUT and persisted read-back are VERIFIED_AGAINST_LIVE_API; no initial-only null rule is inferred. |
 | Permissions | V for list/detail/applications/export; M for create/generator/profile/status/reset/application decisions; V-or-S settings reads, S writes; P payout reads/decisions. All gated by release readiness. | Test independent grant sets after authoritative hydration. Do not derive grants from the assignable catalog or labels. |
-| Financial acknowledgments | Parse common success envelope, invalidate relevant caches and read authoritative details. Network/5xx/malformed results block resubmission until fresh read; 409 reconciles without replay. Date defaults to local calendar today, with no future date. | Authorized disposable transition testing only after explicit approval. Verify business-date behavior during acceptance, not a separate frontend permission system. |
+| Financial acknowledgments | Parse common success envelope, invalidate relevant caches and read authoritative details. Network/5xx/malformed results block resubmission even if fresh GET still returns pending; 409 reconciles without replay. Date defaults to local calendar today, with no future date. | Authorized disposable transition testing only after explicit approval. Verify business-date behavior during acceptance, not a separate frontend permission system. |
 | Remaining routine reads | Totals scope, CSV MIME/filename, selected-page metadata and application optional fields use existing documented shapes and safe absence handling. | Capture sanitized shapes from authorized GET/export and update adapters only when observed evidence differs. |
 
-No assumptions are labeled live-verified. No messages have been sent. No raw customer responses, credentials or bank identifiers are included here.
+The supplied endpoint observations above and settings observations below are labeled live-verified only to their stated extent. No messages have been sent. No raw customer responses, credentials or bank identifiers are included here.
+
+## Verified settings read/write distinction - 2026-11-26
+
+Evidence supplied by the user from a live Laravel smoke test; no new live requests were made by the agent in this alignment task. Exact HTTP status numbers were not supplied.
+
+| Observation | Classification |
+| --- | --- |
+| GET /api/v1/dashboard/affiliate-settings succeeded with terms_page_id: null and terms_page: null | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with terms_page_id: null returned success: false and terms_page_id validation errors | REJECTED_BY_LIVE_VALIDATION |
+| Follow-up GET confirmed every original setting unchanged | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with published Static Page ID 9 succeeded | VERIFIED_AGAINST_LIVE_API |
+| Subsequent GET confirmed ID 9 persisted and all other settings unchanged; enabled and applications_enabled remain false | VERIFIED_AGAINST_LIVE_API |
+| Settings terms_page.title is a plain string; Static Pages list titles are localized { ar, en } objects | VERIFIED_AGAINST_LIVE_API |
+
+The initial observed settings were enabled=false, applications_enabled=false, customer_discount_percent=10, commission_percent=10, min_payout=100, terms_page_id=null and terms_page=null. The rejected PUT message and errors.terms_page_id[0] both read: "يرجى اختيار صفحة الشروط".
+
+This proves null is readable, the tested null write is rejected, and the tested published-ID 9 write succeeds and persists. It does not prove null is an initial-only state or establish a lifecycle rule. The existing parser and selector support both the verified plain-string Settings title and localized Static Pages titles. Read/form types remain nullable; the write type requires a number, with positive safe-integer guards and a published-page check before form submission. All six PUT fields, selected-page metadata, pagination, 422 feedback and draft preservation remain supported. Authorization and release gates are unchanged.
 
 <details>
 <summary>Historical record before this frontend completion task; superseded by the active status above</summary>

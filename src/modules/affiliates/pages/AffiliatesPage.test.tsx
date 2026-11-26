@@ -316,6 +316,29 @@ describe('Affiliates page', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Affiliate code' })).toHaveValue('')
     expect(dialog).toBeInTheDocument()
   })
+  it.each([
+    { isAxiosError: true, response: { status: 500, data: { message: 'Internal serialization failure' } } },
+    { isAxiosError: true, message: 'Network Error' },
+    new Error('Malformed success response'),
+  ])('preserves an ambiguous create draft and blocks blind resubmission: %j', async (error) => {
+    const create = vi.mocked(affiliatesService.create).mockRejectedValue(error)
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findAllByText('Noura Al Harbi')
+    const dialog = await openCreateDrawer(user)
+    await fillCreateForm(user, dialog)
+    await user.click(within(dialog).getByRole('button', { name: 'Create Affiliate' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('may already exist')
+    expect(within(dialog).getByRole('textbox', { name: 'Full name' })).toHaveValue('  Sara  Al Salem  ')
+    expect(within(dialog).getByRole('button', { name: 'Create Affiliate' })).toBeDisabled()
+    expect(create).toHaveBeenCalledOnce()
+    expect(toastMocks.warning).toHaveBeenCalledWith(i18n.t('affiliates.feedback.createUnconfirmed'))
+    expect(toastMocks.error).not.toHaveBeenCalled()
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    const reopened = await openCreateDrawer(user)
+    expect(within(reopened).getByRole('button', { name: 'Create Affiliate' })).toBeDisabled()
+    expect(create).toHaveBeenCalledOnce()
+  })
 
   it('keeps Arabic labels and RTL document direction usable', async () => {
     await i18n.changeLanguage('ar')

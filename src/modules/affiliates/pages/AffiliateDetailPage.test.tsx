@@ -45,8 +45,8 @@ function installFixtures() {
   vi.spyOn(affiliatesService, 'suspend').mockImplementation(async () => {
     affiliate = { ...affiliate, status: 'suspended' }
   })
-  vi.spyOn(affiliatesService, 'reactivate').mockImplementation(async () => {
-    affiliate = { ...affiliate, status: 'active' }
+  vi.spyOn(affiliatesService, 'reactivate').mockImplementation(async (_id, reason) => {
+    affiliate = { ...affiliate, status: 'active', statusReason: reason }
   })
   vi.spyOn(affiliatesService, 'resetPassword').mockResolvedValue({ sms_sent: true, sms_message: 'SMS sent' })
 }
@@ -272,7 +272,7 @@ describe('Affiliate detail page', () => {
     vi.mocked(affiliatesService.suspend).mockRejectedValueOnce(conflict)
     vi.mocked(affiliatesService.show)
       .mockResolvedValueOnce({ ...affiliate })
-      .mockImplementation(async () => ({ ...affiliate, status: 'suspended' }))
+      .mockResolvedValueOnce({ ...affiliate, status: 'suspended' })
     const user = userEvent.setup()
     const { client } = renderPage()
     client.setQueryData(affiliatesKeys.list(), { pages: [], pageParams: [] })
@@ -287,11 +287,18 @@ describe('Affiliate detail page', () => {
     expect(client.getQueryState(affiliatesKeys.list())?.isInvalidated).toBe(true)
 
     await user.click(screen.getByRole('button', { name: 'Reactivate Affiliate' }))
+    const confirm = within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Reactivate Affiliate' })
+    expect(confirm).toBeDisabled()
+    await user.type(within(await screen.findByRole('alertdialog')).getByRole('textbox', { name: 'Reason' }), '   ')
+    expect(confirm).toBeDisabled()
+    await user.clear(within(await screen.findByRole('alertdialog')).getByRole('textbox', { name: 'Reason' }))
     await user.type(within(await screen.findByRole('alertdialog')).getByRole('textbox', { name: 'Reason' }), 'Reviewed')
     await user.click(
       within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Reactivate Affiliate' })
     )
     expect(affiliatesService.reactivate).toHaveBeenCalledWith(101, 'Reviewed')
+    expect(await screen.findByText('Reviewed')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Suspend Affiliate' })).toBeInTheDocument()
   })
 
   it('shows actual SMS outcome without exposing credentials', async () => {

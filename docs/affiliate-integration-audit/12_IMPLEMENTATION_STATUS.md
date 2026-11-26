@@ -1,16 +1,87 @@
 # Frontend Affiliate completion status
 
+## Dashboard Integration & QA reconciliation - 2026-11-26
+
+Evidence source: user-reported live Laravel results, not new requests by this agent. Local mocks establish frontend behavior only; no browser integration run has been completed.
+
+| Area | Current frontend / verified evidence | Remaining acceptance |
+| --- | --- | --- |
+| Settings | Nullable GET/form; positive published ID required for six-field PUT. Null PUT rejected; unchanged read-back and published ID 9 PUT/persistence VERIFIED_AGAINST_LIVE_API. String Settings title and localized Static Pages titles supported. | Browser selection/pagination and settings-only staff page access; no initial-only null inference. |
+| List | URL pagination/search/status and meta.totals supported; live success VERIFIED_AGAINST_LIVE_API. Decimal strings retained without financial arithmetic. | Browser filter/back navigation and populated page rendering. |
+| Generate Code, Details, Date Range, Edit, Suspend, Reactivate | Successful requests VERIFIED_AGAINST_LIVE_API. Reactivate requires a reason; omitted body returned HTTP 422. Existing service/dialog require nonblank reason and send trimmed text. Active status retains the returned reactivation reason. | Local fix preserves status_reason in detail schema/model/adapter and renders it for active and suspended status. Browser reconciliation still pending. |
+| Nullable details | Null application_id/login timestamps and empty orders/payouts accepted. Unused nullable user_id and bank fields are excluded from the UI model. | Populated history row semantics and history pagination still unverified; date-range success does not prove these. |
+| Create | BACKEND_BUG_VERIFIED: record persisted, then serialization failed with Attempt to read property "value" on null in AffiliateDetailResource.php:39. | Backend must fix serialization and provide a safely reconciled successful create response. No blind replay. Local create retry remains false; network/5xx/malformed-response errors show an unconfirmed-result warning, preserve the open draft and disable resubmission in the mounted drawer, including reopen. Route reload is not proof of noncreation; reconcile the record with Backend before creating again. |
+| CSV | Endpoint success VERIFIED_AGAINST_LIVE_API. Existing Blob anchor download, sanitized header filename and affiliates.csv fallback are tested locally, including URL cleanup. | Real browser file save, actual CSV MIME and cross-origin Content-Disposition exposure remain browser checks. |
+| Applications / Payouts | Only empty-list responses VERIFIED_AGAINST_LIVE_API. | Populated lists/details, decisions and financial transitions remain unverified. No financial or SMS mutations authorized in this task. |
+| Authorization | Unknown grants fail closed; verified grants are in-memory and token-bound. Changes cancel/evict Affiliate queries and fence obsolete mutation results. All four release flags remain false. | Authoritative staff permissions hydration is absent; positive real-browser access remains blocked pending verified source integration and separate release authorization. |
+
+
+## Dashboard QA local changes and validation
+
+Confirmed mismatches fixed: detail status_reason was discarded; Create's generic failure text suggested retry after potentially persisted writes. Reactivate already required and sent a reason, so request/dialog production logic was retained. Settings read/write distinction, nullable detail handling and CSV fallback required no production changes.
+
+Files changed in this QA follow-up (earlier staged Settings work preserved): affiliates.service.ts and its service tests; affiliate-api.schema.ts; affiliate.types.ts; AffiliateDetailsSections.tsx; useCreateAffiliate.ts; AffiliateCreateDrawer.tsx; EN/AR locale JSON; AffiliateDetailPage.test.tsx; AffiliatesPage.test.tsx; new AffiliateExportButton.test.tsx; Affiliate README and audit documents 07/10/11/12. No shared authorization, feature flag, environment or dependency files were changed.
+
+Validation: 243 focused tests passed across 17 files (Affiliate module, auth store and download utility). Full TypeScript build-mode check passed. Repository-wide ESLint and changed-source strict ESLint/Prettier passed. Production Vite build passed in 15.55s with the existing >500 kB advisory. Full-repository Prettier check failed with 1,198 reported files, including untouched .agents skills/configuration and source; unrelated formatting was not changed. Full repository result: **237 files passed, 18 failed (255); 2,354 tests passed, 44 failed (2,398); 6 unhandled errors**, duration 597.08s. All reported failing files are outside the changed Affiliate module. They were left untouched; a clean historical baseline run was not performed, so this report does not claim their historical origin. The six unhandled errors originate from RouteErrorBoundary.test.tsx: RequestInit expected the supplied AbortSignal to be an instance of the native AbortSignal (Node/DOM test environment boundary). Representative unrelated failures include missing translated validation feedback in Testimonials, transport argument assertions in Store Ratings and an Admin list query-key expectation.
+
+| Failing file | Failed tests |
+| --- | --- |
+| src/modules/roles/pages/RolesPage.test.tsx | 5 |
+| src/modules/blogs/__tests__/blogs-forms.test.tsx | 6 |
+| src/modules/products/pages/ProductCreatePage.test.tsx | 4 |
+| src/modules/testimonials/pages/TestimonialsPage.test.tsx | 3 |
+| src/modules/products/pages/ProductEditPage.test.tsx | 1 |
+| src/modules/inventory/__tests__/QuickStocktakeDrawer.test.tsx | 1 |
+| src/modules/products/hooks/products.deletions.test.tsx | 1 |
+| src/modules/admins/pages/AdminsPage.test.tsx | 2 |
+| src/modules/warehouses/pages/WarehousesPage.test.tsx | 3 |
+| src/routes/RouteErrorBoundary.test.tsx | 6 |
+| src/components/ui/form-control-surfaces.test.tsx | 1 |
+| src/modules/static-pages/pages/StaticPageForms.test.tsx | 1 |
+| src/modules/store-ratings/api/store-ratings.service.test.ts | 3 |
+| src/modules/cities/hooks/cities.mutations.test.tsx | 1 |
+| src/modules/regions/hooks/regions.mutations.test.tsx | 1 |
+| src/modules/shipping-methods/hooks/shipping-methods.mutations.test.tsx | 3 |
+| src/modules/store-ratings/hooks/useModerateStoreRating.test.tsx | 1 |
+| src/modules/admins/queries/admins.keys.test.ts | 1 |
+
+The 243-test focused run completed separately with no unhandled errors. Full-repository checks are not green; fixing unrelated test expectations/environment or repository-wide formatting is outside this task. Changed-source formatting/lint, TypeScript, build, focused tests and git diff --check passed.
+
+Commands (installed Node 24.19.0): vitest run src/modules/affiliates src/store/auth.test.ts src/utils/files/download-file.test.ts --maxWorkers=2 --minWorkers=1; vitest run --maxWorkers=2 --minWorkers=1; tsc -b --pretty false --force; eslint .; eslint <changed-source> --max-warnings 0; prettier --check .; prettier --check <changed-source-and-locales>; vite build. Executables were invoked directly from node_modules because the system Node shim hangs.
+
+No new live API call, browser acceptance, financial mutation, SMS operation, production gate change, commit, push or deployment was performed. Current browser readiness is blocked by real effective-permission hydration and separate release approval; Create additionally depends on Backend serialization repair. The mounted drawer's ambiguous-create guard is not server idempotency and does not survive a route/page reload; staff must reconcile before any new creation attempt.
+
+## Verified settings read/write distinction - 2026-11-26
+
+Evidence supplied by the user from a live Laravel smoke test; no new live requests were made by the agent in this alignment task. Exact HTTP status numbers were not supplied.
+
+| Observation | Classification |
+| --- | --- |
+| GET /api/v1/dashboard/affiliate-settings succeeded with terms_page_id: null and terms_page: null | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with terms_page_id: null returned success: false and terms_page_id validation errors | REJECTED_BY_LIVE_VALIDATION |
+| Follow-up GET confirmed every original setting unchanged | VERIFIED_AGAINST_LIVE_API |
+| Full six-field PUT with published Static Page ID 9 succeeded | VERIFIED_AGAINST_LIVE_API |
+| Subsequent GET confirmed ID 9 persisted and all other settings unchanged; enabled and applications_enabled remain false | VERIFIED_AGAINST_LIVE_API |
+| Settings terms_page.title is a plain string; Static Pages list titles are localized { ar, en } objects | VERIFIED_AGAINST_LIVE_API |
+
+The initial observed settings were enabled=false, applications_enabled=false, customer_discount_percent=10, commission_percent=10, min_payout=100, terms_page_id=null and terms_page=null. The rejected PUT message and errors.terms_page_id[0] both read: "يرجى اختيار صفحة الشروط".
+
+This proves null is readable, the tested null write is rejected, and the tested published-ID 9 write succeeds and persists. It does not prove null is an initial-only state or establish a lifecycle rule. The existing parser and selector support both the verified plain-string Settings title and localized Static Pages titles. Read/form types remain nullable; the write type requires a number, with positive safe-integer guards and a published-page check before form submission. All six PUT fields, selected-page metadata, pagination, 422 feedback and draft preservation remain supported. Authorization and release gates are unchanged.
+
+
+Settings alignment validation including the published-ID 9 evidence update: 88 focused tests passed across four files (service 42, settings UI 18, validation/read-form-write boundary 21, auth/cache regression 7). TypeScript, changed-source ESLint/Prettier, production build and diff checks passed. The build retains the existing large-chunk advisory. No new live requests, release flag changes, commits or deployment were performed in this alignment task.
+
 2026-11-26. Baseline: branch feat/affiliate, HEAD 023d758. The earlier nullable-settings working-tree changes were preserved and extended. No commit, push, merge or deployment was performed.
 
 ## IMPLEMENTED_AND_TESTED_LOCALLY
 
-Existing behavior retained: six-field nullable settings, published-page pagination, dirty/discard/422/disable confirmation; Affiliate URL filters/list pagination/meta.totals/CSV; creation/profile/status/reset interactions; application list/detail/pending counter/approval/rejection/409; payout forms/validation/warnings; optional order attribution and coupon collision handling.
+Existing behavior retained: nullable settings GET/form initialization and six-field PUT requiring a positive published-page ID, published-page pagination, dirty/discard/422/disable confirmation; Affiliate URL filters/list pagination/meta.totals/CSV; creation/profile/status/reset interactions; application list/detail/pending counter/approval/rejection/409; payout forms/validation/warnings; optional order attribution and coupon collision handling.
 
 This task adds name-based code generation with cancellation and draft-race protection; optional financial detail/history adapters and URL pagination; payout amount/reference/date/reason presentation; order-to-Affiliate links gated by verified view access; in-memory verified-grant preparation and exact route/navigation/query/action/service checks; stale-session 403 suppression; and financial read-back enforcement across dialog closure. More precise minimum-payout drafts remain strings rather than silently rounding through Number. EN/AR strings and existing components are reused. Shared Button.permissionName remains inert.
 
 Changed areas: src/modules/affiliates/{api,schemas,types,queries,hooks,components,pages,config,locale}; src/store/auth.ts (in-memory grant lifecycle); src/config/axios.ts (stale 403); src/modules/dashboard/layout/DashboardNavItem.tsx (Affiliate-only filtering); src/modules/orders/components/OrderAffiliateSection.tsx (conditional link); associated focused tests. No dependencies or release flag values changed. A separate .env.example modification appeared during execution and was left untouched.
 
-Validation: 484 tests passed across 49 files (90.94s). Full TypeScript build-mode validation passed after separating read-only selected-page metadata from the six-field form type. Changed-source ESLint (zero warnings), Prettier and git diff --check passed. Vite production build passed (17.23s), with the existing >500 kB chunk advisory. The source adapters and tests are local evidence only. Selected published-page metadata from settings now supports a selection outside the loaded options page; loaded unpublished options take precedence.
+Earlier completion validation (before this settings alignment): 484 tests passed across 49 files (90.94s). Full TypeScript build-mode validation passed after separating read-only selected-page metadata from the six-field form type. Changed-source ESLint (zero warnings), Prettier and git diff --check passed. Vite production build passed (17.23s), with the existing >500 kB chunk advisory. The source adapters and tests are local evidence only. Selected published-page metadata from settings now supports a selection outside the loaded options page; loaded unpublished options take precedence.
 
 Commands used with installed Node 24.19.0:
 
@@ -24,15 +95,15 @@ Initial test failures were task-owned expectations/selectors and were corrected;
 
 ## IMPLEMENTED_PENDING_SMOKE_TEST
 
-Every prepared workflow still needs live Laravel acceptance, especially generator/detail nesting and history pagination assumptions enumerated in document 11. No successful unit test or build is classified as VERIFIED_AGAINST_LIVE_API.
+Other untested workflows still need live Laravel acceptance, especially populated history pagination, application/payout details and a successful create response after the Backend fix. Reported generator/detail/date-range success is now verified to the supplied extent. No successful unit test or build is classified as VERIFIED_AGAINST_LIVE_API.
 
 ## BACKEND_DEPENDENCY
 
-Only the authoritative current-staff effective-permission source remains confirmed as a Backend dependency. The session integration seam has no production hydration caller until that source is supplied and verified.
+The authoritative current-staff effective-permission source and create-response serialization fix remain Backend dependencies. The session integration seam has no production hydration caller until that source is supplied and verified.
 
 ## RELEASE_BLOCKER
 
-Verified permissions hydration, authorized live/browser acceptance and release approval remain outstanding. All existing gates remain closed. Financial live mutation tests require explicit disposable-payout authorization. The requested nullable-settings smoke was not executed because authenticated access and disposable-data safety could not be established; no state changed, no restore was needed, and no HTTP status is available.
+Verified permissions hydration, authorized live/browser acceptance and release approval remain outstanding. All existing gates remain closed. Financial live mutation tests require explicit disposable-payout authorization. The user has now supplied the settings GET/null-PUT/GET and published-ID 9 PUT/GET evidence classified above. The agent did not execute additional live requests. The rejected write left the original settings unchanged; the subsequent published-ID 9 PUT persisted with all other settings unchanged and both enabled flags false. Any initial-only null behavior remains unproven.
 
 The exact manual checklist is in document 07. Historical delivery notes below are retained for traceability and are not active Backend requests.
 
